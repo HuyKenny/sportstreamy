@@ -1,0 +1,83 @@
+---
+import Base from '../../layouts/Base.astro';
+import Rows from '../../components/Rows.astro';
+import Faq from '../../components/Faq.astro';
+import Aside from '../../components/Aside.astro';
+import { getEnv, view, sportCounts, leagues } from '../../lib/page';
+import { hhmm, longDay, dayLabel } from '../../lib/text';
+import { matchTitle, matchPath, sportOf, goPath, sportPath, leaguePath } from '../../lib/url';
+
+export const prerender = false;
+const id = Number((Astro.params.slug ?? '').split('-')[0]);
+const v = await view(getEnv());
+const now = Date.now();
+const m = [...v.live, ...v.recent, ...v.upcoming].find((x) => x.id === id);
+if (!m) {
+  // Finished and gone from the feeds: a 410-ish soft landing keeps crawlers from keeping dead URLs.
+  Astro.response.headers.set('Cache-Control', 'public, s-maxage=300');
+  return Astro.rewrite('/zapas-skoncil/');
+}
+if (Astro.url.pathname !== matchPath(m)) return Astro.redirect(matchPath(m), 301);
+const sport = sportOf(m);
+const state = v.live.includes(m) ? 'live' : m.st > now ? 'pre' : 'recent';
+const same = [...v.live, ...v.upcoming].filter((x) => x.lg === m.lg && x.id !== m.id).slice(0, 6);
+const o = m.o?.t;
+const c = m.o?.c;
+const title = matchTitle(m);
+const best = (i: 0 | 1 | 2) => {
+  const a = o?.[i] ?? 0; const b = c?.[i] ?? 0;
+  return a === b ? '' : a > b ? 't' : 'c';
+};
+const faq = [
+  { q: `Kde sledovat ${title}?`, a: m.stream ? 'Zápas má video přenos u Tipsportu. Klikni na tlačítko „Sledovat“, přihlas se (nebo se bezplatně registruj) a přenos se ti otevře.' : 'U tohoto zápasu nemáme video, ale můžeš sledovat živé skóre a kurzy u provozovatele.' },
+  { q: 'Kdy zápas začíná?', a: `${longDay(m.st)} v ${hhmm(m.st)} (středoevropský čas).` },
+  { q: 'Je sledování zdarma?', a: 'Přenos zpřístupňuje licencovaný provozovatel. Obvykle stačí registrace a přihlášení, vsázet nemusíš. Sázení je dobrovolné a pouze pro osoby od 18 let.' },
+];
+const ld = [
+  { '@context': 'https://schema.org', '@type': 'SportsEvent', name: title, startDate: new Date(m.st).toISOString(), eventStatus: 'https://schema.org/EventScheduled', eventAttendanceMode: 'https://schema.org/OnlineEventAttendanceMode', location: { '@type': 'VirtualLocation', url: `https://sportstreamy.cz${matchPath(m)}` }, sport: sport?.name, ...(m.a ? { competitor: [{ '@type': 'SportsTeam', name: m.h }, { '@type': 'SportsTeam', name: m.a }] } : {}) },
+  { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [{ '@type': 'ListItem', position: 1, name: 'Domů', item: 'https://sportstreamy.cz/' }, { '@type': 'ListItem', position: 2, name: `${sport?.name} online`, item: `https://sportstreamy.cz${sportPath(sport!.slug)}` }, { '@type': 'ListItem', position: 3, name: title }] },
+  { '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: faq.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) },
+];
+const when = state === 'live' ? 'právě běží' : `${dayLabel(m.st, now).toLowerCase()} v ${hhmm(m.st)}`;
+---
+<Base title={`${title} online – přenos ${state === 'live' ? 'živě' : `${longDay(m.st)}`} | SportStreamy`} description={`${title} (${m.lg}): ${when}. ${m.stream ? 'Video přenos zdarma po registraci, ' : ''}kurzy a odkaz na zápas.`} ld={ld} section={sport?.slug} ttl={30}>
+  <div class="wrap">
+    <nav class="crumbs" aria-label="Drobečky"><a href="/">Domů</a> › {sport ? <a href={sportPath(sport.slug)}>{sport.name} online</a> : null} › <a href={leaguePath(sport!.slug, m.lg)}>{m.lg}</a></nav>
+    <div class="cols" style="margin-top:14px">
+      <div>
+        <div class="stage">
+          <div class="sub">
+            {state === 'live' ? <span class="pill live" style="color:#ff6a5d"><span class="dot"></span>Živě{m.ti ? ` · ${m.ti}` : ''}</span> : state === 'recent' ? 'Právě skončilo / záznam' : `${longDay(m.st)} · ${hhmm(m.st)}`} · {m.lg}
+          </div>
+          <h1 class="vs">
+            <span>{m.h}</span>
+            <span class="mid">{state === 'live' && m.sc ? m.sc : m.a ? 'vs' : ''}</span>
+            <span>{m.a}</span>
+          </h1>
+          <a class="btn lg" href={goPath(m, 'detail')} rel="sponsored nofollow noopener" target="_blank">Sledovat {state === 'live' ? 'živě' : 'zápas'}</a>
+          <div class="note">Reklama · přenos zpřístupňuje Tipsport, nutná registrace a přihlášení · 18+</div>
+        </div>
+
+        {o ? (
+          <section class="sec">
+            <div class="sec-head"><h2>Kurzy na zápas</h2></div>
+            <div class="rows" style="padding:4px 6px">
+              <table class="odds-table">
+                <thead><tr><th>Kancelář</th><th>1</th>{o[1] !== null ? <th>X</th> : null}<th>2</th><th></th></tr></thead>
+                <tbody>
+                  <tr><td><b>Tipsport</b></td>{o.map((x, i) => x === null ? null : <td class:list={[best(i as 0|1|2) === 't' && 'best']}><b>{x.toFixed(2)}</b></td>)}<td><a class="btn sm" href={goPath(m, 'detail-odds')} rel="sponsored nofollow noopener" target="_blank">Vsadit</a></td></tr>
+                  {c ? <tr><td><b>Chance</b></td>{c.map((x, i) => x === null ? null : <td class:list={[best(i as 0|1|2) === 'c' && 'best']}><b>{x.toFixed(2)}</b></td>)}<td><a class="btn sm ghost" href={goPath(m, 'detail-odds', 'chance')} rel="sponsored nofollow noopener" target="_blank">Vsadit</a></td></tr> : null}
+                </tbody>
+              </table>
+            </div>
+            <p style="font-size:.78rem;color:var(--ink-2);margin-top:8px">Kurzy jsou orientační a mění se. Zeleně je vyšší kurz. Pouze 18+, hazard může způsobit závislost.</p>
+          </section>
+        ) : null}
+
+        {same.length ? (<section class="sec"><div class="sec-head"><h2>Další zápasy: {m.lg}</h2></div><Rows items={same} now={now} placement="detail-same" groupByDay /></section>) : null}
+        <section class="sec"><div class="sec-head"><h2>Časté otázky</h2></div><Faq items={faq} /></section>
+      </div>
+      <Aside sports={sportCounts(v)} leagues={leagues(v)} placement="detail-aside" />
+    </div>
+  </div>
+</Base>

@@ -1,0 +1,42 @@
+---
+import Base from '../layouts/Base.astro';
+import Rows from '../components/Rows.astro';
+import Aside from '../components/Aside.astro';
+import Icon from '../components/Icon.astro';
+import { getEnv, view, sportCounts, leagues } from '../lib/page';
+import { SPORT_BY_ID } from '../lib/sports';
+import { plural, hhmm } from '../lib/text';
+
+export const prerender = false;
+const v = await view(getEnv());
+const now = Date.now();
+const sports = sportCounts(v);
+const groups = sports.filter((s) => s.live).map((s) => ({ ...s, items: v.live.filter((m) => m.sp === s.id) }));
+const next = v.upcoming.slice(0, 8);
+---
+<Base title={`Živé přenosy právě teď (${v.live.length}) | SportStreamy`} description={`Právě běží ${v.live.length} ${plural(v.live.length, 'přenos', 'přenosy', 'přenosů')} v ${groups.length} ${plural(groups.length, 'sportu', 'sportech', 'sportech')}. Živé skóre a odkaz na přenos – aktualizováno ${hhmm(now)}.`} section="zive">
+  <div class="wrap">
+    <section class="hero">
+      <h1>Živě právě teď</h1>
+      <p class="lead">{v.live.length ? `Běží ${v.live.length} ${plural(v.live.length, 'přenos', 'přenosy', 'přenosů')} v ${groups.length} ${plural(groups.length, 'sportu', 'sportech', 'sportech')}. Skóre se obnovuje každých 30 sekund.` : 'Právě teď žádný zápas neběží, nejbližší starty jsou níže.'} Aktualizováno {hhmm(now)}.</p>
+    </section>
+    <div class="chips">
+      {groups.map((g) => <a class="chip" href={`#${g.slug}`}><Icon name={g.slug} />{g.name}<em>{g.live}</em></a>)}
+    </div>
+    <div class="cols">
+      <div>
+        {groups.map((g) => (
+          <section class="sec" id={g.slug}>
+            <div class="sec-head"><h2>{g.name}</h2><span class="n">{g.live} {plural(g.live, 'zápas', 'zápasy', 'zápasů')} · <a href={`/${g.slug}-online/`}>vše ›</a></span></div>
+            <Rows items={g.items} now={now} placement="zive" live />
+          </section>
+        ))}
+        {v.recent.length ? (
+          <section class="sec"><div class="sec-head"><h2>Právě skončilo / záznam</h2></div><Rows items={v.recent.slice(0, 8)} now={now} placement="zive-recent" recent /></section>
+        ) : null}
+        <section class="sec"><div class="sec-head"><h2>Co začne další</h2><a href="/program/">Program ›</a></div><Rows items={next} now={now} placement="zive-next" /></section>
+      </div>
+      <Aside sports={sports} leagues={leagues(v)} placement="zive-aside" />
+    </div>
+  </div>
+</Base>

@@ -1,0 +1,53 @@
+---
+import Base from '../../layouts/Base.astro';
+import Rows from '../../components/Rows.astro';
+import Aside from '../../components/Aside.astro';
+import { getEnv, view, featured, sportCounts, leagues } from '../../lib/page';
+import { dayKey, addDays, dayLabel, longDay, plural } from '../../lib/text';
+import { SPORT_BY_SLUG } from '../../lib/sports';
+
+export const prerender = false;
+const v = await view(getEnv());
+const now = Date.now();
+const arg = Astro.params.day ?? '';
+// /program/, /program/dnes/, /program/zitra/, /program/2026-10-21/
+const keys = Array.from({ length: 8 }, (_, i) => dayKey(addDays(now, i)));
+const key = arg === '' || arg === 'dnes' ? keys[0] : arg === 'zitra' ? keys[1] : arg;
+if (!keys.includes(key)) return Astro.redirect('/program/', 302);
+const idx = keys.indexOf(key);
+const sportSlug = Astro.url.searchParams.get('sport') ?? '';
+const sport = SPORT_BY_SLUG.get(sportSlug);
+const dayItems = v.upcoming.filter((m) => dayKey(m.st) === key);
+const LIMIT = 120;
+const filtered = sport ? dayItems.filter((m) => m.sp === sport.id) : dayItems;
+// Without a sport filter a day can hold 400+ matches (mostly table tennis): show the top ones and point to the sport chips.
+const items = (filtered.length > LIMIT ? featured(filtered).slice(0, LIMIT).sort((a, b) => a.st - b.st) : filtered);
+const cut = filtered.length - items.length;
+const slugOf = (i: number) => (i === 0 ? '/program/' : i === 1 ? '/program/zitra/' : `/program/${keys[i]}/`);
+const label = (i: number) => (i === 0 ? 'Dnes' : i === 1 ? 'Zítra' : new Intl.DateTimeFormat('cs-CZ', { timeZone: 'Europe/Prague', weekday: 'short', day: 'numeric', month: 'numeric' }).format(addDays(now, i)));
+const counts = sportCounts({ ...v, upcoming: dayItems, live: idx === 0 ? v.live : [] });
+const h = idx === 0 ? 'Program přenosů na dnes' : idx === 1 ? 'Program přenosů na zítra' : `Program přenosů – ${longDay(addDays(now, idx))}`;
+const q = (s: string) => `${Astro.url.pathname}${s ? `?sport=${s}` : ''}`;
+---
+<Base title={`${h}${sport ? ` – ${sport.name}` : ''} | SportStreamy`} description={`${dayItems.length} ${plural(dayItems.length, 'zápas', 'zápasy', 'zápasů')} s přenosem: ${longDay(addDays(now, idx))}. Čas výkopu, soutěž, kurzy a odkaz na přenos.`} path={slugOf(idx)} noindex={!!sport} section="program">
+  <div class="wrap">
+    <section class="hero">
+      <h1>{h}</h1>
+      <p class="lead">{dayItems.length} {plural(dayItems.length, 'zápas', 'zápasy', 'zápasů')} s přenosem. Vyber den a sport, klikni a jsi u zápasu.</p>
+    </section>
+    <div class="chips" aria-label="Den">
+      {keys.map((k, i) => <a class="chip" href={slugOf(i)} aria-current={i === idx ? 'page' : undefined}>{label(i)}</a>)}
+    </div>
+    <div class="chips" aria-label="Sport">
+      <a class="chip" href={q('')} aria-current={!sport ? 'page' : undefined}>Všechny sporty<em>{dayItems.length}</em></a>
+      {counts.map((s) => <a class="chip" href={q(s.slug)} aria-current={sport?.slug === s.slug ? 'page' : undefined}>{s.name}<em>{dayItems.filter((m) => m.sp === s.id).length}</em></a>)}
+    </div>
+    <div class="cols">
+      <section class="sec">
+        <Rows items={items} now={now} placement="program" empty="Na tenhle den zatím nemáme žádné přenosy." />
+        {cut > 0 ? <p class="empty">Zobrazeno {items.length} z {filtered.length} zápasů. Zbytek najdeš po výběru sportu výše.</p> : null}
+      </section>
+      <Aside sports={sportCounts(v)} leagues={leagues(v)} placement="program-aside" />
+    </div>
+  </div>
+</Base>

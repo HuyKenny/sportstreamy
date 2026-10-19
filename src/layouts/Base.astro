@@ -1,0 +1,94 @@
+---
+import '../styles/global.css';
+import Icon from '../components/Icon.astro';
+import { SPORTS } from '../lib/sports';
+interface Props { title: string; description: string; path?: string; noindex?: boolean; ld?: object[]; ttl?: number; image?: string; section?: string }
+const { title, description, path = Astro.url.pathname, noindex = false, ld = [], ttl = 60, image = '/og/default.png', section = '' } = Astro.props;
+const canonical = new URL(path, Astro.site).toString();
+if (ttl > 0) Astro.response.headers.set('Cache-Control', `public, max-age=0, s-maxage=${ttl}, stale-while-revalidate=${ttl * 4}`);
+const nav = [
+  { href: '/zive/', label: 'Živě', k: 'zive', hot: true },
+  { href: '/program/', label: 'Program', k: 'program' },
+  ...SPORTS.filter((s) => s.main).slice(0, 5).map((s) => ({ href: `/${s.slug}-online/`, label: s.name, k: s.slug })),
+  { href: '/sazkove-kancelare/', label: 'Bonusy', k: 'bonusy' },
+  { href: '/clanky/', label: 'Články', k: 'clanky' },
+];
+---
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{title}</title>
+  <meta name="description" content={description} />
+  <link rel="canonical" href={canonical} />
+  {noindex ? <meta name="robots" content="noindex, follow" /> : <meta name="robots" content="index, follow, max-image-preview:large" />}
+  <meta name="theme-color" content="#f4f0e6" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#12120e" media="(prefers-color-scheme: dark)" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="SportStreamy" />
+  <meta property="og:locale" content="cs_CZ" />
+  <meta property="og:title" content={title} />
+  <meta property="og:description" content={description} />
+  <meta property="og:url" content={canonical} />
+  <meta property="og:image" content={new URL(image, Astro.site).toString()} />
+  <meta name="twitter:card" content="summary_large_image" />
+  {ld.map((o) => <script type="application/ld+json" set:html={JSON.stringify(o)} />)}
+</head>
+<body>
+  <div class="age"><div class="wrap"><span>Web nevysílá – odkazuje na licencované provozovatele. Pouze 18+.</span><a href="/zodpovedne-hrani/">Hraj rozumně</a></div></div>
+  <header class="bar">
+    <div class="wrap">
+      <a class="logo" href="/" aria-label="SportStreamy – úvod">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="currentColor"/><path d="M11.5 8.5v15l12.5-7.5z" fill="var(--paper)"/></svg>
+        <span>sport<b>streamy</b></span>
+      </a>
+      <nav class="nav" aria-label="Hlavní">
+        {nav.map((n) => <a href={n.href} class:list={[n.hot && 'hot']} aria-current={section === n.k ? 'page' : undefined}>{n.hot ? <span class="dot"></span> : null}{n.label}</a>)}
+      </nav>
+      <a class="btn sm cta" href="/go/tipsport/?p=header" rel="sponsored nofollow noopener" target="_blank">Bonus 18+</a>
+    </div>
+  </header>
+  <main><slot /></main>
+  <footer>
+    <div class="wrap">
+      <div class="grid">
+        <div><h4>Sporty</h4>{SPORTS.filter((s) => s.main || ['stolni-tenis','hazena','florbal','snooker','sipky'].includes(s.slug)).map((s) => <a href={`/${s.slug}-online/`}>{s.name} online</a>)}</div>
+        <div><h4>Přehledy</h4><a href="/zive/">Živé přenosy</a><a href="/program/">Program přenosů</a><a href="/program/zitra/">Přenosy zítra</a><a href="/sazkove-kancelare/">Sázkové kanceláře a bonusy</a><a href="/clanky/">Články</a></div>
+        <div><h4>Web</h4><a href="/o-webu/">O webu</a><a href="/zodpovedne-hrani/">Zodpovědné hraní</a><a href="/osobni-udaje/">Ochrana údajů</a><a href="/podminky/">Podmínky</a><a href="/kontakt/">Kontakt</a></div>
+      </div>
+      <p class="legal">SportStreamy je nezávislý přehled sportovních přenosů. Videa nevysíláme ani neukládáme – odkazy vedou na stránky licencovaných sázkových kanceláří (Tipsport, Chance, Allwyn), od kterých můžeme získat provizi, pokud se zaregistruješ. Sledování přenosů bývá vázané na registraci a přihlášení. Hazardní hry jsou určeny osobám starším 18 let a mohou způsobit závislost. Pomoc: <a href="https://www.hrajrozumne.cz" rel="noopener nofollow" style="display:inline;text-decoration:underline">hrajrozumne.cz</a>. Odkazy označené „Reklama“ jsou komerční sdělení.</p>
+    </div>
+  </footer>
+  <nav class="dock" aria-label="Rychlá navigace">
+    <a href="/" aria-current={section === 'home' ? 'page' : undefined}><Icon name="home" />Domů</a>
+    <a href="/zive/" aria-current={section === 'zive' ? 'page' : undefined}><Icon name="tv" />Živě</a>
+    <a href="/program/" aria-current={section === 'program' ? 'page' : undefined}><Icon name="calendar" />Program</a>
+    <a href="/go/tipsport/?p=dock" class="go" rel="sponsored nofollow noopener" target="_blank"><Icon name="gift" />Bonus</a>
+  </nav>
+  <script>
+    // Live scores: refresh score + minute in place every 30 s while the tab is visible (no framework, ~400 B of work).
+    const rows = () => document.querySelectorAll<HTMLElement>('.row.is-live[data-id]');
+    if (rows().length) {
+      const tick = async () => {
+        if (document.hidden) return;
+        try {
+          const r = await fetch('/api/live.json');
+          const d: Record<string, [string, string]> = await r.json();
+          rows().forEach((row) => {
+            const v = d[row.dataset.id!];
+            if (!v) return;
+            const s = row.querySelector('[data-s]');
+            const t = row.querySelector('[data-t]');
+            if (s && v[0]) s.textContent = v[0];
+            if (t && v[1]) t.textContent = v[1];
+          });
+        } catch { /* keep what is on screen */ }
+      };
+      setInterval(tick, 30_000);
+    }
+  </script>
+</body>
+</html>

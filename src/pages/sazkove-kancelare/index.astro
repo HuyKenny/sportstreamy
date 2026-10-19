@@ -1,0 +1,44 @@
+---
+import Base from '../../layouts/Base.astro';
+import Faq from '../../components/Faq.astro';
+import { BOOKS } from '../../lib/books';
+export const prerender = false;
+const faq = [
+  { q: 'Kterou kancelář vybrat pro sledování přenosů?', a: 'Největší nabídku přenosů má Tipsport, Chance má stejné zápasy a jiné kurzy. Pokud nevíš, začni u Tipsportu a kurzy si porovnej na detailu zápasu.' },
+  { q: 'Musím vsadit, abych viděl přenos?', a: 'Ne. Ke sledování obvykle stačí mít ověřený účet a být přihlášený. Sázení je dobrovolné a je určené pouze osobám starším 18 let.' },
+  { q: 'Je bonus pro nové hráče vždycky?', a: 'Provozovatelé bonusy mění a podmínky se liší. Aktuální výši a podmínky najdeš vždy na stránce provozovatele, proto zde žádné částky neuvádíme.' },
+  { q: 'Dostanete od kanceláří provizi?', a: 'Ano. Pokud se zaregistruješ přes naše odkazy, můžeme dostat provizi. Tebe to nic nestojí a cena ani podmínky se kvůli tomu nemění. Odkazy jsou označené jako reklama.' },
+];
+const ld = [{ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: faq.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) }];
+---
+<Base title="Sázkové kanceláře a bonusy pro nové hráče | SportStreamy" description="Srovnání českých licencovaných kanceláří – Tipsport, Chance a Allwyn: co nabízejí, jak se sledují přenosy a kde najdeš aktuální bonus." ld={ld} section="bonusy" ttl={600}>
+  <div class="wrap">
+    <section class="hero">
+      <h1>Sázkové kanceláře a bonusy</h1>
+      <p class="lead">Přenosy zpřístupňují licencované kanceláře. Tady je stručné srovnání, kde co sledovat a kde najít aktuální bonus. Reklama, pouze 18+.</p>
+    </section>
+    <div class="cmp">
+      {BOOKS.map((b) => (
+        <div class="panel">
+          <h3>{b.name}</h3>
+          <p>{b.blurb}</p>
+          <ul>{b.pros.map((p) => <li>{p}</li>)}</ul>
+          <a class="btn" href={`/go/${b.go}/?p=books-${b.slug}`} rel="sponsored nofollow noopener" target="_blank">Přejít na {b.name.split(' ')[0]}</a>
+          <a href={`/sazkove-kancelare/${b.slug}/`} style="font-size:.88rem;font-weight:600">Více o {b.name.split(' ')[0]} ›</a>
+        </div>
+      ))}
+    </div>
+    <section class="sec prose">
+      <h2>Jak sledovat přenos krok za krokem</h2>
+      <ol>
+        <li>Vyber zápas v <a href="/zive/">živých přenosech</a> nebo v <a href="/program/">programu</a>.</li>
+        <li>Klikni na „Sledovat“ – otevře se stránka zápasu u provozovatele.</li>
+        <li>Přihlas se, nebo se bezplatně zaregistruj a ověř totožnost (vyžaduje zákon).</li>
+        <li>Spusť přenos. Vsázet nemusíš.</li>
+      </ol>
+      <h2>Na co si dát pozor</h2>
+      <p>Sázky jsou určené pouze osobám starším 18 let a mohou způsobit závislost. Nesázej víc, než si můžeš dovolit prohrát. Pomoc najdeš na <a href="https://www.hrajrozumne.cz" rel="noopener nofollow">hrajrozumne.cz</a> a na stránce <a href="/zodpovedne-hrani/">zodpovědné hraní</a>.</p>
+    </section>
+    <section class="sec"><div class="sec-head"><h2>Časté otázky</h2></div><Faq items={faq} /></section>
+  </div>
+</Base>

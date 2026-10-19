@@ -1,0 +1,22 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Astro SSR (adapter) + our own entry: fetch → Astro, scheduled → refresh match data into KV.
+  "name": "sportstreamy",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "assets": { "directory": "./dist/client", "binding": "ASSETS", "html_handling": "force-trailing-slash", "not_found_handling": "none" },
+  // Secrets (wrangler secret put): TIPSPORT_CLIENT_ID/SECRET, CHANCE_API_USER/PASS, APISPORTS_KEY.
+  "triggers": { "crons": ["*/3 * * * *", "*/15 * * * *"] },
+  "kv_namespaces": [{ "binding": "DATA" }],
+  "vars": {
+    "TIPSPORT_URL": "https://www.tipsport.cz/PartnerRedirectAction.do?pid=14361&sid=46142&bid=5695&tid=3121&urlid=653",
+    "TIPSPORT_REG_URL": "https://www.tipsport.cz/PartnerRedirectAction.do?pid=14361&sid=46142&bid=1421&tid=182&urlid=328",
+    "CHANCE_URL": "https://www.chance.cz/PartnerRedirectAction.do?pid=31094&sid=46143&bid=4666&tid=2703&urlid=681",
+    "SAZKA_URL": "https://record.sazka.cz/_8u72YyI1anK2bnhOaaLAUmNd7ZgqdRLk/1/?payload=sportstreamy.cz"
+  },
+  "analytics_engine_datasets": [{ "binding": "CLICKS", "dataset": "sportstreamy_clicks" }],
+  "observability": { "enabled": true, "head_sampling_rate": 0.1 }
+}

@@ -1,0 +1,20 @@
+---
+import type { Match } from '../lib/types';
+import { dayKey, dayLabel } from '../lib/text';
+import MatchRow from './MatchRow.astro';
+interface Props { items: Match[]; now: number; placement: string; live?: boolean; recent?: boolean; groupByDay?: boolean; limit?: number; empty?: string }
+const { items, now, placement, live = false, recent = false, groupByDay = false, limit = 0, empty = 'Teď tu nic není.' } = Astro.props;
+const list = limit ? items.slice(0, limit) : items;
+let last = '';
+---
+<div class="rows">
+  {list.length === 0 ? <p class="empty">{empty}</p> : list.map((m) => {
+    const k = dayKey(m.st);
+    const head = groupByDay && k !== last;
+    last = k;
+    return (<>
+      {head ? <div class="dayhead">{dayLabel(m.st, now)}</div> : null}
+      <MatchRow m={m} now={now} placement={placement} live={live} recent={recent} showDay={!groupByDay} />
+    </>);
+  })}
+</div>

@@ -1,0 +1,35 @@
+---
+import type { Match } from '../lib/types';
+import { hhmm, shortDay, dayKey } from '../lib/text';
+import { goPath, matchPath, matchTitle, sportOf } from '../lib/url';
+import Icon from './Icon.astro';
+interface Props { m: Match; now: number; placement?: string; showDay?: boolean; live?: boolean; recent?: boolean }
+const { m, now, placement = 'row', showDay = false, live = false, recent = false } = Astro.props;
+const sport = sportOf(m);
+const isToday = dayKey(m.st) === dayKey(now);
+const o = m.o?.t;
+const c = m.o?.c;
+---
+<div class:list={['row', live && 'is-live']} data-id={m.id}>
+  <div class="when">
+    {live ? (<span class="pill live"><span class="dot"></span>Živě</span>) : hhmm(m.st)}
+    {!live && recent ? <small>záznam</small> : (!live && showDay && !isToday ? <small>{shortDay(m.st)}</small> : null)}
+  </div>
+  <a class="teams" href={matchPath(m)}>
+    <b>{matchTitle(m)}</b>
+    <span class="meta"><Icon name={sport?.slug ?? 'ball'} class="ico" />{live ? <span class="ti" data-t>{m.ti ?? ''}</span> : null}<span>{m.lg}</span></span>
+  </a>
+  <div class="act">
+    {live && m.sc ? <div class="score" data-s>{m.sc}</div> : null}
+    {o && !live ? (
+      <div class="odds" aria-label="Kurzy Tipsport">
+        <span class="odd"><i>1</i>{o[0].toFixed(2)}</span>
+        {o[1] !== null ? <span class="odd"><i>X</i>{o[1].toFixed(2)}</span> : null}
+        <span class="odd"><i>2</i>{o[2].toFixed(2)}</span>
+      </div>
+    ) : null}
+    <a class="btn sm" href={goPath(m, placement)} rel="sponsored nofollow noopener" target="_blank">
+      <Icon name="play" /><span class="lbl">{live ? 'Sledovat' : 'Zápas'}</span><span class="sr"> {matchTitle(m)}</span>
+    </a>
+  </div>
+</div>

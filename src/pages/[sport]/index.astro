@@ -1,0 +1,48 @@
+---
+import Base from '../../layouts/Base.astro';
+import Rows from '../../components/Rows.astro';
+import Aside from '../../components/Aside.astro';
+import Faq from '../../components/Faq.astro';
+import { getEnv, view, sportCounts, leagues } from '../../lib/page';
+import { SPORT_BY_SLUG } from '../../lib/sports';
+import { sportLead, sportFaq } from '../../lib/sport-text';
+import { leaguePath } from '../../lib/url';
+import { plural } from '../../lib/text';
+
+export const prerender = false;
+const slug = (Astro.params.sport ?? '').replace(/-online$/, '');
+const sport = Astro.params.sport?.endsWith('-online') ? SPORT_BY_SLUG.get(slug) : undefined;
+if (!sport) return Astro.rewrite('/404');
+const v = await view(getEnv());
+const now = Date.now();
+const live = v.live.filter((m) => m.sp === sport.id);
+const next = v.upcoming.filter((m) => m.sp === sport.id);
+const lg = leagues(v, sport.id);
+const faq = sportFaq(sport, live.length > 0);
+const ld = [
+  { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [{ '@type': 'ListItem', position: 1, name: 'Domů', item: 'https://sportstreamy.cz/' }, { '@type': 'ListItem', position: 2, name: `${sport.name} online`, item: `https://sportstreamy.cz/${sport.slug}-online/` }] },
+  { '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: faq.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) },
+];
+---
+<Base title={`${sport.name} online zdarma – živé přenosy a program | SportStreamy`} description={`${sport.name} online: ${live.length} ${plural(live.length, 'zápas', 'zápasy', 'zápasů')} živě, ${next.length} v programu. Čas, soutěž, kurzy a odkaz na přenos.`} ld={ld} section={sport.slug}>
+  <div class="wrap">
+    <nav class="crumbs" aria-label="Drobečky"><a href="/">Domů</a> › {sport.name} online</nav>
+    <section class="hero">
+      <h1>{sport.name} online</h1>
+      <p class="lead">{sportLead(sport)}</p>
+    </section>
+    {lg.length ? (
+      <div class="chips" aria-label="Soutěže">
+        {lg.slice(0, 14).map((l) => <a class="chip" href={leaguePath(sport.slug, l.name)}>{l.name}<em>{l.n}</em></a>)}
+      </div>
+    ) : null}
+    <div class="cols">
+      <div>
+        {live.length ? (<section class="sec"><div class="sec-head"><h2>Živě</h2></div><Rows items={live} now={now} placement="sport-live" live /></section>) : null}
+        <section class="sec"><div class="sec-head"><h2>Program</h2><span class="n">{next.length} {plural(next.length, 'zápas', 'zápasy', 'zápasů')}</span></div><Rows items={next} now={now} placement="sport" groupByDay limit={80} empty="Zatím žádné naplánované přenosy." /></section>
+        <section class="sec"><div class="sec-head"><h2>Časté otázky</h2></div><Faq items={faq} /></section>
+      </div>
+      <Aside sports={sportCounts(v)} leagues={lg} placement="sport-aside" />
+    </div>
+  </div>
+</Base>

@@ -1,0 +1,19 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getEntry, render } from 'astro:content';
+export const prerender = false;
+const entry = await getEntry('clanky', Astro.params.slug!);
+if (!entry) return Astro.rewrite('/404');
+const { Content } = await render(entry);
+const ld = [{ '@context': 'https://schema.org', '@type': 'Article', headline: entry.data.title, description: entry.data.description, datePublished: entry.data.date.toISOString(), dateModified: (entry.data.updated ?? entry.data.date).toISOString(), inLanguage: 'cs', author: { '@type': 'Organization', name: 'SportStreamy' }, publisher: { '@type': 'Organization', name: 'SportStreamy' } }];
+---
+<Base title={`${entry.data.title} | SportStreamy`} description={entry.data.description} ld={ld} section="clanky" ttl={600}>
+  <div class="wrap">
+    <nav class="crumbs" aria-label="Drobečky"><a href="/">Domů</a> › <a href="/clanky/">Články</a></nav>
+    <article class="sec prose">
+      <h1 style="margin-bottom:.6em">{entry.data.title}</h1>
+      <Content />
+      <p><a class="btn" href="/zive/">Co běží živě</a></p>
+    </article>
+  </div>
+</Base>

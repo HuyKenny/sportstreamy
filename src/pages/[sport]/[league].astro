@@ -1,0 +1,32 @@
+---
+import Base from '../../layouts/Base.astro';
+import Rows from '../../components/Rows.astro';
+import Aside from '../../components/Aside.astro';
+import { getEnv, view, sportCounts, leagues } from '../../lib/page';
+import { SPORT_BY_SLUG } from '../../lib/sports';
+import { slugify, plural } from '../../lib/text';
+
+export const prerender = false;
+const sport = Astro.params.sport?.endsWith('-online') ? SPORT_BY_SLUG.get(Astro.params.sport.replace(/-online$/, '')) : undefined;
+if (!sport) return Astro.rewrite('/404');
+const v = await view(getEnv());
+const now = Date.now();
+const all = [...v.live, ...v.upcoming].filter((m) => m.sp === sport.id && slugify(m.lg) === Astro.params.league);
+if (!all.length) return Astro.rewrite('/404');
+const name = all[0].lg;
+const live = v.live.filter((m) => all.includes(m));
+const next = v.upcoming.filter((m) => all.includes(m));
+---
+<Base title={`${name} online – živé přenosy a program | SportStreamy`} description={`${name} (${sport.name.toLowerCase()}): ${live.length} živě, ${next.length} v programu. Čas zápasů, kurzy a odkaz na přenos.`} section={sport.slug}>
+  <div class="wrap">
+    <nav class="crumbs" aria-label="Drobečky"><a href="/">Domů</a> › <a href={`/${sport.slug}-online/`}>{sport.name} online</a> › {name}</nav>
+    <section class="hero"><h1>{name} online</h1><p class="lead">{all.length} {plural(all.length, 'zápas', 'zápasy', 'zápasů')} s přenosem v soutěži {name}. Sleduj živě nebo se podívej na program.</p></section>
+    <div class="cols">
+      <div>
+        {live.length ? (<section class="sec"><div class="sec-head"><h2>Živě</h2></div><Rows items={live} now={now} placement="league-live" live /></section>) : null}
+        <section class="sec"><div class="sec-head"><h2>Program</h2></div><Rows items={next} now={now} placement="league" groupByDay empty="Žádné další zápasy zatím nejsou v nabídce." /></section>
+      </div>
+      <Aside sports={sportCounts(v)} leagues={leagues(v, sport.id)} placement="league-aside" />
+    </div>
+  </div>
+</Base>
