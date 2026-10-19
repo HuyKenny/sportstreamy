@@ -5,8 +5,13 @@
   "main": "src/worker.ts",
   "compatibility_date": "2026-10-01",
   "compatibility_flags": ["nodejs_compat"],
-  "workers_dev": true,
+  "workers_dev": false,
   "preview_urls": false,
+  // Custom domains: CF creates the DNS records itself (the zone has none yet).
+  "routes": [
+    { "pattern": "sportstreamy.cz", "custom_domain": true },
+    { "pattern": "www.sportstreamy.cz", "custom_domain": true }
+  ],
   "assets": { "directory": "./dist/client", "binding": "ASSETS", "html_handling": "force-trailing-slash", "not_found_handling": "none" },
   // Secrets (wrangler secret put): TIPSPORT_CLIENT_ID/SECRET, CHANCE_API_USER/PASS, APISPORTS_KEY.
   "triggers": { "crons": ["*/3 * * * *", "*/15 * * * *"] },
