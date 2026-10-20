@@ -2,7 +2,6 @@ import type { Env, Match, Snapshot } from './types';
 import { liveMatches, login, toMatch, upcomingMatches, odds } from './tipsport';
 import { competitionOf } from './competitions';
 import { SPORT_BY_ID } from './sports';
-import { matchPath } from './url';
 
 /** Season-long markets ("Chance Liga 2026/2027 – celkově", "po 30. kole", top scorer…) are not matches. */
 const OUTRIGHT = /celkov|dlouhodob|vítěz skupiny|vítěz soutěže|po \d+\.\s?kol|nejlepší střel|sestup|postup/i;
@@ -41,25 +40,3 @@ export async function refreshUpcoming(env: Env): Promise<number> {
   return items.length;
 }
 
-/**
- * Hourly: tell IndexNow (Bing, Seznam, Yandex…) about match pages starting in the next 48 h that we have not
- * submitted yet. The sent ids live in KV so every URL goes out once.
- */
-export async function pingIndexNow(env: Env): Promise<number> {
-  if (!env.INDEXNOW_KEY) return 0;
-  const [pre, sent] = await Promise.all([env.DATA.get<Snapshot<Match>>('pre', 'json'), env.DATA.get<number[]>('ixsent', 'json')]);
-  const done = new Set(sent ?? []);
-  const soon = Date.now() + 48 * 3600_000;
-  const fresh = (pre?.items ?? []).filter((m) => m.st < soon && !done.has(m.id)).slice(0, 1000);
-  if (!fresh.length) return 0;
-  const host = 'sportstreamy.cz';
-  const res = await fetch('https://api.indexnow.org/indexnow', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json; charset=utf-8' },
-    body: JSON.stringify({ host, key: env.INDEXNOW_KEY, keyLocation: `https://${host}/${env.INDEXNOW_KEY}.txt`, urlList: fresh.map((m) => `https://${host}${matchPath(m)}`) }),
-  });
-  if (!res.ok && res.status !== 202) throw new Error(`indexnow ${res.status}`);
-  const keep = [...done, ...fresh.map((m) => m.id)].slice(-6000);
-  await env.DATA.put('ixsent', JSON.stringify(keep));
-  return fresh.length;
-}
