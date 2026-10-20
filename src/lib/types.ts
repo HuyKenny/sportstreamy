@@ -35,4 +35,5 @@ export interface Env {
   CHANCE_URL: string;
   SAZKA_URL: string;
   SAZKA_MS_URL: string;
+  MERKURXTIP_URL: string;
 }

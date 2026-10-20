@@ -11,14 +11,14 @@ export const prerender = false;
 const faq = [
   { q: 'Kterou sázkovou kancelář vybrat pro sledování přenosů?', a: 'Nejvíc živých přenosů má Tipsport – z jeho nabídky je i program SportStreamy. Chance má stejné zápasy a jiné kurzy, takže se hodí na porovnání.' },
   { q: 'Musím vsadit, abych viděl přenos?', a: 'Ne. Ke sledování stačí ověřený účet a přihlášení. Sázení je dobrovolné a pouze pro osoby od 18 let.' },
-  { q: 'Jaké bonusy dostanu za registraci?', a: `Přes naše odkazy: Tipsport ${BONUS.amount}, Allwyn 500 Kč a Chance 200 Kč pro nové hráče po registraci a ověření účtu. Podmínky stanoví provozovatel.` },
+  { q: 'Jaké bonusy dostanu za registraci?', a: `Přes naše odkazy: Tipsport ${BONUS.amount}, Allwyn 500 Kč, MerkurXtip 500 Kč a Chance 200 Kč pro nové hráče po registraci a ověření účtu. Podmínky stanoví provozovatel.` },
   { q: 'Proč u některých kanceláří není bonus přes vás?', a: 'S Fortunou, Betanem a Synot Tipem nemáme partnerskou smlouvu. Jejich stránky jsou informativní a odkazy na ně nejsou affiliate.' },
   { q: 'Jsou kanceláře legální?', a: 'Všechny uvedené působí v Česku na základě povolení Ministerstva financí ČR. Aktuální seznam povolených provozovatelů zveřejňuje MF ČR.' },
 ];
 const crumbs = [{ name: 'Domů', href: '/' }, { name: 'Sázkové kanceláře' }];
 const yes = (v: boolean) => (v ? 'ano' : '—');
 ---
-<Base title={`Sázkové kanceláře – srovnání, přenosy a bonusy (${BONUS.amount} Tipsport) | SportStreamy`} description={`Srovnání sázkových kanceláří v Česku: Tipsport, Chance, Allwyn, Fortuna, Betano, Synot Tip. Přenosy, aplikace, kontrola tiketu, pobočky a bonusy: Tipsport ${BONUS.amount}, Allwyn 500 Kč, Chance 200 Kč.`} ld={[breadcrumbLd(crumbs), faqLd(faq)]} section="bonusy" ttl={3600}>
+<Base title={`Sázkové kanceláře – srovnání, přenosy a bonusy (${BONUS.amount} Tipsport) | SportStreamy`} description={`Srovnání sázkových kanceláří v Česku: Tipsport, Chance, Allwyn, MerkurXtip, Fortuna, Betano, Synot Tip. Přenosy, aplikace, pobočky a bonusy: Tipsport ${BONUS.amount}, Allwyn a MerkurXtip 500 Kč, Chance 200 Kč.`} ld={[breadcrumbLd(crumbs), faqLd(faq)]} section="bonusy" ttl={3600}>
   <div class="wrap">
     <Crumbs items={crumbs} />
     <section class="pagehead">

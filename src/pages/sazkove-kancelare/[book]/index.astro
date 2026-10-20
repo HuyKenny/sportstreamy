@@ -19,7 +19,7 @@ const faq = [
 ];
 const banner = b.slug === 'chance' ? BANNERS.chance200 : BANNERS.tipsport1000;
 ---
-<Base title={`${b.name} – recenze, ${b.streams ? 'přenosy, ' : ''}aplikace a ${b.bonus ? `bonus ${b.bonus}` : 'bonus'} | SportStreamy`} description={`${b.name} (${b.full}): co nabízí, pro koho je, plusy a minusy, ${b.streams ? 'jak sledovat přenosy, ' : ''}aplikace, kontrola tiketu a bonus. Reklama, 18+.`} ld={[breadcrumbLd(crumbs), faqLd(faq)]} section="bonusy" ttl={3600}>
+<Base title={`${b.name} – recenze, ${b.streams ? 'přenosy, ' : ''}${b.topics.includes('aplikace') ? 'aplikace a ' : 'registrace a '}${b.bonus ? `bonus ${b.bonus}` : 'bonus'} | SportStreamy`} description={`${b.name} (${b.full}): co nabízí, pro koho je, plusy a minusy, ${b.streams ? 'jak sledovat přenosy, ' : ''}${b.topics.includes('aplikace') ? 'aplikace, ' : 'registrace, '}${b.topics.includes('kontrola-tiketu') ? 'kontrola tiketu a ' : ''}bonus. Reklama, 18+.`} ld={[breadcrumbLd(crumbs), faqLd(faq)]} section="bonusy" ttl={3600}>
   <div class="wrap">
     <Crumbs items={crumbs} />
     <section class="pagehead">

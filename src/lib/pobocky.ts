@@ -3,7 +3,7 @@ import type { Env } from './types';
 /** One bookmaker shop. Filled by scripts/pobocky.py into KV `pobocky`. */
 export interface Branch {
   name: string; street: string; city: string; citySlug: string; part: string; zip: string; region: string;
-  lat: number | null; lon: number | null; // null where the source has no GPS (Tipsport, Chance) note: string; hours: string[]; live: boolean;
+  lat: number | null; lon: number | null; note: string; hours: string[]; live: boolean; // lat/lon null where the source has no GPS (Tipsport, Chance)
 }
 interface Doc { updated: string; brands: Record<string, Branch[]> }
 

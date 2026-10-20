@@ -22,7 +22,8 @@
     "CHANCE_URL": "https://www.chance.cz/PartnerRedirectAction.do?pid=31094&sid=46143&bid=4666&tid=2703&urlid=681",
     // Allwyn/Sazka "MS v hokeji" banner link (their banner script uses document.write, so we render it ourselves)
     "SAZKA_MS_URL": "https://record.sazka.cz/_8u72YyI1anKL-LI3GTvm5OorI-QEr2uT/1/",
-    "SAZKA_URL": "https://record.sazka.cz/_8u72YyI1anK2bnhOaaLAUmNd7ZgqdRLk/1/?payload=sportstreamy.cz"
+    "SAZKA_URL": "https://record.sazka.cz/_8u72YyI1anK2bnhOaaLAUmNd7ZgqdRLk/1/?payload=sportstreamy.cz",
+    "MERKURXTIP_URL": "https://go.affilmaster.com/scripts/cdvy4d2?a_aid=TTE4W&a_bid=c708e3ae&data1=sportstreamy"
   },
   "analytics_engine_datasets": [{ "binding": "CLICKS", "dataset": "sportstreamy_clicks" }],
   "observability": { "enabled": true, "head_sampling_rate": 0.1 }

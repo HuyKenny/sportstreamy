@@ -34,11 +34,11 @@ export function topicPage(b: BookInfo, t: Topic): TopicPage {
         lead: `${n} vysílá živé přenosy svým registrovaným zákazníkům – fotbal, hokej, tenis, basketbal, e-sporty a desítky dalších soutěží. Sledování je zdarma, vsázet nemusíš.`,
         steps: [
           { h: 'Vyber zápas', p: 'Níže jsou zápasy, které mají právě teď nebo dnes video. Celý program najdeš v sekci Program.' },
-          { h: `Přihlas se u ${n === 'Chance' ? 'Chance' : 'Tipsportu'}`, p: 'Bez účtu přenos nespustíš – provozovatel s českou licencí smí vysílat jen ověřeným zákazníkům starším 18 let.' },
+          { h: `Přihlas se u ${b.slug === 'chance' ? 'Chance' : 'Tipsportu'}`, p: 'Bez účtu přenos nespustíš – provozovatel s českou licencí smí vysílat jen ověřeným zákazníkům starším 18 let.' },
           { h: 'Spusť přenos', p: 'Na stránce zápasu klikni na přehrávač. Video běží v prohlížeči i v mobilní aplikaci.' },
         ],
         body: [
-          { h: 'Co je potřeba', p: `Bezplatný účet u ${n === 'Chance' ? 'Chance' : 'Tipsportu'} s ověřenou totožností. Některé zápasy vyžadují kladný zůstatek na účtu nebo vsazení – podmínky konkrétního přenosu ukáže přehrávač.` },
+          { h: 'Co je potřeba', p: `Bezplatný účet u ${b.slug === 'chance' ? 'Chance' : 'Tipsportu'} s ověřenou totožností. Některé zápasy vyžadují kladný zůstatek na účtu nebo vsazení – podmínky konkrétního přenosu ukáže přehrávač.` },
           { h: 'Které zápasy jsou s videem', p: 'Nejvíc videa je u tenisu, nižších fotbalových soutěží, evropského hokeje, basketbalu a e-sportů. Zápasy, ke kterým drží práva televize (Chance Liga, Premier League, NHL), mají jen živé statistiky – u nás je poznáš podle štítku „stats“.' },
           { h: 'Na čem to funguje', p: 'V prohlížeči na počítači i v mobilu a v oficiální aplikaci. Na televizi lze přenos zrcadlit z telefonu nebo počítače.' },
         ],
@@ -52,7 +52,7 @@ export function topicPage(b: BookInfo, t: Topic): TopicPage {
       return {
         title: `${n} aplikace – stažení pro Android a iOS`,
         h1: `${n} aplikace pro mobil`,
-        lead: `Oficiální aplikace ${n === 'Allwyn' ? 'Allwynu' : n} pro Android a iPhone: sázení, live sázky${b.streams ? ', živé přenosy' : ''} a správa účtu v telefonu.`,
+        lead: `Oficiální aplikace ${b.gen} pro Android a iPhone: sázení, live sázky${b.streams ? ', živé přenosy' : ''} a správa účtu v telefonu.`,
         steps: [
           { h: 'Stáhni aplikaci', p: `Na iPhonu z App Store, na Androidu z Google Play nebo přímo z webu ${b.site.replace('https://', '')}. Instaluj jen oficiální aplikaci provozovatele.` },
           { h: 'Přihlas se nebo se zaregistruj', p: 'Přihlašovací údaje jsou stejné jako na webu. Nový účet je potřeba ověřit (totožnost, věk 18+).' },
@@ -71,7 +71,7 @@ export function topicPage(b: BookInfo, t: Topic): TopicPage {
       return {
         title: `${n} kontrola tiketu – jak zkontrolovat tiket`,
         h1: `Kontrola tiketu ${n}`,
-        lead: `Jak zjistit, jestli tiket ${n === 'Allwyn' ? 'Allwynu' : n} vyhrál – online tiket v účtu i papírový tiket z pobočky.`,
+        lead: `Jak zjistit, jestli tiket ${b.gen} vyhrál – online tiket v účtu i papírový tiket z pobočky.`,
         steps: [
           { h: 'Online tiket', p: 'Přihlas se na webu nebo v aplikaci a otevři historii tiketů. Vyhodnocené tikety mají stav výhra/prohra a výhra se připíše na účet.' },
           { h: 'Tiket z pobočky', p: `Na webu ${b.site.replace('https://', '')} najdeš formulář pro kontrolu tiketu – zadej číslo tiketu (případně kontrolní kód z tiketu). Výhru vyzvedneš na pobočce.` },
@@ -90,7 +90,7 @@ export function topicPage(b: BookInfo, t: Topic): TopicPage {
         title: b.bonus ? `${n} bonus ${b.bonus} – jak ho získat` : `${n} promo kód a bonus – jak to funguje`,
         h1: b.bonus ? `${n} bonus ${b.bonus}` : `${n} promo kód a bonus`,
         lead: b.bonus
-          ? `Noví hráči ${n === 'Tipsport' ? 'Tipsportu' : n === 'Allwyn' ? 'Allwynu' : n} dostanou po registraci a ověření účtu bonus ${b.bonus}. ${bonusTerms(b)}`
+          ? `Noví hráči ${b.gen} dostanou po registraci a ověření účtu bonus ${b.bonus}. ${b.slug === 'tipsport' ? bonusTerms(b) : 'Podmínky stanoví provozovatel. Pouze 18+.'}`
           : `${n} nabízí novým i stávajícím hráčům bonusy a akce, které se často mění. Aktuální promo kód a podmínky najdeš vždy na webu ${b.site.replace('https://', '')} – žádné vymyšlené kódy tu neuvádíme.${alt}`,
         steps: b.bonus
           ? [
@@ -107,15 +107,15 @@ export function topicPage(b: BookInfo, t: Topic): TopicPage {
           { h: 'Na co si dát pozor', p: 'Bonus je určený jen novým hráčům starším 18 let a jeden člověk ho může získat jen jednou. Nesázej víc, než si můžeš dovolit prohrát.' },
         ],
         faq: [
-          { q: b.bonus ? `Kolik je bonus u ${n === 'Tipsport' ? 'Tipsportu' : n}?` : `Kde najdu ${n} promo kód?`, a: b.bonus ? `${b.bonus} pro nové hráče po registraci a ověření účtu. Podmínky stanoví provozovatel.` : `Aktuální promo kód zveřejňuje ${n} na svém webu a v aplikaci. Pozor na weby, které nabízejí „tajné“ kódy – často neplatí.` },
+          { q: b.bonus ? `Kolik je bonus u ${b.gen}?` : `Kde najdu ${n} promo kód?`, a: b.bonus ? `${b.bonus} pro nové hráče po registraci a ověření účtu. Podmínky stanoví provozovatel.` : `Aktuální promo kód zveřejňuje ${n} na svém webu a v aplikaci. Pozor na weby, které nabízejí „tajné“ kódy – často neplatí.` },
           { q: 'Můžu bonus vybrat hned?', a: 'Ne, bonus je potřeba nejdřív protočit podle podmínek provozovatele.' },
         ],
       };
     case 'registrace':
       return {
         title: `${n} registrace a ověření účtu – postup`,
-        h1: `Registrace u ${n === 'Allwyn' ? 'Allwynu' : n}`,
-        lead: `Jak si založit účet u ${n === 'Allwyn' ? 'Allwynu' : n} a ověřit totožnost – zabere to pár minut.${alt}`,
+        h1: `Registrace u ${b.gen}`,
+        lead: `Jak si založit účet u ${b.gen} a ověřit totožnost – zabere to pár minut.${alt}`,
         steps: [
           { h: 'Vyplň registraci', p: 'Jméno, rodné číslo, adresa, e-mail a telefon. Registrace je jen pro osoby starší 18 let.' },
           { h: 'Ověř totožnost', p: 'Nejrychleji přes bankovní identitu, případně nahráním dokladu nebo ověřovací platbou z vlastního účtu.' },

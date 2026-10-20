@@ -1,18 +1,19 @@
 /**
- * Bookmakers. Partners (Tipsport, Chance, Allwyn) have affiliate links through /go/; the others (Fortuna, Betano,
+ * Bookmakers. Partners (Tipsport, Chance, Allwyn, MerkurXtip) have affiliate links through /go/; the others (Fortuna, Betano,
  * Synot Tip) get honest pages that link to them without affiliate (nofollow) and steer the main CTA to Tipsport —
  * swap `site` for an affiliate /go/ id once Kenny has a programme with them.
  * Facts only, checked on the operators' own sites (20. 10. 2026); no bonus amounts except where Kenny confirmed them.
  */
 import { BONUS } from './bonus';
 
-export type BookSlug = 'tipsport' | 'chance' | 'sazka' | 'fortuna' | 'betano' | 'synottip';
+export type BookSlug = 'tipsport' | 'chance' | 'sazka' | 'merkurxtip' | 'fortuna' | 'betano' | 'synottip';
 export type Topic = 'tv' | 'aplikace' | 'kontrola-tiketu' | 'bonus' | 'registrace';
 
 export interface BookInfo {
   slug: BookSlug;
   name: string;
-  short: string; // name in running text ("u Tipsportu" is in the copy, this is the bare brand)
+  short: string; // bare brand in running text
+  gen: string; // genitive: "u Tipsportu", "hráči Allwynu"
   full: string; // operator
   partner: boolean;
   go?: string; // /go/<id>/ for partners
@@ -30,7 +31,7 @@ export interface BookInfo {
 
 export const BOOKS: BookInfo[] = [
   {
-    slug: 'tipsport', name: 'Tipsport', short: 'Tipsport', full: 'Tipsport a.s.', partner: true, go: 'registrace', site: 'https://www.tipsport.cz', bonus: '1000 Kč', color: '#0b4ea2',
+    slug: 'tipsport', name: 'Tipsport', short: 'Tipsport', gen: 'Tipsportu', full: 'Tipsport a.s.', partner: true, go: 'registrace', site: 'https://www.tipsport.cz', bonus: '1000 Kč', color: '#0b4ea2',
     blurb: 'Největší česká sázková kancelář a největší nabídka živých přenosů. Právě z jejího programu čerpá SportStreamy.',
     pros: ['Nejvíc zápasů s videem (Tipsport TV) – fotbal, hokej, tenis, basketbal, e-sporty', 'Bonus 1000 Kč pro nové hráče', 'Mobilní aplikace a hustá síť poboček', 'Česká licence'],
     cons: ['Video jen po registraci a ověření totožnosti', 'U části zápasů (Chance Liga, NHL) jen statistiky, ne video'],
@@ -38,7 +39,7 @@ export const BOOKS: BookInfo[] = [
     streams: true, branches: true, topics: ['tv', 'aplikace', 'kontrola-tiketu', 'bonus', 'registrace'],
   },
   {
-    slug: 'chance', name: 'Chance', short: 'Chance', full: 'Chance a.s.', partner: true, go: 'chance', site: 'https://www.chance.cz', bonus: '200 Kč', color: '#0f7a3c',
+    slug: 'chance', name: 'Chance', short: 'Chance', gen: 'Chance', full: 'Chance a.s.', partner: true, go: 'chance', site: 'https://www.chance.cz', bonus: '200 Kč', color: '#0f7a3c',
     blurb: 'Druhá velká česká kancelář na stejné platformě jako Tipsport – stejné zápasy, jiné kurzy. Generální partner Chance Ligy.',
     pros: ['Stejné zápasy jako Tipsport – snadné porovnání kurzů', 'Bonus 200 Kč za registraci', 'Mobilní aplikace, pobočky', 'Česká licence'],
     cons: ['Menší síť poboček než Tipsport'],
@@ -46,7 +47,7 @@ export const BOOKS: BookInfo[] = [
     streams: true, branches: true, topics: ['tv', 'aplikace', 'kontrola-tiketu', 'bonus', 'registrace'],
   },
   {
-    slug: 'sazka', name: 'Allwyn (SazkaBet)', short: 'Allwyn', full: 'Allwyn a.s. (dříve Sazka)', partner: true, go: 'sazka', site: 'https://www.allwyn.cz', bonus: '500 Kč', color: '#1d6b4f',
+    slug: 'sazka', name: 'Allwyn (SazkaBet)', short: 'Allwyn', gen: 'Allwynu', full: 'Allwyn a.s. (dříve Sazka)', partner: true, go: 'sazka', site: 'https://www.allwyn.cz', bonus: '500 Kč', color: '#1d6b4f',
     blurb: 'Provozovatel loterií a sázek (dříve Sazka a SazkaBet). Sportka, Eurojackpot i kurzové sázky na jednom účtu.',
     pros: ['Bonus 500 Kč pro nové hráče', 'Loterie a sázky na jednom účtu', 'Největší síť prodejních míst v Česku', 'Česká licence'],
     cons: ['Menší nabídka živých přenosů než Tipsport'],
@@ -54,7 +55,15 @@ export const BOOKS: BookInfo[] = [
     streams: false, branches: true, topics: ['aplikace', 'kontrola-tiketu', 'bonus', 'registrace'],
   },
   {
-    slug: 'fortuna', name: 'Fortuna', short: 'Fortuna', full: 'FORTUNA GAME a.s.', partner: false, site: 'https://www.ifortuna.cz', color: '#f6c400',
+    slug: 'merkurxtip', name: 'MerkurXtip', short: 'MerkurXtip', gen: 'MerkurXtipu', full: 'MerkurXTip a.s.', partner: true, go: 'merkurxtip', site: 'https://www.merkurxtip.cz', bonus: '500 Kč', color: '#d4001a',
+    blurb: 'Online sázková kancelář a casino MerkurXTip a.s. (skupina Merkur), licence MF ČR. Kurzové a live sázky i automaty na jednom účtu.',
+    pros: ['Bonus 500 Kč za registraci', 'Kurzové a live sázky i casino na jednom účtu', 'Česká licence'],
+    cons: ['Bez přenosů zápasů – pro sledování doporučujeme Tipsport', 'Bez poboček, jen online'],
+    watch: 'Program přenosů od MerkurXtipu nemáme; pro sledování zápasů doporučujeme Tipsport.',
+    streams: false, branches: false, topics: ['bonus', 'registrace'],
+  },
+  {
+    slug: 'fortuna', name: 'Fortuna', short: 'Fortuna', gen: 'Fortuny', full: 'FORTUNA GAME a.s.', partner: false, site: 'https://www.ifortuna.cz', color: '#f6c400',
     blurb: 'Tradiční česká sázková kancelář (FORTUNA GAME a.s., licence MF ČR) s webem ifortuna.cz, aplikací a zhruba čtyřmi sty prodejnami.',
     pros: ['Velká nabídka kurzových sázek a live sázek', 'Mobilní aplikace', 'Přes 400 prodejen po celé republice'],
     cons: ['Její přenosy a bonusy na SportStreamy nezprostředkujeme – pro sledování zápasů zdarma s bonusem doporučujeme Tipsport'],
@@ -62,7 +71,7 @@ export const BOOKS: BookInfo[] = [
     streams: false, branches: true, topics: ['aplikace', 'kontrola-tiketu', 'bonus', 'registrace'],
   },
   {
-    slug: 'betano', name: 'Betano', short: 'Betano', full: 'Betano (betano.cz)', partner: false, site: 'https://www.betano.cz', color: '#ff6a00',
+    slug: 'betano', name: 'Betano', short: 'Betano', gen: 'Betana', full: 'Betano (betano.cz)', partner: false, site: 'https://www.betano.cz', color: '#ff6a00',
     blurb: 'Mezinárodní sázková značka, v Česku na betano.cz. Známá „Betano žolíky“ a sponzoringem fotbalu.',
     pros: ['Široká nabídka trhů včetně sázek na hráče', 'Akce typu Betano žolík na vybrané zápasy'],
     cons: ['Bez poboček', 'Její bonusy na SportStreamy nezprostředkujeme – alternativou je Tipsport s bonusem 1000 Kč'],
@@ -70,7 +79,7 @@ export const BOOKS: BookInfo[] = [
     streams: false, branches: false, topics: ['aplikace', 'bonus', 'registrace'],
   },
   {
-    slug: 'synottip', name: 'Synot Tip', short: 'Synot Tip', full: 'SYNOT TIP, a.s.', partner: false, site: 'https://www.synottip.cz', color: '#c4161c',
+    slug: 'synottip', name: 'Synot Tip', short: 'Synot Tip', gen: 'Synot Tipu', full: 'SYNOT TIP, a.s.', partner: false, site: 'https://www.synottip.cz', color: '#c4161c',
     blurb: 'Česká sázková kancelář SYNOT TIP, a.s. z Uherského Hradiště – kurzové a live sázky, casino a mobilní aplikace.',
     pros: ['Kurzové i live sázky', 'Mobilní aplikace'],
     cons: ['Menší nabídka přenosů – pro sledování zápasů doporučujeme Tipsport'],
@@ -82,7 +91,7 @@ export const BOOK_BY_SLUG = new Map(BOOKS.map((b) => [b.slug, b]));
 
 /** Bonus small print for a bookmaker (the shared BONUS.terms text is Tipsport's). */
 export const bonusTerms = (b: BookInfo) =>
-  b.slug === 'tipsport' ? BONUS.terms : `Bonus pro nové hráče ${b.short === 'Allwyn' ? 'Allwynu' : b.short} po registraci a ověření účtu. Podmínky stanoví provozovatel. Pouze 18+.`;
+  b.slug === 'tipsport' ? BONUS.terms : `Bonus pro nové hráče ${b.gen} po registraci a ověření účtu. Podmínky stanoví provozovatel. Pouze 18+.`;
 
 /** Where the main CTA of a page about this bookmaker goes. */
 export const ctaFor = (b: BookInfo) => (b.partner ? `/go/${b.go}/` : '/go/registrace/');
