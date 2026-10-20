@@ -45,6 +45,7 @@ const banner = b.slug === 'chance' ? BANNERS.chance200 : BANNERS.tipsport1000;
           <ul>{b.cons.map((p) => <li>{p}</li>)}</ul>
           <h2>Živé přenosy</h2>
           <p>{b.watch}</p>
+          {b.more ? <p set:html={b.more} /> : null}
           <h2>Provozovatel</h2>
           <p>{b.full}. Hazardní hry jsou určené pouze osobám starším 18 let a mohou způsobit závislost. {b.partner ? 'Při registraci přes náš odkaz můžeme získat provizi, cena ani podmínky se pro tebe nemění.' : `Na ${b.short} nemáme affiliate odkaz – stránka je informativní.`}</p>
         </section>

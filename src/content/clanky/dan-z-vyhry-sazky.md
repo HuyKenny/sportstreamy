@@ -29,7 +29,7 @@ Od roku 2024 se výhry z hazardních her daní přísněji než dřív. Hranice 
 
 ### Loterie a tomboly
 
-U Sportky, Eurojackpotu, Mini Renty nebo stíracích losů se posuzuje **každá výhra zvlášť**. Když jedna výhra přesáhne 50 000 Kč, provozovatel ji zdaní srážkovou daní rovnou při výplatě a ty už ji do přiznání uvádět nemusíš. Výhry pod hranici jsou osvobozené, i kdyby jich bylo za rok víc.
+U Sportky, Eurojackpotu, Mini Renty nebo stíracích losů se posuzuje **každá výhra zvlášť**. Když jedna výhra přesáhne 50 000 Kč, provozovatel ji zdaní srážkovou daní rovnou při výplatě a ty už ji do přiznání uvádět nemusíš. Výhry pod hranici jsou osvobozené, i kdyby jich bylo za rok víc. Kolik se dá vyhrát v menších denních loteriích a jak jsou výhry odstupňované, ukazuje třeba [přehled výher Mini Renty](https://minirenta.cz/vyhry/).
 
 ### Kurzové sázky a ostatní hazardní hry
 

@@ -27,6 +27,7 @@ export interface BookInfo {
   streams: boolean; // live video for registered customers
   branches: boolean; // network of shops (pages under /pobocky/)
   topics: Topic[];
+  more?: string; // optional editorial paragraph (HTML, one external link at most)
 }
 
 export const BOOKS: BookInfo[] = [
@@ -37,6 +38,7 @@ export const BOOKS: BookInfo[] = [
     cons: ['Video jen po registraci a ověření totožnosti', 'U části zápasů (Chance Liga, NHL) jen statistiky, ne video'],
     watch: 'Přenosy (Tipsport TV) se pouští po přihlášení do účtu. Registrace je bezplatná a trvá několik minut včetně ověření totožnosti.',
     streams: true, branches: true, topics: ['tv', 'aplikace', 'kontrola-tiketu', 'bonus', 'registrace'],
+    more: 'Jak Tipsport obstál v delším testu – od registrace přes výběry po zákaznickou podporu – rozebírá <a href="https://kratkerecenze.cz/recenze-tipsport-cz-nejvetsi-sazkova-kancelar-v-ceske-republice/">nezávislá recenze Tipsportu na KrátkéRecenze.cz</a>.',
   },
   {
     slug: 'chance', name: 'Chance', short: 'Chance', gen: 'Chance', full: 'Chance a.s.', partner: true, go: 'chance', site: 'https://www.chance.cz', bonus: '200 Kč', color: '#0f7a3c',
@@ -61,6 +63,7 @@ export const BOOKS: BookInfo[] = [
     cons: ['Bez přenosů zápasů – pro sledování doporučujeme Tipsport', 'Bez poboček, jen online'],
     watch: 'Program přenosů od MerkurXtipu nemáme; pro sledování zápasů doporučujeme Tipsport.',
     streams: false, branches: false, topics: ['bonus', 'registrace'],
+    more: 'Pokud tě u MerkurXtipu víc zajímá casino, aktuální free spiny a bonusy s datem platnosti sleduje <a href="https://spinydnes.cz/casino/merkurxtip/">přehled MerkurXtip casina na SpinyDnes</a>.',
   },
   {
     slug: 'fortuna', name: 'Fortuna', short: 'Fortuna', gen: 'Fortuny', full: 'FORTUNA GAME a.s.', partner: false, site: 'https://www.ifortuna.cz', color: '#f6c400',
