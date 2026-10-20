@@ -1,0 +1,12 @@
+---
+import { photoFor, hasLarge } from '../lib/photos';
+/** Sport photo as <picture>: AVIF 800/1600 + JPEG fallback. Absolute-fill styling comes from the parent. */
+interface Props { sport?: string; alt?: string; eager?: boolean; sizes?: string; seed?: number }
+const { sport, alt = '', eager = false, sizes = '100vw', seed = 0 } = Astro.props;
+const p = photoFor(sport, seed);
+const b = `/img/sport/${p.slug}`;
+---
+<picture>
+  <source type="image/avif" srcset={hasLarge(p.slug) ? `${b}-800.avif 800w, ${b}-1600.avif 1600w` : `${b}-800.avif 800w`} sizes={sizes} />
+  <img src={`${b}-800.jpg`} alt={alt} width="800" height="450" loading={eager ? 'eager' : 'lazy'} decoding="async" fetchpriority={eager ? 'high' : undefined} />
+</picture>
