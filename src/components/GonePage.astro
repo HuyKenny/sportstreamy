@@ -1,0 +1,22 @@
+---
+import Base from '../layouts/Base.astro';
+import Rows from './Rows.astro';
+import type { View } from '../lib/matches';
+import { SPORT_BY_SLUG } from '../lib/sports';
+/**
+ * Page for a match (or old WordPress URL) that is not coming back. The calling page sets status 410 (headers can
+ * only be changed in pages, not in components);
+ * the page still offers what is live now and the sport section, so a visitor is one click from a stream.
+ */
+interface Props { v: View; sport?: string; heading?: string }
+const { v, sport, heading = 'Tenhle zápas už skončil' } = Astro.props;
+const s = sport ? SPORT_BY_SLUG.get(sport) : undefined;
+const live = s ? v.live.filter((m) => m.sp === s.id) : v.live;
+---
+<Base title={`${heading} | SportStreamy`} description="Tenhle zápas už skončil a není v nabídce. Podívej se, co běží živě." noindex ttl={300}>
+  <div class="wrap">
+    <section class="pagehead"><h1>{heading}</h1><p class="lead">Přenos už není k dispozici. Tady je, co běží právě teď{s ? ` – ${s.name.toLowerCase()}` : ''}.</p></section>
+    <section class="sec"><Rows items={live.length ? live : v.live} now={Date.now()} placement="gone" live limit={12} empty="Právě teď nic neběží, mrkni na program." /></section>
+    <p style="display:flex;gap:10px;flex-wrap:wrap">{s ? <a class="btn" href={`/${s.slug}-online/`}>{s.name} online</a> : null}<a class="btn ghost" href="/program/">Program přenosů</a><a class="btn ghost" href="/">Na úvod</a></p>
+  </div>
+</Base>

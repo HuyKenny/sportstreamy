@@ -1,0 +1,11 @@
+---
+import GonePage from '../../components/GonePage.astro';
+import { getEnv, view } from '../../lib/page';
+import { legacyCompetition } from '../../lib/legacy';
+export const prerender = false;
+const v = await view(getEnv());
+const to = legacyCompetition(v, Astro.params.slug ?? '');
+if (to) return Astro.redirect(to, 301);
+Astro.response.status = 410;
+---
+<GonePage v={v} heading="Tahle soutěž už není v nabídce" />

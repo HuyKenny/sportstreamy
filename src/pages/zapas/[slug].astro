@@ -7,6 +7,7 @@ import Stage from '../../components/Stage.astro';
 import StickyCta from '../../components/StickyCta.astro';
 import Crumbs from '../../components/Crumbs.astro';
 import Icon from '../../components/Icon.astro';
+import GonePage from '../../components/GonePage.astro';
 import { getEnv, view, sportCounts, leagues } from '../../lib/page';
 import { hhmm, longDay, dayLabel, shortDay } from '../../lib/text';
 import { matchTitle, matchPath, sportOf, goPath, sportPath, leaguePathOf } from '../../lib/url';
@@ -50,8 +51,10 @@ const faq = m ? [
 ] : [];
 const crumbs = m && sport ? [{ name: 'Domů', href: '/' }, { name: `${sport.name} online`, href: sportPath(sport.slug) }, { name: lgName, href: leaguePathOf(m) }, { name: title }] : [];
 const date = m ? shortDay(m.st).replace(/\s/g, '') : '';
-const pageTitle = m ? clip(`${title} živě online ${date}`, 52) + ' | SportStreamy' : 'Zápas skončil | SportStreamy';
-const desc = m ? clip(`${title} (${lgName}): ${state === 'live' ? 'právě běží' : `${dayLabel(m.st, now).toLowerCase()} v ${hhmm(m.st)}`}. ${m.stream ? 'Živý přenos zdarma po registraci u Tipsportu' : 'Živé statistiky a skóre u Tipsportu'}, kurzy a ${BONUS.amount} bonus.`, 158) : '';
+// Searchers type "francie maroko online", "kde sledovat …": both phrasings in the title, brand only if it still fits.
+const base = m ? `${title} živě online ${date} – kde sledovat` : '';
+const pageTitle = !m ? 'Zápas skončil | SportStreamy' : base.length <= 46 ? `${base} | SportStreamy` : clip(base, 60);
+const desc = m ? clip(`Kde sledovat ${title} (${lgName}) – ${state === 'live' ? 'právě běží' : `${dayLabel(m.st, now).toLowerCase()} v ${hhmm(m.st)}`}. ${m.stream ? 'Živý přenos zdarma po registraci u Tipsportu' : 'Živé statistiky a skóre u Tipsportu'}, kurzy a bonus ${BONUS.amount}.`, 158) : '';
 ---
 {m && sport ? (
 <Base title={pageTitle} description={desc} ld={[sportsEventLd(m, state), breadcrumbLd(crumbs), faqLd(faq)]} section={sport.slug} ttl={state === 'live' ? 30 : 60} lcp={sport.slug} dock={false}>
@@ -120,11 +123,5 @@ const desc = m ? clip(`${title} (${lgName}): ${state === 'live' ? 'právě běž
   <StickyCta m={m} live={state === 'live'} />
 </Base>
 ) : (
-<Base title={pageTitle} description="Tenhle zápas už skončil a není v nabídce. Podívej se, co běží živě." noindex ttl={300}>
-  <div class="wrap">
-    <section class="pagehead"><h1>Tenhle zápas už skončil</h1><p class="lead">Přenos už není k dispozici. Tady je, co běží právě teď.</p></section>
-    <section class="sec"><Rows items={v.live} now={now} placement="gone" live limit={12} empty="Právě teď nic neběží, mrkni na program." /></section>
-    <p style="display:flex;gap:10px;flex-wrap:wrap"><a class="btn" href="/program/">Program přenosů</a><a class="btn ghost" href="/">Na úvod</a></p>
-  </div>
-</Base>
+<GonePage v={v} />
 )}

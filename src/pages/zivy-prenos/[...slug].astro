@@ -1,0 +1,11 @@
+---
+import GonePage from '../../components/GonePage.astro';
+import { getEnv, view } from '../../lib/page';
+import { legacyMatch } from '../../lib/legacy';
+export const prerender = false;
+const v = await view(getEnv());
+const r = legacyMatch(v, Astro.params.slug ?? '');
+if (r.to) return Astro.redirect(r.to, 301);
+Astro.response.status = 410;
+---
+<GonePage v={v} sport={r.sport} />

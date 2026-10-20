@@ -1,0 +1,5 @@
+---
+import { legacySport } from '../../lib/legacy';
+export const prerender = false;
+return Astro.redirect(legacySport((Astro.params.slug ?? '').replace(/\/+$/, '')), 301);
+---

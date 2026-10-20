@@ -7,6 +7,8 @@ import { COMPETITIONS } from '../lib/competitions';
 import { SPORT_BY_ID } from '../lib/sports';
 import { BONUS } from '../lib/bonus';
 import { photoFor } from '../lib/photos';
+// Same file the @fontsource CSS points to (identical content → identical hashed name), preloaded to avoid a late font swap.
+import fontLatin from '@fontsource-variable/archivo/files/archivo-latin-wdth-normal.woff2?url';
 interface Props {
   title: string;
   description: string;
@@ -51,6 +53,7 @@ const footComps = COMPETITIONS.filter((c) => c.top);
   <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <link rel="manifest" href="/site.webmanifest" />
+  <link rel="preload" href={fontLatin} as="font" type="font/woff2" crossorigin />
   {lcpSlug ? <link rel="preload" as="image" type="image/avif" imagesrcset={`/img/sport/${lcpSlug}-800.avif 800w, /img/sport/${lcpSlug}-1600.avif 1600w`} imagesizes="100vw" fetchpriority="high" /> : null}
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="SportStreamy" />
@@ -62,7 +65,7 @@ const footComps = COMPETITIONS.filter((c) => c.top);
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta name="twitter:card" content="summary_large_image" />
-  {ld.map((o) => <script type="application/ld+json" set:html={JSON.stringify(o)} />)}
+  {ld.map((o) => <script type="application/ld+json" set:html={JSON.stringify(o).replace(/</g, '\\u003c')} />)}
 </head>
 <body>
   <a class="promo" href="/go/registrace/?p=promo" rel="sponsored nofollow noopener" target="_blank">
