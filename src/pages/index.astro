@@ -11,6 +11,7 @@ import { getEnv, view, featured, tier, mixSports, sportCounts, leagues } from '.
 import { dayKey, plural, hhmm } from '../lib/text';
 import { sportPath, sportOf } from '../lib/url';
 import { faqLd, itemListLd, siteLd } from '../lib/seo';
+import { previews, previewPath } from '../lib/nahledy';
 
 export const prerender = false;
 const v = await view(getEnv());
@@ -34,6 +35,7 @@ const faq = [
   { q: 'Jak najdu konkrétní tým?', a: 'Napiš jeho název do hledání nahoře – stačí část názvu a bez diakritiky. Uvidíš všechny jeho zápasy na 7 dní dopředu.' },
 ];
 const ld = [...siteLd(), faqLd(faq), itemListLd([...v.live, ...today].slice(0, 20), 'Živé přenosy dnes')];
+const big = (await previews({ upcoming: true })).slice(0, 4);
 ---
 <Base title="Živé přenosy zdarma – sport online dnes | SportStreamy" description={`Živé přenosy zdarma: právě běží ${v.live.length} zápasů, dnes dalších ${today.length}. Fotbal, hokej, tenis, NBA i Chance Liga – najdi zápas a sleduj ho online.`} ld={ld} section="home" lcp={slides[0] ? sportOf(slides[0])?.slug : undefined} lcpSizes="(min-width: 900px) 400px, 86vw">
   <div class="wrap">
@@ -65,6 +67,12 @@ const ld = [...siteLd(), faqLd(faq), itemListLd([...v.live, ...today].slice(0, 2
           <Rows items={liveTop.length ? v.live : []} now={now} placement="home-live" live limit={12} more={{ href: '/zive/', label: 'Všechny živé přenosy' }} empty="Právě teď neběží žádný přenos – nejbližší začátky jsou níže." />
         </section>
 
+        {big.length ? (
+          <section class="sec">
+            <div class="sec-head"><h2>Velké zápasy</h2><a href="/jak-sledovat/">Všechny náhledy ›</a></div>
+            <div class="cards">{big.map((p) => <a class="card" href={previewPath(p)}><div><small style="color:var(--ink-2)">{p.data.league} · {hhmm(p.data.start.getTime())}</small><h3>{p.data.home} – {p.data.away}</h3><p>Kde sledovat, TV a kurzy</p></div></a>)}</div>
+          </section>
+        ) : null}
         <section class="sec zone">
           <div class="sec-head"><h2>Populární soutěže</h2><a href="/program/">Program ›</a></div>
           <CompetitionTiles items={lg.filter((l) => l.top).slice(0, 8)} />

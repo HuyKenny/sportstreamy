@@ -1,0 +1,37 @@
+---
+import type { Match } from '../lib/types';
+import { goPath } from '../lib/url';
+import { impliedProb } from '../lib/odds';
+interface Props { m: Match; title?: string }
+const { m, title = 'Kurzy' } = Astro.props;
+const o = m.o?.t;
+const c = m.o?.c;
+const best = (i: number) => {
+  const a = o?.[i] ?? 0;
+  const b = c?.[i] ?? 0;
+  return !c || a === b ? '' : a > b ? 't' : 'c';
+};
+const prob = o ? impliedProb(o) : null;
+---
+        {o ? (
+          <section class="sec">
+            <div class="sec-head"><h2>{title}</h2><span class="n">Tipsport vs Chance</span></div>
+            <div class="rows" style="padding:4px 6px">
+              <table class="odds-table">
+                <thead><tr><th>Kancelář</th><th>1</th>{o[1] !== null ? <th>X</th> : null}<th>2</th><th></th></tr></thead>
+                <tbody>
+                  <tr><th scope="row"><b style="font-family:inherit">Tipsport</b></th>{o.map((x, i) => x === null ? null : <td class:list={[best(i) === 't' && 'best']}><b>{x.toFixed(2)}</b></td>)}<td><a class="btn sm" href={goPath(m, 'odds')} rel="sponsored nofollow noopener" target="_blank">Vsadit</a></td></tr>
+                  {c ? <tr><th scope="row"><b style="font-family:inherit">Chance</b></th>{c.map((x, i) => x === null ? null : <td class:list={[best(i) === 'c' && 'best']}><b>{x.toFixed(2)}</b></td>)}<td><a class="btn sm ghost" href={goPath(m, 'odds', 'chance')} rel="sponsored nofollow noopener" target="_blank">Vsadit</a></td></tr> : null}
+                </tbody>
+              </table>
+            </div>
+            {prob ? (
+              <div class="prob" aria-label="Pravděpodobnost podle kurzů">
+                <span class="p1" style={`width:${prob[0]}%`}>{prob[0] >= 12 ? `${m.h.split(' ')[0]} ${prob[0]} %` : `${prob[0]} %`}</span>
+                {o[1] !== null ? <span class="px" style={`width:${prob[1]}%`}>{prob[1] >= 10 ? `X ${prob[1]} %` : ''}</span> : null}
+                <span class="p2" style={`width:${prob[2]}%`}>{prob[2] >= 12 && m.a ? `${m.a.split(' ')[0]} ${prob[2]} %` : `${prob[2]} %`}</span>
+              </div>
+            ) : null}
+            <p class="muted" style="font-size:.76rem;margin-top:8px">Pravděpodobnost je spočítaná z kurzů Tipsportu bez marže. Vyšší kurz zeleně. Kurzy se mění. 18+, hazard může způsobit závislost.</p>
+          </section>
+        ) : null}

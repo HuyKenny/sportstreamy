@@ -35,6 +35,7 @@ if (ttl > 0) Astro.response.headers.set('Cache-Control', `public, max-age=0, s-m
 const nav = [
   { href: '/zive/', label: 'Živě', k: 'zive', hot: true },
   { href: '/program/', label: 'Program', k: 'program' },
+  { href: '/jak-sledovat/', label: 'Velké zápasy', k: 'nahledy' },
   ...SPORTS.filter((s) => s.main).map((s) => ({ href: `/${s.slug}-online/`, label: s.name, k: s.slug })),
   { href: '/fotbal-online/chance-liga/', label: 'Chance Liga', k: 'chance-liga' },
   { href: '/hokej-online/nhl/', label: 'NHL', k: 'nhl' },
@@ -100,7 +101,7 @@ const footComps = COMPETITIONS.filter((c) => c.top);
         <div><h4>Soutěže</h4>{footComps.map((c) => <a href={`/${SPORT_BY_ID.get(c.sp)!.slug}-online/${c.slug}/`}>{c.name} živě</a>)}</div>
         <div><h4>Dnes</h4><a href="/fotbal-dnes/">Fotbal dnes</a><a href="/hokej-dnes/">Hokej dnes</a><a href="/tenis-dnes/">Tenis dnes</a><a href="/basketbal-dnes/">Basketbal dnes</a><a href="/volejbal-dnes/">Volejbal dnes</a><a href="/sipky-dnes/">Šipky dnes</a></div>
         <div><h4>Sázkové kanceláře</h4><a href="/sazkove-kancelare/">Srovnání kanceláří</a><a href="/sazkove-kancelare/tipsport/tv/">Tipsport TV</a><a href="/sazkove-kancelare/tipsport/aplikace/">Tipsport aplikace</a><a href="/sazkove-kancelare/tipsport/kontrola-tiketu/">Kontrola tiketu</a><a href="/pobocky/">Pobočky</a><a href="/clanky/dan-z-vyhry-sazky/">Daň z výhry</a></div>
-        <div><h4>Přehledy</h4><a href="/zive/">Živé přenosy</a><a href="/program/">Program dnes</a><a href="/program/zitra/">Program zítra</a><a href="/hledat/">Hledat zápas</a><a href="/sazkove-kancelare/">Sázkové kanceláře a bonusy</a><a href="/clanky/">Články</a></div>
+        <div><h4>Přehledy</h4><a href="/zive/">Živé přenosy</a><a href="/program/">Program dnes</a><a href="/program/zitra/">Program zítra</a><a href="/hledat/">Hledat zápas</a><a href="/jak-sledovat/">Velké zápasy</a><a href="/sazkove-kancelare/">Sázkové kanceláře a bonusy</a><a href="/clanky/">Články</a></div>
         <div><h4>Web</h4><a href="/o-webu/">O webu</a><a href="/zodpovedne-hrani/">Zodpovědné hraní</a><a href="/osobni-udaje/">Ochrana údajů</a><a href="/podminky/">Podmínky</a><a href="/zdroje-fotek/">Zdroje fotek</a><a href="/kontakt/">Kontakt</a></div>
       </div>
       <div class="warn"><b>18+</b><span>{BONUS.warn} Pomoc: <a href="https://www.hrajrozumne.cz" rel="noopener nofollow" style="display:inline;text-decoration:underline">hrajrozumne.cz</a>.</span></div>

@@ -1,0 +1,24 @@
+---
+import Base from '../../layouts/Base.astro';
+import Crumbs from '../../components/Crumbs.astro';
+import { previews, previewPath } from '../../lib/nahledy';
+import { hhmm, longDay } from '../../lib/text';
+import { breadcrumbLd } from '../../lib/seo';
+export const prerender = false;
+const upcoming = await previews({ upcoming: true });
+const ids = new Set(upcoming.map((p) => p.id));
+const past = (await previews()).filter((p) => !ids.has(p.id)).slice(0, 24);
+const crumbs = [{ name: 'Domů', href: '/' }, { name: 'Velké zápasy' }];
+const card = (p: (typeof upcoming)[number]) => ({ href: previewPath(p), when: `${longDay(p.data.start.getTime())} · ${hhmm(p.data.start.getTime())}`, title: `${p.data.home} – ${p.data.away}`, league: p.data.league });
+---
+<Base title="Velké zápasy: kde sledovat živě, TV a kurzy | SportStreamy" description="Náhledy největších zápasů: Liga mistrů, české týmy v pohárech, derby Chance Ligy. Kdy se hraje, kde sledovat v TV a online, kurzy Tipsportu a Chance." ld={[breadcrumbLd(crumbs)]} section="nahledy" ttl={300}>
+  <div class="wrap">
+    <Crumbs items={crumbs} />
+    <section class="pagehead"><h1>Velké zápasy</h1><p class="lead">Náhledy zápasů, které stojí za to vidět: kdy se hraje, kde je přenos v televizi a online a co říkají kurzy.</p></section>
+    <section class="sec">
+      <div class="sec-head"><h2>Nejbližší</h2></div>
+      {upcoming.length ? <div class="cards">{upcoming.map(card).map((c) => <a class="card" href={c.href}><div><small style="color:var(--ink-2)">{c.when}</small><h3>{c.title}</h3><p>{c.league}</p></div></a>)}</div> : <p class="muted">Náhledy dalších zápasů připravujeme. Kompletní program je v <a href="/program/">programu přenosů</a>.</p>}
+    </section>
+    {past.length ? <section class="sec"><div class="sec-head"><h2>Odehrané</h2></div><div class="cards">{past.map(card).map((c) => <a class="card" href={c.href}><div><small style="color:var(--ink-2)">{c.when}</small><h3>{c.title}</h3><p>{c.league}</p></div></a>)}</div></section> : null}
+  </div>
+</Base>

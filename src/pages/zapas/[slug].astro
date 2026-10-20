@@ -6,6 +6,7 @@ import Aside from '../../components/Aside.astro';
 import Stage from '../../components/Stage.astro';
 import StickyCta from '../../components/StickyCta.astro';
 import Crumbs from '../../components/Crumbs.astro';
+import OddsBlock from '../../components/OddsBlock.astro';
 import Icon from '../../components/Icon.astro';
 import GonePage from '../../components/GonePage.astro';
 import { getEnv, view, sportCounts, leagues } from '../../lib/page';
@@ -13,6 +14,7 @@ import { hhmm, longDay, dayLabel, shortDay } from '../../lib/text';
 import { matchTitle, matchPath, sportOf, goPath, sportPath, leaguePathOf } from '../../lib/url';
 import { competitionOf, competitionSlug } from '../../lib/competitions';
 import { BONUS } from '../../lib/bonus';
+import { previewFor, previewPath } from '../../lib/nahledy';
 import { breadcrumbLd, faqLd, sportsEventLd, clip } from '../../lib/seo';
 
 export const prerender = false;
@@ -27,21 +29,14 @@ if (!m) {
 }
 if (m && Astro.url.pathname !== matchPath(m)) return Astro.redirect(matchPath(m), 301);
 const sport = m ? sportOf(m) : undefined;
+const pv = m ? await previewFor(m.id) : undefined;
 const comp = m ? competitionOf(m.sp, m.lg) : null;
 const state: 'live' | 'pre' | 'recent' = !m ? 'recent' : v.live.includes(m) ? 'live' : m.st > now ? 'pre' : 'recent';
 const pool = [...v.live, ...v.upcoming].filter((x) => m && x.id !== m.id);
 const same = m ? pool.filter((x) => x.sp === m.sp && competitionSlug(x.sp, x.lg) === competitionSlug(m.sp, m.lg)).slice(0, 6) : [];
 const sameSport = m ? pool.filter((x) => x.sp === m.sp && !same.includes(x)).slice(0, 8 - Math.min(same.length, 4)) : [];
 const o = m?.o?.t;
-const c = m?.o?.c;
 const title = m ? matchTitle(m) : '';
-const best = (i: number) => {
-  const a = o?.[i] ?? 0;
-  const b = c?.[i] ?? 0;
-  return !c || a === b ? '' : a > b ? 't' : 'c';
-};
-// Implied probabilities from Tipsport odds, normalised to 100 % (the margin is removed).
-const prob = o ? (() => { const inv = o.map((x) => (x ? 1 / x : 0)); const s = inv.reduce((a, b) => a + b, 0); return inv.map((x) => Math.round((x / s) * 100)); })() : null;
 const lgName = comp?.name ?? m?.lg ?? '';
 const faq = m ? [
   { q: `Kde sledovat ${title} živě?`, a: m.stream ? `Zápas vysílá Tipsport. Klikni na „Sledovat“, přihlas se nebo se bezplatně zaregistruj a přenos se spustí. Noví hráči dostanou bonus ${BONUS.amount}.` : 'K tomuto zápasu Tipsport video nevysílá (práva drží televize), ale nabízí živé statistiky, průběžné skóre a kurzy.' },
@@ -66,6 +61,7 @@ const desc = m ? clip(`Kde sledovat ${title} (${lgName}) – ${state === 'live' 
         <span>· {hhmm(m.st)} · {dayLabel(m.st, now)} · {sport.name}</span>
       </div>
       <h1>{title} živě</h1>
+      {pv ? <p style="margin:.5em 0 0"><a href={previewPath(pv)}>Náhled zápasu: kde sledovat v TV, forma a kurzy ›</a></p> : null}
     </section>
     <div class="cols">
       <div>
@@ -85,28 +81,7 @@ const desc = m ? clip(`Kde sledovat ${title} (${lgName}) – ${state === 'live' 
           </dl>
         </section>
 
-        {o ? (
-          <section class="sec">
-            <div class="sec-head"><h2>Kurzy</h2><span class="n">Tipsport vs Chance</span></div>
-            <div class="rows" style="padding:4px 6px">
-              <table class="odds-table">
-                <thead><tr><th>Kancelář</th><th>1</th>{o[1] !== null ? <th>X</th> : null}<th>2</th><th></th></tr></thead>
-                <tbody>
-                  <tr><th scope="row"><b style="font-family:inherit">Tipsport</b></th>{o.map((x, i) => x === null ? null : <td class:list={[best(i) === 't' && 'best']}><b>{x.toFixed(2)}</b></td>)}<td><a class="btn sm" href={goPath(m, 'odds')} rel="sponsored nofollow noopener" target="_blank">Vsadit</a></td></tr>
-                  {c ? <tr><th scope="row"><b style="font-family:inherit">Chance</b></th>{c.map((x, i) => x === null ? null : <td class:list={[best(i) === 'c' && 'best']}><b>{x.toFixed(2)}</b></td>)}<td><a class="btn sm ghost" href={goPath(m, 'odds', 'chance')} rel="sponsored nofollow noopener" target="_blank">Vsadit</a></td></tr> : null}
-                </tbody>
-              </table>
-            </div>
-            {prob ? (
-              <div class="prob" aria-label="Pravděpodobnost podle kurzů">
-                <span class="p1" style={`width:${prob[0]}%`}>{prob[0] >= 12 ? `${m.h.split(' ')[0]} ${prob[0]} %` : `${prob[0]} %`}</span>
-                {o[1] !== null ? <span class="px" style={`width:${prob[1]}%`}>{prob[1] >= 10 ? `X ${prob[1]} %` : ''}</span> : null}
-                <span class="p2" style={`width:${prob[2]}%`}>{prob[2] >= 12 && m.a ? `${m.a.split(' ')[0]} ${prob[2]} %` : `${prob[2]} %`}</span>
-              </div>
-            ) : null}
-            <p class="muted" style="font-size:.76rem;margin-top:8px">Pravděpodobnost je spočítaná z kurzů Tipsportu bez marže. Vyšší kurz zeleně. Kurzy se mění. 18+, hazard může způsobit závislost.</p>
-          </section>
-        ) : null}
+        <OddsBlock m={m} />
 
         {same.length ? (<section class="sec"><div class="sec-head"><h2>Další zápasy · {lgName}</h2><a href={leaguePathOf(m)}>Vše ›</a></div><Rows items={same} now={now} placement="detail-same" groupByDay /></section>) : null}
         {sameSport.length ? (<section class="sec"><div class="sec-head"><h2>Další {sport.genitive === 'fotbalu' ? 'fotbal' : sport.name.toLowerCase()} živě a dnes</h2><a href={sportPath(sport.slug)}>{sport.name} online ›</a></div><Rows items={sameSport} now={now} placement="detail-sport" /></section>) : null}
