@@ -4,11 +4,16 @@ import { sportPath } from '../lib/url';
 import { SPORT_BY_ID } from '../lib/sports';
 import Bonus from './Bonus.astro';
 import Icon from './Icon.astro';
+import { BONUS } from '../lib/bonus';
 interface Props { sports: SportCount[]; leagues: League[]; placement: string }
 const { sports, leagues, placement } = Astro.props;
 ---
 <aside class="aside">
-  <Bonus placement={placement} />
+  <div class="bonus-slot">
+    <div class="tipad"><span class="tag-ad">Reklama · 18+</span><div class={`tipAd${BONUS.tipsportBanner}`}></div></div>
+    <Bonus placement={placement} />
+  </div>
+  <script is:inline async src={`https://ban.tipsport.cz/c/textA.php?pl=${BONUS.tipsportBanner}`}></script>
   {leagues.length ? (
     <div class="panel">
       <h3>Soutěže</h3>

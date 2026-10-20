@@ -370,3 +370,11 @@ footer .warn b { flex: none; display: grid; place-items: center; width: 40px; he
 .zone.live .sec-head h2::before { background: var(--live); }
 .zone > .sec { padding-top: 16px; }
 @media (max-width: 520px) { .zone { padding: 0 10px 12px; margin-inline: -6px; } }
+
+/* Tipsport's official banner takes the slot as soon as their script fills it; until then our ticket stays. */
+.bonus-slot .tipad { display: none; }
+.bonus-slot:has(.tipad > div:not(:empty)) .tipad { display: block; }
+.bonus-slot:has(.tipad > div:not(:empty)) .ticket { display: none; }
+.tipad .tag-ad { display: block; margin-bottom: 6px; }
+.tipad > div { overflow: hidden; border-radius: var(--r); }
+.tipad img { max-width: 100%; height: auto; }
