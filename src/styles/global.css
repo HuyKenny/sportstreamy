@@ -375,10 +375,10 @@ footer .warn b { flex: none; display: grid; place-items: center; width: 40px; he
 .bonus-slot .tipad { display: none; }
 .bonus-slot.is-static .tipad, .bonus-slot:has(.tipad > div:not(:empty)) .tipad { display: flex; }
 .bonus-slot:has(.tipad > div:not(:empty)) .ticket { display: none; }
-/* centred in the sidebar and on phones; the 300 px creative sits in a framed box like the rest of the UI */
-.tipad { flex-direction: column; align-items: center; gap: 8px; padding: 12px; border: var(--frame); border-radius: var(--r); background: var(--card); box-shadow: var(--lift); }
+/* centred in the sidebar and on phones; no frame around the creative (Kenny 20. 10.: frames look bad) */
+.tipad { flex-direction: column; align-items: center; gap: 6px; }
 .tipad .tag-ad { align-self: stretch; text-align: center; }
-.tipad > div { width: 100%; max-width: 300px; overflow: hidden; border-radius: 4px; line-height: 0; }
+.tipad > div { width: 100%; max-width: 300px; line-height: 0; }
 .tipad > div a { display: block; }
 .tipad img { width: 100%; max-width: 300px; height: auto; margin-inline: auto; }
 .tipad > div img[width="1"], .tipad > div img:not([width]) { width: 1px; height: 1px; }
