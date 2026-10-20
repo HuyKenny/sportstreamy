@@ -54,7 +54,7 @@ const faq = [
   <div class="wrap">
     <div class="cols">
       <div>
-        {live.length ? (<section class="sec"><div class="sec-head"><h2>Živě</h2></div><Rows items={live} now={now} placement="league-live" live /></section>) : null}
+        {live.length ? (<section class="sec zone live"><div class="sec-head"><h2>Živě <span class="cnt live">{live.length}</span></h2></div><Rows items={live} now={now} placement="league-live" live /></section>) : null}
         <section class="sec"><div class="sec-head"><h2>Program</h2><span class="n">{next.length}</span></div><Rows items={next} now={now} placement="league" groupByDay empty={`Další zápasy soutěže ${name} zatím nejsou v nabídce. Program se doplňuje průběžně, obvykle týden dopředu.`} /></section>
         <section class="sec"><div class="sec-head"><h2>Časté otázky</h2></div><Faq items={faq} /></section>
       </div>

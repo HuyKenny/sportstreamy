@@ -30,12 +30,12 @@ const crumbs = [{ name: 'Domů', href: '/' }, { name: 'Živé přenosy' }];
     <div class="chips">
       {groups.map((g) => <a class="chip" href={`#${g.slug}`}><Icon name={g.slug} />{g.name}<em>{g.live}</em></a>)}
     </div>
-    {slides.length ? <section class="sec"><Carousel items={slides} placement="zive-carousel" eagerFirst /></section> : null}
+    {slides.length ? <div class="band"><section class="sec"><Carousel items={slides} placement="zive-carousel" eagerFirst /></section></div> : null}
     <div class="cols">
       <div>
         {groups.map((g) => (
           <section class="sec" id={g.slug}>
-            <div class="sec-head"><h2>{g.name} živě</h2><a href={`/${g.slug}-online/`}>{g.name} online ›</a></div>
+            <div class="sec-head"><h2>{g.name} živě <span class="cnt live">{g.live}</span></h2><a href={`/${g.slug}-online/`}>{g.name} online ›</a></div>
             <Rows items={g.items} now={now} placement="zive" live />
           </section>
         ))}

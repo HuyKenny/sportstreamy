@@ -52,8 +52,8 @@ const shown = next.length > LIMIT ? featured(next).slice(0, LIMIT).sort((a, b) =
     {others.length ? <div class="chips" aria-label="Další soutěže" style="margin-top:14px">{others.map((l) => <a class="chip" href={`/${sport.slug}-online/${l.slug}/`}>{l.name}<em>{l.n}</em></a>)}</div> : null}
     <div class="cols">
       <div>
-        {live.length ? (<section class="sec"><div class="sec-head"><h2>{sport.name} živě</h2><span class="n">{live.length}</span></div><Rows items={live} now={now} placement="sport-live" live /></section>) : null}
-        {curated.length ? <section class="sec"><div class="sec-head"><h2>Soutěže</h2></div><CompetitionTiles items={curated} /></section> : null}
+        {live.length ? (<section class="sec zone live"><div class="sec-head"><h2>{sport.name} živě <span class="cnt live">{live.length}</span></h2></div><Rows items={live} now={now} placement="sport-live" live /></section>) : null}
+        {curated.length ? <section class="sec zone"><div class="sec-head"><h2>Soutěže</h2></div><CompetitionTiles items={curated} /></section> : null}
         <section class="sec"><div class="sec-head"><h2>Program</h2><span class="n">{next.length}</span></div><Rows items={shown} now={now} placement="sport" groupByDay empty="Zatím žádné naplánované přenosy." /></section>
         {body ? <section class="sec prose" set:html={body} /> : null}
         <section class="sec"><div class="sec-head"><h2>Časté otázky</h2></div><Faq items={faq} /></section>

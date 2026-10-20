@@ -19,6 +19,8 @@ const sports = sportCounts(v);
 const lg = leagues(v);
 const todayKey = dayKey(now);
 const today = featured(v.upcoming.filter((m) => dayKey(m.st) === todayKey));
+// The homepage list mixes sports (then goes back to time order), otherwise ATP/WTA fill all 15 rows.
+const todayMix = mixSports(today, 15).sort((a, b) => a.st - b.st);
 const later = featured(v.upcoming.filter((m) => dayKey(m.st) !== todayKey));
 // Carousel: live matches with video from top competitions / main sports; fall back to the next big kick-offs.
 const liveSlides = mixSports(featured(v.live.filter((m) => m.stream && tier(m) < 2)), 9);
@@ -48,32 +50,34 @@ const ld = [...siteLd(), faqLd(faq), itemListLd([...v.live, ...today].slice(0, 2
     </div>
 
     {slides.length ? (
-      <section class="sec">
-        <div class="sec-head"><h2>Sledujte teď</h2><a href="/zive/">Všechny živé ›</a></div>
-        <Carousel items={slides} placement="carousel" eagerFirst />
-      </section>
+      <div class="band">
+        <section class="sec">
+          <div class="sec-head"><h2>Sledujte teď</h2><a href="/zive/">Všechny živé ›</a></div>
+          <Carousel items={slides} placement="carousel" eagerFirst />
+        </section>
+      </div>
     ) : null}
 
     <div class="cols">
       <div>
-        <section class="sec">
-          <div class="sec-head"><h2>Živě právě teď</h2><span class="n">{v.live.length}</span></div>
+        <section class="sec zone live">
+          <div class="sec-head"><h2>Živě právě teď <span class="cnt live">{v.live.length}</span></h2><a href="/zive/">Vše ›</a></div>
           <Rows items={liveTop.length ? v.live : []} now={now} placement="home-live" live limit={12} more={{ href: '/zive/', label: 'Všechny živé přenosy' }} empty="Právě teď neběží žádný přenos – nejbližší začátky jsou níže." />
         </section>
 
-        <section class="sec">
+        <section class="sec zone">
           <div class="sec-head"><h2>Populární soutěže</h2><a href="/program/">Program ›</a></div>
           <CompetitionTiles items={lg.filter((l) => l.top).slice(0, 8)} />
         </section>
 
         <section class="sec">
-          <div class="sec-head"><h2>Dnes</h2><span class="n">{today.length} {plural(today.length, 'zápas', 'zápasy', 'zápasů')}</span></div>
-          <Rows items={today} now={now} placement="home-today" limit={15} more={{ href: '/program/', label: 'Celý dnešní program' }} empty="Na dnešek už nic nezbývá – mrkni na zítřek." />
+          <div class="sec-head"><h2>Dnes <span class="cnt">{today.length}</span></h2><a href="/program/">Celý program ›</a></div>
+          <Rows items={todayMix} now={now} placement="home-today" more={{ href: '/program/', label: 'Celý dnešní program' }} empty="Na dnešek už nic nezbývá – mrkni na zítřek." />
         </section>
 
         <section class="sec">
           <div class="sec-head"><h2>Zítra a další dny</h2><a href="/program/zitra/">Zítra ›</a></div>
-          <Rows items={later.slice(0, 12).sort((a, b) => a.st - b.st)} now={now} placement="home-next" groupByDay />
+          <Rows items={mixSports(later, 12).sort((a, b) => a.st - b.st)} now={now} placement="home-next" groupByDay />
         </section>
 
         <section class="sec prose">

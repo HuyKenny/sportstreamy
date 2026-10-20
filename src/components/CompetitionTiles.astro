@@ -12,7 +12,7 @@ const short = (n: string) => n.replace(/[^\p{L}\d ]/gu, '').split(' ').filter(Bo
     return (
       <a class="tile" href={`/${s.slug}-online/${l.slug}/`}>
         <span class="badge" style={`background:${l.color ?? '#2a332e'}`}>{l.short ?? short(l.name)}</span>
-        <span><b>{l.name}</b><small>{s.name} · {l.n} {plural(l.n, 'přenos', 'přenosy', 'přenosů')}</small></span>
+        <span><b>{l.name}</b><small>{s.name} · {l.n}<span class="w"> {plural(l.n, 'přenos', 'přenosy', 'přenosů')}</span></small></span>
         {l.live ? <span class="dot" title={`${l.live} živě`}></span> : null}
       </a>
     );
