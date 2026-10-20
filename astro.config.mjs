@@ -11,4 +11,6 @@ export default defineConfig({
   trailingSlash: 'always',
   build: { format: 'directory', inlineStylesheets: 'always' },
   compressHTML: true,
+  // Every client script as an external file, so the CSP can drop 'unsafe-inline' for scripts.
+  vite: { build: { assetsInlineLimit: 0 } },
 });

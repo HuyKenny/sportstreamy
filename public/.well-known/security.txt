@@ -1,0 +1,4 @@
+Contact: mailto:info@sportstreamy.cz
+Expires: 2027-10-20T00:00:00.000Z
+Preferred-Languages: cs, en
+Canonical: https://sportstreamy.cz/.well-known/security.txt
