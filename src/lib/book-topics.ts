@@ -1,4 +1,4 @@
-import type { BookInfo, Topic } from './books';
+import { bonusTerms, type BookInfo, type Topic } from './books';
 import { BONUS } from './bonus';
 
 /**
@@ -90,7 +90,7 @@ export function topicPage(b: BookInfo, t: Topic): TopicPage {
         title: b.bonus ? `${n} bonus ${b.bonus} – jak ho získat` : `${n} promo kód a bonus – jak to funguje`,
         h1: b.bonus ? `${n} bonus ${b.bonus}` : `${n} promo kód a bonus`,
         lead: b.bonus
-          ? `Noví hráči ${n === 'Tipsport' ? 'Tipsportu' : n} dostanou po registraci a ověření účtu bonus ${b.bonus}. ${BONUS.terms}`
+          ? `Noví hráči ${n === 'Tipsport' ? 'Tipsportu' : n === 'Allwyn' ? 'Allwynu' : n} dostanou po registraci a ověření účtu bonus ${b.bonus}. ${bonusTerms(b)}`
           : `${n} nabízí novým i stávajícím hráčům bonusy a akce, které se často mění. Aktuální promo kód a podmínky najdeš vždy na webu ${b.site.replace('https://', '')} – žádné vymyšlené kódy tu neuvádíme.${alt}`,
         steps: b.bonus
           ? [

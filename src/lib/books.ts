@@ -4,6 +4,8 @@
  * swap `site` for an affiliate /go/ id once Kenny has a programme with them.
  * Facts only, checked on the operators' own sites (20. 10. 2026); no bonus amounts except where Kenny confirmed them.
  */
+import { BONUS } from './bonus';
+
 export type BookSlug = 'tipsport' | 'chance' | 'sazka' | 'fortuna' | 'betano' | 'synottip';
 export type Topic = 'tv' | 'aplikace' | 'kontrola-tiketu' | 'bonus' | 'registrace';
 
@@ -36,7 +38,7 @@ export const BOOKS: BookInfo[] = [
     streams: true, branches: true, topics: ['tv', 'aplikace', 'kontrola-tiketu', 'bonus', 'registrace'],
   },
   {
-    slug: 'chance', name: 'Chance', short: 'Chance', full: 'Chance a.s.', partner: true, go: 'chance', site: 'https://www.chance.cz', color: '#0f7a3c',
+    slug: 'chance', name: 'Chance', short: 'Chance', full: 'Chance a.s.', partner: true, go: 'chance', site: 'https://www.chance.cz', bonus: '200 Kč', color: '#0f7a3c',
     blurb: 'Druhá velká česká kancelář na stejné platformě jako Tipsport – stejné zápasy, jiné kurzy. Generální partner Chance Ligy.',
     pros: ['Stejné zápasy jako Tipsport – snadné porovnání kurzů', 'Bonus 200 Kč za registraci', 'Mobilní aplikace, pobočky', 'Česká licence'],
     cons: ['Menší síť poboček než Tipsport'],
@@ -44,9 +46,9 @@ export const BOOKS: BookInfo[] = [
     streams: true, branches: true, topics: ['tv', 'aplikace', 'kontrola-tiketu', 'bonus', 'registrace'],
   },
   {
-    slug: 'sazka', name: 'Allwyn (SazkaBet)', short: 'Allwyn', full: 'Allwyn a.s. (dříve Sazka)', partner: true, go: 'sazka', site: 'https://www.allwyn.cz', color: '#1d6b4f',
+    slug: 'sazka', name: 'Allwyn (SazkaBet)', short: 'Allwyn', full: 'Allwyn a.s. (dříve Sazka)', partner: true, go: 'sazka', site: 'https://www.allwyn.cz', bonus: '500 Kč', color: '#1d6b4f',
     blurb: 'Provozovatel loterií a sázek (dříve Sazka a SazkaBet). Sportka, Eurojackpot i kurzové sázky na jednom účtu.',
-    pros: ['Loterie a sázky na jednom účtu', 'Největší síť prodejních míst v Česku', 'Česká licence'],
+    pros: ['Bonus 500 Kč pro nové hráče', 'Loterie a sázky na jednom účtu', 'Největší síť prodejních míst v Česku', 'Česká licence'],
     cons: ['Menší nabídka živých přenosů než Tipsport'],
     watch: 'Program přenosů od Allwynu nemáme; pro sledování zápasů doporučujeme Tipsport.',
     streams: false, branches: true, topics: ['aplikace', 'kontrola-tiketu', 'bonus', 'registrace'],
@@ -77,6 +79,10 @@ export const BOOKS: BookInfo[] = [
   },
 ];
 export const BOOK_BY_SLUG = new Map(BOOKS.map((b) => [b.slug, b]));
+
+/** Bonus small print for a bookmaker (the shared BONUS.terms text is Tipsport's). */
+export const bonusTerms = (b: BookInfo) =>
+  b.slug === 'tipsport' ? BONUS.terms : `Bonus pro nové hráče ${b.short === 'Allwyn' ? 'Allwynu' : b.short} po registraci a ověření účtu. Podmínky stanoví provozovatel. Pouze 18+.`;
 
 /** Where the main CTA of a page about this bookmaker goes. */
 export const ctaFor = (b: BookInfo) => (b.partner ? `/go/${b.go}/` : '/go/registrace/');
