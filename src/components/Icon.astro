@@ -1,36 +1,10 @@
 ---
 // Hand-drawn 24px line icons (stroke follows currentColor). Unknown sport slugs fall back to a plain ball.
+// Rendered as <use> of a sprite defined once per page (IconSprite.astro): a row of matches no longer carries
+// a full copy of each path, which halves the DOM of long lists.
+import { P } from '../lib/icons';
 interface Props { name: string; class?: string }
 const { name, class: cls } = Astro.props;
-const P: Record<string, string> = {
-  ball: '<circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/>',
-  fotbal: '<circle cx="12" cy="12" r="9"/><path d="M12 8l3.4 2.5-1.3 4h-4.2l-1.3-4zM12 8V3.2M15.4 10.5l5-1.6M14.1 14.5l3 4.2M9.9 14.5l-3 4.2M8.6 10.5l-5-1.6"/>',
-  hokej: '<path d="M6 3v13.5a2 2 0 0 0 2 2h5.5"/><ellipse cx="17" cy="18" rx="3.6" ry="1.7"/>',
-  tenis: '<circle cx="12" cy="12" r="9"/><path d="M5.3 5.7c3.3 2.5 3.3 10.1 0 12.6M18.7 5.7c-3.3 2.5-3.3 10.1 0 12.6"/>',
-  basketbal: '<circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.6 5.6c3.6 3.4 3.6 9.4 0 12.8M18.4 5.6c-3.6 3.4-3.6 9.4 0 12.8"/>',
-  volejbal: '<circle cx="12" cy="12" r="9"/><path d="M3.6 10.6C8 11 11 8.3 12.4 3.1M12 12.2c1.6 3.4 4.6 5.7 8.3 5.9M12 12.2C9.6 14 8.7 17 9 20.9M12 12.2l-8.2 3.4"/>',
-  'stolni-tenis': '<circle cx="10" cy="10" r="6.5"/><path d="M14.6 14.6l5.4 5.4"/><circle cx="18.5" cy="5.5" r="1.6"/>',
-  esporty: '<path d="M7 8h10a4 4 0 0 1 4 4v1.5a3 3 0 0 1-5.2 2L14.5 14h-5l-1.3 1.5A3 3 0 0 1 3 13.5V12a4 4 0 0 1 4-4z"/><path d="M8 10.5v3M6.5 12h3M16 11.3h.01M18 13h.01"/>',
-  box: '<path d="M6 10a4 4 0 0 1 4-4h5a3 3 0 0 1 3 3v6a5 5 0 0 1-5 5h-2a5 5 0 0 1-5-5z"/><path d="M7 15.5h11M9.5 6V4"/>',
-  'bojove-sporty': '<path d="M6 10a4 4 0 0 1 4-4h5a3 3 0 0 1 3 3v6a5 5 0 0 1-5 5h-2a5 5 0 0 1-5-5z"/><path d="M7 15.5h11M9.5 6V4"/>',
-  sipky: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/><path d="M12 12l8-8M16 4h4v4"/>',
-  snooker: '<circle cx="8" cy="9" r="3.4"/><circle cx="16" cy="9" r="3.4"/><circle cx="12" cy="16" r="3.4"/>',
-  motorsport: '<path d="M5 21V3.5M5 4h13l-2.6 4 2.6 4H5M9 4v8M13 4v8"/>',
-  hazena: '<circle cx="12" cy="12" r="9"/><path d="M3.5 9.5c5 1.4 12 1.4 17 0M3.5 14.5c5-1.4 12-1.4 17 0"/>',
-  florbal: '<path d="M5 3v14a3 3 0 0 0 3 3h3"/><circle cx="17" cy="17" r="3"/>',
-  futsal: '<circle cx="12" cy="12" r="9"/><path d="M12 8l3.4 2.5-1.3 4h-4.2l-1.3-4z"/>',
-  search: '<circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/>',
-  play: '<path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/>',
-  arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>',
-  tv: '<rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/>',
-  home: '<path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/>',
-  calendar: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
-  gift: '<rect x="3.5" y="9" width="17" height="11" rx="1.5"/><path d="M12 9v11M3.5 13h17M12 9c-2.5 0-4.5-1-4.5-2.8S9 3.5 12 9zM12 9c2.5 0 4.5-1 4.5-2.8S15 3.5 12 9z"/>',
-  trophy: '<path d="M7 4h10v4a5 5 0 0 1-10 0zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M12 13v4M8 20h8M9.5 17h5"/>',
-  live: '<circle cx="12" cy="12" r="2"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M5 5a10 10 0 0 0 0 14M19 5a10 10 0 0 1 0 14"/>',
-  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
-  menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
-};
-const body = P[name] ?? P.ball;
+const id = P[name] ? name : 'ball';
 ---
-<svg class={cls ?? 'ico'} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={body} />
+<svg class={cls ?? 'ico'} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href={`#i-${id}`} /></svg>

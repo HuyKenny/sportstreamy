@@ -1,4 +1,22 @@
-@import '@fontsource-variable/archivo/wdth.css';
+/* Archivo Variable, subset by scripts/fonts.py (65 kB instead of 177 kB): wght 400–900, wdth 62–100. */
+@font-face {
+  font-family: 'Archivo Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400 900;
+  font-stretch: 62% 100%;
+  src: url('../assets/fonts/archivo-latin.woff2') format('woff2-variations');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2212;
+}
+@font-face {
+  font-family: 'Archivo Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400 900;
+  font-stretch: 62% 100%;
+  src: url('../assets/fonts/archivo-latin-ext.woff2') format('woff2-variations');
+  unicode-range: U+0100-017F;
+}
 
 /* "Stadium at night": dark broadcast surfaces, hard 2px frames with offset shadows (no blur, no gradients
    except the photo scrim), one signal yellow reserved for actions that lead to the partner. */
@@ -14,7 +32,7 @@
   --lift: inset 0 1px 0 rgba(255, 255, 255, .05), 0 10px 24px -14px rgba(0, 0, 0, .9);
   --ink: #eef1ec;
   --ink-2: #a3ada6;
-  --ink-3: #78837c;
+  --ink-3: #8d9891;
   --cta: #ffd23f;
   --cta-hover: #ffe27a;
   --cta-ink: #0e1311;
@@ -84,7 +102,9 @@ p { margin: 0 0 1em; }
 .btn .ico { color: currentColor; }
 
 /* ---------- live / tags ---------- */
-.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--live); animation: pulse 1.6s ease-in-out infinite; flex: none; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--live); flex: none; }
+/* Only two dots pulse (nav + page kicker). Fifty pulsing row dots cost ~40 % of main-thread time on phones. */
+.nav .dot, .pagehead .kicker .dot { animation: pulse 1.6s ease-in-out infinite; }
 @keyframes pulse { 50% { opacity: .35; } }
 @media (prefers-reduced-motion: reduce) { .dot { animation: none; } .btn { transition: none; } }
 .tag-live { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-weight: 700; font-size: .74rem; letter-spacing: .06em; color: var(--live); text-transform: uppercase; }
@@ -92,7 +112,7 @@ p { margin: 0 0 1em; }
 
 /* ---------- search ---------- */
 .search { position: relative; }
-.search input { width: 100%; min-height: 44px; padding: 0 14px 0 42px; border: 2px solid var(--line-2); border-radius: var(--r); background: var(--card); color: var(--ink); font: inherit; font-size: .95rem; }
+.search input { width: 100%; min-height: 44px; padding: 0 14px 0 42px; border: 2px solid var(--line-2); border-radius: var(--r); background: var(--card); color: var(--ink); font: inherit; font-size: 16px; /* < 16 px makes iOS zoom the page on focus */ }
 .search input::placeholder { color: var(--ink-3); }
 .search input:focus { border-color: var(--cta); outline: none; }
 .search > svg { position: absolute; left: 13px; top: 12px; width: 20px; height: 20px; color: var(--ink-3); pointer-events: none; }
@@ -271,6 +291,7 @@ p { margin: 0 0 1em; }
 .odds-table { width: 100%; border-collapse: collapse; }
 .odds-table th, .odds-table td { padding: 10px 12px; text-align: center; border-top: 1px solid var(--line); }
 .odds-table th:first-child, .odds-table td:first-child { text-align: left; }
+.odds-table tbody th { font-weight: 400; border-top: 1px solid var(--line); }
 .odds-table thead th { border-top: 0; font-family: var(--mono); font-weight: 400; font-size: .7rem; letter-spacing: .08em; color: var(--ink-3); text-transform: uppercase; }
 .odds-table td b { font-family: var(--mono); font-weight: 700; }
 .best { color: var(--good); }
@@ -357,7 +378,7 @@ footer .warn b { flex: none; display: grid; place-items: center; width: 40px; he
 .band.live { --band: #150f0e; }
 .band.live .sec-head h2::before { background: var(--live); }
 .sec-head h2 .cnt { font-family: var(--mono); font-weight: 700; font-size: .72rem; letter-spacing: .04em; padding: 3px 7px; border-radius: 4px; background: var(--card-2); color: var(--ink-2); }
-.sec-head h2 .cnt.live { background: var(--live); color: #fff; }
+.sec-head h2 .cnt.live { background: #c8281b; color: #fff; } /* darker than --live: white text needs AA contrast */
 .slide { border-color: var(--line-2); box-shadow: 0 14px 30px -16px rgba(0, 0, 0, 1); }
 .stage { border-color: var(--line-2); }
 .tile small { white-space: nowrap; }
@@ -384,3 +405,23 @@ footer .warn b { flex: none; display: grid; place-items: center; width: 40px; he
 .tipad > div img[width="1"], .tipad > div img:not([width]) { width: 1px; height: 1px; }
 .banners { display: flex; flex-wrap: wrap; justify-content: center; gap: 18px; margin-top: 22px; }
 .banners .bonus-slot { width: min(100%, 326px); }
+
+/* Below-the-fold blocks skip layout/paint until they approach the viewport. */
+footer, .sec.prose, .faq { content-visibility: auto; contain-intrinsic-size: auto 700px; }
+
+/* ---------- phones ---------- */
+html { -webkit-tap-highlight-color: transparent; }
+a, button, .btn, .chip, summary { touch-action: manipulation; }
+.bar { transition: transform .22s ease; will-change: transform; }
+@media (max-width: 899px) {
+  /* header slides away while scrolling down, comes back on scroll up (src/layouts/Base.astro) */
+  .bar.is-hidden { transform: translateY(-100%); }
+  .bar .wrap { height: 54px; }
+  .logo { font-size: 1.35rem; }
+  .logo svg { width: 26px; height: 26px; }
+  .promo .wrap { min-height: 30px; font-size: .76rem; }
+  .pagehead { padding-block: 16px 6px; }
+  .sec { padding-top: 24px; }
+  .dock { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
+}
+@media (prefers-reduced-motion: reduce) { .bar { transition: none; } }

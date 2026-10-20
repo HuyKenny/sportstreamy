@@ -30,7 +30,7 @@ const faq = sportFaq(sport, live.length > 0);
 const photo = photoFor(sport.slug);
 const crumbs = [{ name: 'Domů', href: '/' }, { name: `${sport.name} online` }];
 const body = sportBody(sport);
-const LIMIT = 80;
+const LIMIT = 40;
 const shown = next.length > LIMIT ? featured(next).slice(0, LIMIT).sort((a, b) => a.st - b.st) : next;
 ---
 <Base title={`${sport.name} online zdarma – živé přenosy dnes | SportStreamy`} description={`${sport.name} online: ${live.length} ${plural(live.length, 'zápas', 'zápasy', 'zápasů')} živě, ${next.length} v programu na 7 dní. Čas, soutěž, kurzy a odkaz na přenos zdarma.`} ld={[breadcrumbLd(crumbs), faqLd(faq), itemListLd([...live, ...next], `${sport.name} online`)]} section={sport.slug} lcp={sport.slug}>
@@ -54,7 +54,7 @@ const shown = next.length > LIMIT ? featured(next).slice(0, LIMIT).sort((a, b) =
       <div>
         {live.length ? (<section class="sec zone live"><div class="sec-head"><h2>{sport.name} živě <span class="cnt live">{live.length}</span></h2></div><Rows items={live} now={now} placement="sport-live" live /></section>) : null}
         {curated.length ? <section class="sec zone"><div class="sec-head"><h2>Soutěže</h2></div><CompetitionTiles items={curated} /></section> : null}
-        <section class="sec"><div class="sec-head"><h2>Program</h2><span class="n">{next.length}</span></div><Rows items={shown} now={now} placement="sport" groupByDay empty="Zatím žádné naplánované přenosy." /></section>
+        <section class="sec"><div class="sec-head"><h2>Program</h2><span class="n">{next.length}</span></div><Rows items={shown} now={now} placement="sport" groupByDay empty="Zatím žádné naplánované přenosy." />{next.length > shown.length ? <p class="more"><a href={`/program/?sport=${sport.slug}`}>Další zápasy po dnech – {sport.name.toLowerCase()} ›</a></p> : null}</section>
         {body ? <section class="sec prose" set:html={body} /> : null}
         <section class="sec"><div class="sec-head"><h2>Časté otázky</h2></div><Faq items={faq} /></section>
       </div>

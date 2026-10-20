@@ -2,13 +2,15 @@
 import '../styles/global.css';
 import Icon from '../components/Icon.astro';
 import Search from '../components/Search.astro';
+import IconSprite from '../components/IconSprite.astro';
 import { SPORTS } from '../lib/sports';
 import { COMPETITIONS } from '../lib/competitions';
 import { SPORT_BY_ID } from '../lib/sports';
 import { BONUS } from '../lib/bonus';
 import { photoFor } from '../lib/photos';
-// Same file the @fontsource CSS points to (identical content → identical hashed name), preloaded to avoid a late font swap.
-import fontLatin from '@fontsource-variable/archivo/files/archivo-latin-wdth-normal.woff2?url';
+// Same files the @font-face rules in global.css point to (same content → same hashed name). Czech text needs both.
+import fontLatin from '../assets/fonts/archivo-latin.woff2?url';
+import fontExt from '../assets/fonts/archivo-latin-ext.woff2?url';
 interface Props {
   title: string;
   description: string;
@@ -20,10 +22,12 @@ interface Props {
   section?: string;
   /** Sport slug whose photo is the LCP element (preloaded). */
   lcp?: string;
+  /** `sizes` of the LCP image, so the preload picks the same file the <img> will use. */
+  lcpSizes?: string;
   /** Detail pages swap the dock for their own sticky CTA. */
   dock?: boolean;
 }
-const { title, description, path = Astro.url.pathname, noindex = false, ld = [], ttl = 60, image, section = '', lcp, dock = true } = Astro.props;
+const { title, description, path = Astro.url.pathname, noindex = false, ld = [], ttl = 60, image, section = '', lcp, lcpSizes = '100vw', dock = true } = Astro.props;
 const canonical = new URL(path, Astro.site).toString();
 const lcpSlug = lcp ? photoFor(lcp).slug : '';
 const og = new URL(image ?? '/og/default.png', Astro.site).toString();
@@ -54,7 +58,8 @@ const footComps = COMPETITIONS.filter((c) => c.top);
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <link rel="manifest" href="/site.webmanifest" />
   <link rel="preload" href={fontLatin} as="font" type="font/woff2" crossorigin />
-  {lcpSlug ? <link rel="preload" as="image" type="image/avif" imagesrcset={`/img/sport/${lcpSlug}-800.avif 800w, /img/sport/${lcpSlug}-1600.avif 1600w`} imagesizes="100vw" fetchpriority="high" /> : null}
+  <link rel="preload" href={fontExt} as="font" type="font/woff2" crossorigin />
+  {lcpSlug ? <link rel="preload" as="image" type="image/avif" imagesrcset={`/img/sport/${lcpSlug}-480.avif 480w, /img/sport/${lcpSlug}-800.avif 800w, /img/sport/${lcpSlug}-1600.avif 1600w`} imagesizes={lcpSizes} fetchpriority="high" /> : null}
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="SportStreamy" />
   <meta property="og:locale" content="cs_CZ" />
@@ -68,6 +73,7 @@ const footComps = COMPETITIONS.filter((c) => c.top);
   {ld.map((o) => <script type="application/ld+json" set:html={JSON.stringify(o).replace(/</g, '\\u003c')} />)}
 </head>
 <body>
+  <IconSprite />
   <a class="promo" href="/go/registrace/?p=promo" rel="sponsored nofollow noopener" target="_blank">
     <span class="wrap"><span class="long">{BONUS.promo}</span><span class="short">{BONUS.promoShort}</span><b>{BONUS.amount}</b><small>Reklama · 18+</small></span>
   </a>
@@ -108,6 +114,24 @@ const footComps = COMPETITIONS.filter((c) => c.top);
       <a href="/go/registrace/?p=dock" rel="sponsored nofollow noopener" target="_blank"><Icon name="gift" />{BONUS.amount}</a>
     </nav>
   ) : null}
+  <script>
+    // Phones: hide the sticky header while scrolling down, show it again on the way up (transform only, no layout).
+    const bar = document.querySelector<HTMLElement>('.bar');
+    if (bar && matchMedia('(max-width: 899px)').matches) {
+      let last = scrollY;
+      let ticking = false;
+      addEventListener('scroll', () => {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(() => {
+          const y = scrollY;
+          if (Math.abs(y - last) > 8) bar.classList.toggle('is-hidden', y > last && y > 120);
+          last = y;
+          ticking = false;
+        });
+      }, { passive: true });
+    }
+  </script>
   <script>
     // Live scores: refresh score + minute in place every 30 s while the tab is visible.
     const nodes = () => document.querySelectorAll<HTMLElement>('.row.is-live[data-id], .slide[data-id], .stage[data-id]');
