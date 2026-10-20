@@ -1,0 +1,58 @@
+---
+import Base from '../../../layouts/Base.astro';
+import Crumbs from '../../../components/Crumbs.astro';
+import Faq from '../../../components/Faq.astro';
+import Rows from '../../../components/Rows.astro';
+import BannerSlot from '../../../components/BannerSlot.astro';
+import { BOOK_BY_SLUG, ctaFor, type BookSlug, type Topic } from '../../../lib/books';
+import { topicPage, TOPIC_LABEL } from '../../../lib/book-topics';
+import { BANNERS } from '../../../lib/banners';
+import { BONUS } from '../../../lib/bonus';
+import { breadcrumbLd, faqLd } from '../../../lib/seo';
+import { getEnv, view, featured } from '../../../lib/page';
+import { dayKey } from '../../../lib/text';
+export const prerender = false;
+const b = BOOK_BY_SLUG.get(Astro.params.book as BookSlug);
+const t = Astro.params.tema as Topic;
+if (!b || !b.topics.includes(t)) return Astro.rewrite('/404/');
+const pg = topicPage(b, t);
+const crumbs = [{ name: 'Domů', href: '/' }, { name: 'Sázkové kanceláře', href: '/sazkove-kancelare/' }, { name: b.name, href: `/sazkove-kancelare/${b.slug}/` }, { name: TOPIC_LABEL[t] }];
+// The TV page shows what is actually on video now and today — content no generic review site has.
+let streams: Awaited<ReturnType<typeof view>>['live'] = [];
+const now = Date.now();
+if (t === 'tv') {
+  const v = await view(getEnv());
+  streams = featured([...v.live.filter((m) => m.stream), ...v.upcoming.filter((m) => m.stream && dayKey(m.st) === dayKey(now))]).slice(0, 20);
+}
+const banner = b.slug === 'chance' ? BANNERS.chance200 : BANNERS.tipsport1000;
+const steps = pg.steps ?? [];
+const howTo = steps.length ? [{ '@context': 'https://schema.org', '@type': 'HowTo', name: pg.h1, step: steps.map((s, i) => ({ '@type': 'HowToStep', position: i + 1, name: s.h, text: s.p })) }] : [];
+---
+<Base title={`${pg.title} | SportStreamy`} description={pg.lead.slice(0, 155)} ld={[breadcrumbLd(crumbs), faqLd(pg.faq), ...howTo]} section="bonusy" ttl={t === 'tv' ? 120 : 3600}>
+  <div class="wrap">
+    <Crumbs items={crumbs} />
+    <section class="pagehead">
+      <h1>{pg.h1}</h1>
+      <p class="lead">{pg.lead}</p>
+      <div class="cta-row">
+        <a class="btn lg" href={`${ctaFor(b)}?p=topic-${b.slug}-${t}`} rel="sponsored nofollow noopener" target="_blank">{b.partner ? (b.bonus ? `Registrace + ${b.bonus}` : `Přejít na ${b.short}`) : `Alternativa: Tipsport ${BONUS.amount}`}</a>
+        {!b.partner ? <a class="btn ghost" href={b.site} rel="nofollow noopener" target="_blank">Web {b.short}</a> : null}
+        <span class="tag-ad">Reklama · 18+</span>
+      </div>
+    </section>
+    <div class="cols">
+      <div>
+        {steps.length ? (
+          <section class="sec"><div class="sec-head"><h2>Postup</h2></div>
+            <ol class="steps">{steps.map((s) => <li><b>{s.h}</b><span>{s.p}</span></li>)}</ol>
+          </section>
+        ) : null}
+        {t === 'tv' ? <section class="sec zone live"><div class="sec-head"><h2>S videem teď a dnes <span class="cnt live">{streams.length}</span></h2><a href="/zive/">Vše živě ›</a></div><Rows items={streams} now={now} placement={`tv-${b.slug}`} empty="Dnes už žádný přenos s videem nezačíná – mrkni na zítřek v Programu." /></section> : null}
+        <section class="sec prose">{pg.body.map((x) => <><h2>{x.h}</h2><p>{x.p}</p></>)}</section>
+        <section class="sec"><div class="sec-head"><h2>Časté otázky</h2></div><Faq items={pg.faq} /></section>
+        <div class="chips" aria-label={`Další o ${b.short}`}>{b.topics.filter((x) => x !== t).map((x) => <a class="chip" href={`/sazkove-kancelare/${b.slug}/${x}/`}>{x === 'bonus' && !b.bonus ? 'Promo kód a bonus' : TOPIC_LABEL[x]}</a>)}{b.branches ? <a class="chip" href={`/pobocky/${b.slug}/`}>Pobočky</a> : null}</div>
+      </div>
+      <aside class="aside"><BannerSlot banner={banner} placement={`topic-${b.slug}-${t}`} /></aside>
+    </div>
+  </div>
+</Base>

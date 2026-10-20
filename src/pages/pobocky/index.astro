@@ -1,0 +1,37 @@
+---
+import Base from '../../layouts/Base.astro';
+import Crumbs from '../../components/Crumbs.astro';
+import Faq from '../../components/Faq.astro';
+import { getEnv } from '../../lib/page';
+import { loadBranches, citiesOf, CITY_MIN } from '../../lib/pobocky';
+import { BOOKS } from '../../lib/books';
+import { breadcrumbLd, faqLd } from '../../lib/seo';
+export const prerender = false;
+const doc = await loadBranches(getEnv());
+const brands = BOOKS.filter((b) => b.branches).map((b) => ({ b, rows: doc.brands[b.slug] ?? [] }));
+const crumbs = [{ name: 'Domů', href: '/' }, { name: 'Pobočky sázkových kanceláří' }];
+const faq = [
+  { q: 'Musím na pobočku, abych mohl sledovat přenos?', a: 'Ne. Přenosy běží online pro registrované zákazníky – účet si založíš na webu nebo v aplikaci a ověříš přes bankovní identitu.' },
+  { q: 'Můžu na pobočce vyzvednout výhru z online tiketu?', a: 'Online výhry jdou na účet. Na pobočce se vyplácejí výhry z tiketů podaných na pobočce, podle pravidel provozovatele.' },
+];
+---
+<Base title="Pobočky sázkových kanceláří – adresy a otevírací doba | SportStreamy" description="Pobočky Tipsport, Fortuna, Chance a Allwyn: adresy, otevírací doba a navigace podle města." ld={[breadcrumbLd(crumbs), faqLd(faq)]} section="bonusy" ttl={3600}>
+  <div class="wrap">
+    <Crumbs items={crumbs} />
+    <section class="pagehead"><h1>Pobočky sázkových kanceláří</h1><p class="lead">Adresy, otevírací doba a navigace na pobočky podle města. Data přebíráme z oficiálních vyhledávačů provozovatelů a pravidelně obnovujeme.</p></section>
+    <div class="tiles">
+      {brands.map(({ b, rows }) => (
+        <a class="tile" href={`/pobocky/${b.slug}/`}>
+          <span class="badge" style={`background:${b.color};color:#0e1311`}>{b.short.slice(0, 2).toUpperCase()}</span>
+          <span><b>{b.short} pobočky</b><small>{rows.length ? `${rows.length} poboček · ${citiesOf(rows).length} měst` : 'připravujeme'}</small></span>
+        </a>
+      ))}
+    </div>
+    {brands.filter((x) => x.rows.length).map(({ b, rows }) => (
+      <section class="sec"><div class="sec-head"><h2>{b.short} – největší města</h2><a href={`/pobocky/${b.slug}/`}>Všechna města ›</a></div>
+        <div class="chips">{citiesOf(rows).filter((c) => c.n >= CITY_MIN).slice(0, 16).map((c) => <a class="chip" href={`/pobocky/${b.slug}/${c.slug}/`}>{c.city}<em>{c.n}</em></a>)}</div>
+      </section>
+    ))}
+    <section class="sec"><div class="sec-head"><h2>Časté otázky</h2></div><Faq items={faq} /></section>
+  </div>
+</Base>

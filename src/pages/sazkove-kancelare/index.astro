@@ -2,44 +2,65 @@
 import Base from '../../layouts/Base.astro';
 import Faq from '../../components/Faq.astro';
 import Crumbs from '../../components/Crumbs.astro';
-import { BOOKS } from '../../lib/books';
-import { BONUS } from '../../lib/bonus';
 import BannerSlot from '../../components/BannerSlot.astro';
+import { BOOKS, ctaFor } from '../../lib/books';
+import { BONUS } from '../../lib/bonus';
 import { BANNERS } from '../../lib/banners';
 import { breadcrumbLd, faqLd } from '../../lib/seo';
 export const prerender = false;
 const faq = [
-  { q: 'Kterou kancelář vybrat pro sledování přenosů?', a: 'Nejvíc přenosů má Tipsport – z jeho nabídky je i program na tomto webu. Chance má stejné zápasy a jiné kurzy, takže se hodí na porovnání.' },
+  { q: 'Kterou sázkovou kancelář vybrat pro sledování přenosů?', a: 'Nejvíc živých přenosů má Tipsport – z jeho nabídky je i program SportStreamy. Chance má stejné zápasy a jiné kurzy, takže se hodí na porovnání.' },
   { q: 'Musím vsadit, abych viděl přenos?', a: 'Ne. Ke sledování stačí ověřený účet a přihlášení. Sázení je dobrovolné a pouze pro osoby od 18 let.' },
-  { q: `Jak získám bonus ${BONUS.amount}?`, a: 'Bonus je pro nové hráče Tipsportu: zaregistruj se přes odkaz na této stránce, ověř účet a podmínky splň podle pravidel provozovatele. Podmínky se mohou měnit, platí vždy ty na stránce Tipsportu.' },
-  { q: 'Dostáváte od kanceláří provizi?', a: 'Ano. Když se zaregistruješ přes naše odkazy, můžeme dostat provizi. Tebe to nic nestojí a podmínky se tím nemění. Odkazy jsou označené jako reklama.' },
+  { q: `Jak získám bonus ${BONUS.amount}?`, a: 'Bonus je pro nové hráče Tipsportu: zaregistruj se přes odkaz na této stránce a ověř účet. Podmínky stanoví provozovatel.' },
+  { q: 'Proč u některých kanceláří není bonus přes vás?', a: 'S Fortunou, Betanem a Synot Tipem nemáme partnerskou smlouvu. Jejich stránky jsou informativní a odkazy na ně nejsou affiliate.' },
+  { q: 'Jsou kanceláře legální?', a: 'Všechny uvedené působí v Česku na základě povolení Ministerstva financí ČR. Aktuální seznam povolených provozovatelů zveřejňuje MF ČR.' },
 ];
-const crumbs = [{ name: 'Domů', href: '/' }, { name: 'Sázkové kanceláře a bonusy' }];
+const crumbs = [{ name: 'Domů', href: '/' }, { name: 'Sázkové kanceláře' }];
+const yes = (v: boolean) => (v ? 'ano' : '—');
 ---
-<Base title={`Sázkové kanceláře a bonusy – ${BONUS.amount} u Tipsportu | SportStreamy`} description={`Srovnání licencovaných kanceláří Tipsport, Chance a Allwyn: kde sledovat přenosy zdarma a jak získat bonus ${BONUS.amount} pro nové hráče.`} ld={[breadcrumbLd(crumbs), faqLd(faq)]} section="bonusy" ttl={600}>
+<Base title={`Sázkové kanceláře – srovnání, přenosy a bonusy (${BONUS.amount} Tipsport) | SportStreamy`} description={`Srovnání sázkových kanceláří v Česku: Tipsport, Chance, Allwyn, Fortuna, Betano, Synot Tip. Kde sledovat přenosy, aplikace, kontrola tiketu, pobočky a bonus ${BONUS.amount}.`} ld={[breadcrumbLd(crumbs), faqLd(faq)]} section="bonusy" ttl={3600}>
   <div class="wrap">
     <Crumbs items={crumbs} />
     <section class="pagehead">
       <div class="kicker"><span class="tag-ad">Reklama · 18+</span></div>
-      <h1>Sázkové kanceláře a bonusy</h1>
-      <p class="lead">Přenosy vysílají licencované kanceláře svým registrovaným hráčům. Tady je stručné srovnání, kde co sledovat a jaký bonus dostaneš při registraci.</p>
+      <h1>Sázkové kanceláře</h1>
+      <p class="lead">Srovnání licencovaných kanceláří v Česku z pohledu diváka: kde jsou živé přenosy, jaká je aplikace, jestli mají pobočky a jaký bonus dostaneš.</p>
     </section>
-    <div class="cmp">
-      {BOOKS.map((b) => (
-        <div class="panel">
-          <h3>{b.name}</h3>
-          {b.bonus ? <div class="amt">{b.bonus}</div> : null}
-          <p class="muted" style="margin:0">{b.blurb}</p>
-          <ul>{b.pros.map((p) => <li>{p}</li>)}</ul>
-          <a class="btn" href={`/go/${b.go}/?p=books-${b.slug}`} rel="sponsored nofollow noopener" target="_blank">{b.bonus ? `Chci ${b.bonus}` : `Přejít na ${b.name.split(' ')[0]}`}</a>
-          <a href={`/sazkove-kancelare/${b.slug}/`} style="font-size:.86rem;font-weight:600;color:var(--ink-2)">Více o {b.name.split(' ')[0]} ›</a>
-        </div>
-      ))}
-    </div>
+    <section class="sec">
+      <div class="tablewrap">
+        <table class="cmp-table">
+          <thead><tr><th>Kancelář</th><th>Živé přenosy</th><th>Pobočky</th><th>Bonus přes nás</th><th></th></tr></thead>
+          <tbody>
+            {BOOKS.map((b) => (
+              <tr>
+                <td><a href={`/sazkove-kancelare/${b.slug}/`}><b>{b.name}</b></a><br /><span class="muted" style="font-size:.8rem">{b.full}</span></td>
+                <td class={b.streams ? 'y' : 'n'}>{yes(b.streams)}</td>
+                <td class={b.branches ? 'y' : 'n'}>{b.branches ? <a href={`/pobocky/${b.slug}/`}>ano</a> : '—'}</td>
+                <td class={b.bonus || b.slug === 'chance' ? 'y' : 'n'}>{b.bonus ?? (b.slug === 'chance' ? '200 Kč' : '—')}</td>
+                <td>{b.partner ? <a class="btn sm" href={`${ctaFor(b)}?p=books-table-${b.slug}`} rel="sponsored nofollow noopener" target="_blank">{b.bonus ? `Chci ${b.bonus}` : 'Přejít'}</a> : <a class="btn sm ghost" href={`/sazkove-kancelare/${b.slug}/`}>Více</a>}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
     <div class="banners">
       <BannerSlot banner={BANNERS.tipsport1000} placement="books-banner" />
       <BannerSlot banner={BANNERS.chance200} placement="books-banner" />
     </div>
+    <section class="sec">
+      <div class="sec-head"><h2>Nejhledanější</h2></div>
+      <div class="chips">
+        <a class="chip" href="/sazkove-kancelare/tipsport/tv/">Tipsport TV</a>
+        <a class="chip" href="/sazkove-kancelare/tipsport/aplikace/">Tipsport aplikace</a>
+        <a class="chip" href="/sazkove-kancelare/tipsport/kontrola-tiketu/">Tipsport kontrola tiketu</a>
+        <a class="chip" href="/sazkove-kancelare/betano/bonus/">Betano promo kód</a>
+        <a class="chip" href="/sazkove-kancelare/fortuna/aplikace/">Fortuna aplikace</a>
+        <a class="chip" href="/sazkove-kancelare/fortuna/kontrola-tiketu/">Fortuna kontrola tiketu</a>
+        <a class="chip" href="/pobocky/">Pobočky sázkových kanceláří</a>
+        <a class="chip" href="/clanky/dan-z-vyhry-sazky/">Daň z výhry</a>
+      </div>
+    </section>
     <section class="sec prose">
       <h2>Jak sledovat přenos krok za krokem</h2>
       <ol>

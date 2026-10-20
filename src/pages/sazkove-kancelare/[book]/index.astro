@@ -1,0 +1,56 @@
+---
+import Base from '../../../layouts/Base.astro';
+import Crumbs from '../../../components/Crumbs.astro';
+import Faq from '../../../components/Faq.astro';
+import BannerSlot from '../../../components/BannerSlot.astro';
+import { BOOK_BY_SLUG, ctaFor, type BookSlug } from '../../../lib/books';
+import { TOPIC_LABEL } from '../../../lib/book-topics';
+import { BANNERS } from '../../../lib/banners';
+import { BONUS } from '../../../lib/bonus';
+import { breadcrumbLd, faqLd } from '../../../lib/seo';
+export const prerender = false;
+const b = BOOK_BY_SLUG.get(Astro.params.book as BookSlug);
+if (!b) return Astro.rewrite('/404/');
+const crumbs = [{ name: 'Domů', href: '/' }, { name: 'Sázkové kanceláře', href: '/sazkove-kancelare/' }, { name: b.name }];
+const faq = [
+  { q: `Je ${b.short} legální?`, a: b.partner || b.slug === 'fortuna' || b.slug === 'synottip' ? `${b.full} působí v Česku na základě povolení Ministerstva financí ČR.` : 'Seznam povolených provozovatelů zveřejňuje Ministerstvo financí ČR – vždy si ho ověř, než se registruješ.' },
+  { q: `Dá se u ${b.short} sledovat sport živě?`, a: b.streams ? `Ano – ${b.watch}` : b.watch },
+  { q: `Má ${b.short} bonus?`, a: b.bonus ? `Ano, ${b.bonus} pro nové hráče po registraci a ověření účtu. ${BONUS.terms}` : `Aktuální akce najdeš na webu ${b.site.replace('https://', '')}.${b.partner ? '' : ` Bonus přes SportStreamy nabízí Tipsport (${BONUS.amount}).`}` },
+];
+const banner = b.slug === 'chance' ? BANNERS.chance200 : BANNERS.tipsport1000;
+---
+<Base title={`${b.name} – recenze, ${b.streams ? 'přenosy, ' : ''}aplikace a ${b.bonus ? `bonus ${b.bonus}` : 'bonus'} | SportStreamy`} description={`${b.name} (${b.full}): co nabízí, pro koho je, plusy a minusy, ${b.streams ? 'jak sledovat přenosy, ' : ''}aplikace, kontrola tiketu a bonus. Reklama, 18+.`} ld={[breadcrumbLd(crumbs), faqLd(faq)]} section="bonusy" ttl={3600}>
+  <div class="wrap">
+    <Crumbs items={crumbs} />
+    <section class="pagehead">
+      <div class="kicker"><span class="tag-ad">{b.partner ? 'Partner · reklama · 18+' : 'Bez affiliate · 18+'}</span></div>
+      <h1>{b.name}{b.bonus ? ` – bonus ${b.bonus}` : ''}</h1>
+      <p class="lead">{b.blurb}</p>
+      <div class="cta-row">
+        {b.partner
+          ? <a class="btn lg" href={`${ctaFor(b)}?p=book-${b.slug}`} rel="sponsored nofollow noopener" target="_blank">{b.bonus ? `Chci ${b.bonus}` : `Přejít na ${b.short}`}</a>
+          : <><a class="btn lg" href={`/go/registrace/?p=book-${b.slug}-alt`} rel="sponsored nofollow noopener" target="_blank">Alternativa: Tipsport {BONUS.amount}</a><a class="btn ghost" href={b.site} rel="nofollow noopener" target="_blank">Web {b.short}</a></>}
+      </div>
+    </section>
+    <div class="chips" aria-label="Témata">
+      {b.topics.map((t) => <a class="chip" href={`/sazkove-kancelare/${b.slug}/${t}/`}>{t === 'bonus' && !b.bonus ? 'Promo kód a bonus' : TOPIC_LABEL[t]}</a>)}
+      {b.branches ? <a class="chip" href={`/pobocky/${b.slug}/`}>Pobočky</a> : null}
+    </div>
+    <div class="cols">
+      <div>
+        <section class="sec prose">
+          <h2>Plusy</h2>
+          <ul>{b.pros.map((p) => <li>{p}</li>)}</ul>
+          <h2>Minusy</h2>
+          <ul>{b.cons.map((p) => <li>{p}</li>)}</ul>
+          <h2>Živé přenosy</h2>
+          <p>{b.watch}</p>
+          <h2>Provozovatel</h2>
+          <p>{b.full}. Hazardní hry jsou určené pouze osobám starším 18 let a mohou způsobit závislost. {b.partner ? 'Při registraci přes náš odkaz můžeme získat provizi, cena ani podmínky se pro tebe nemění.' : `Na ${b.short} nemáme affiliate odkaz – stránka je informativní.`}</p>
+        </section>
+        <section class="sec"><div class="sec-head"><h2>Časté otázky</h2></div><Faq items={faq} /></section>
+      </div>
+      <aside class="aside"><BannerSlot banner={banner} placement={`book-${b.slug}-aside`} /></aside>
+    </div>
+  </div>
+</Base>
