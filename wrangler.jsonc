@@ -20,6 +20,7 @@
     "TIPSPORT_URL": "https://www.tipsport.cz/PartnerRedirectAction.do?pid=14361&sid=46142&bid=5695&tid=3121&urlid=653",
     "TIPSPORT_REG_URL": "https://www.tipsport.cz/PartnerRedirectAction.do?pid=14361&sid=46142&bid=1421&tid=182&urlid=328",
     "CHANCE_URL": "https://www.chance.cz/PartnerRedirectAction.do?pid=31094&sid=46143&bid=4666&tid=2703&urlid=681",
+    "INDEXNOW_KEY": "2e8f95472ba6937ec3d60ecf9628e4bb",
     "SAZKA_URL": "https://record.sazka.cz/_8u72YyI1anK2bnhOaaLAUmNd7ZgqdRLk/1/?payload=sportstreamy.cz"
   },
   "analytics_engine_datasets": [{ "binding": "CLICKS", "dataset": "sportstreamy_clicks" }],

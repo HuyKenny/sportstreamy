@@ -34,4 +34,5 @@ export interface Env {
   TIPSPORT_REG_URL: string;
   CHANCE_URL: string;
   SAZKA_URL: string;
+  INDEXNOW_KEY?: string;
 }
