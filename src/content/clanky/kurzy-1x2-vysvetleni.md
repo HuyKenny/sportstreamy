@@ -1,22 +1,68 @@
 ---
 title: "Kurzy 1X2: co znamenají a jak je číst"
-description: "Vysvětlení kurzů 1, X a 2, převod na pravděpodobnost a rozdíl mezi kurzy dvou kanceláří. Bez zbytečné teorie."
+description: "Vysvětlení kurzů 1, X a 2, dvojtipů 10, 02 a 12, převod kurzu na pravděpodobnost, marže kanceláře a proč se kurzy liší. Na příkladech."
 date: 2026-10-19
+updated: 2026-10-20
+related: [handicap-sazka, systemova-sazka, dan-z-vyhry-sazky]
+faq:
+  - q: "Co znamená 1, X a 2?"
+    a: "1 je výhra domácích, X remíza, 2 výhra hostů. U sportů bez remízy (tenis, volejbal) jsou jen 1 a 2."
+  - q: "Co znamená kurz 2,50?"
+    a: "Za každou vsazenou korunu dostaneš při výhře 2,50 Kč včetně vkladu. Ze 100 Kč je to 250 Kč, čistý zisk 150 Kč. Kurz 2,50 odpovídá zhruba 40% pravděpodobnosti."
+  - q: "Co je dvojtip 10?"
+    a: "Sázka na výhru domácích nebo remízu. Vyhraje, pokud domácí neprohrají. Kurz je nižší než na samotnou výhru."
+  - q: "Proč mají kanceláře různé kurzy?"
+    a: "Každá si kurzy nastavuje sama podle svých odhadů, marže a toho, kolik lidí na co sází. Rozdíl bývá v desetinách a vyplatí se kurzy porovnávat."
 ---
-Kurz 1X2 je nejjednodušší sázka na zápas: **1** je výhra domácích, **X** remíza a **2** výhra hostů. U sportů bez remízy (tenis, volejbal, basketbal) zůstane jen 1 a 2.
+Kurz 1X2 je nejjednodušší sázka na zápas: **1** je výhra domácích, **X** remíza a **2** výhra hostů. U sportů bez remízy (tenis, volejbal, basketbal s prodloužením) zůstane jen 1 a 2. Kurz zároveň říká, kolik vyhraješ a jak pravděpodobný výsledek kancelář považuje.
 
-## Co kurz říká
+## Co kurz znamená v korunách
 
-Kurz 2,00 znamená, že za vsazených 100 Kč dostaneš při výhře zpět 200 Kč (včetně vkladu). Nižší kurz značí, že kancelář výsledek považuje za pravděpodobnější. Kurz 1,25 je favorit, kurz 3,40 outsider.
+Česká kurzová čísla jsou **desetinná**: výhra = vklad × kurz (včetně vkladu).
 
-## Převod na pravděpodobnost
+| Kurz | Vklad 100 Kč → výplata | Čistý zisk |
+|---|---|---|
+| 1,25 | 125 Kč | 25 Kč |
+| 2,00 | 200 Kč | 100 Kč |
+| 3,40 | 340 Kč | 240 Kč |
+| 6,00 | 600 Kč | 500 Kč |
 
-Podíl 1 děleno kurzem dává hrubou pravděpodobnost. Kurz 2,00 odpovídá 50 %, kurz 4,00 zhruba 25 %. Součet přes všechny výsledky vyjde přes 100 %, protože kancelář si v kurzech nechává marži.
+Nižší kurz = favorit, vyšší kurz = outsider.
+
+## Převod kurzu na pravděpodobnost
+
+Pravděpodobnost ≈ **1 / kurz**.
+
+- Kurz 2,00 → 50 %
+- Kurz 1,25 → 80 %
+- Kurz 4,00 → 25 %
+
+Na detailu každého zápasu na SportStreamy tuhle přepočtenou pravděpodobnost ukazujeme u kurzů Tipsportu a Chance.
+
+## Marže: proč součet přesahuje 100 %
+
+Příklad zápasu: 1 = 2,10, X = 3,30, 2 = 3,50. Pravděpodobnosti: 47,6 % + 30,3 % + 28,6 % = **106,5 %**. Těch 6,5 % navíc je **marže** kanceláře – její zisk zabudovaný v kurzech. Čím nižší marže, tím lepší kurzy pro hráče. Skutečnou „férovou“ pravděpodobnost dostaneš, když každou hodnotu vydělíš součtem (47,6 / 106,5 ≈ 44,7 %).
+
+## Dvojtipy 10, 02 a 12
+
+- **10** – domácí vyhrají nebo remíza (domácí neprohrají).
+- **02** – remíza nebo vyhrají hosté.
+- **12** – vyhraje kdokoli, jen ne remíza.
+
+Dvojtip je bezpečnější, ale kurz je nižší. Hodí se na outsidera, kterému věříš na bod.
 
 ## Proč se kurzy liší mezi kancelářemi
 
-Každý provozovatel si kurzy nastavuje sám. Rozdíl bývá desetiny, občas víc. U zápasů na SportStreamy proto zobrazujeme kurzy Tipsportu a Chance vedle sebe a vyšší označujeme zeleně.
+Každý provozovatel si kurzy nastavuje sám – podle vlastních modelů, marže a toho, kolik peněz na kterou stranu přichází. Rozdíl bývá v desetinách, ale na dlouhou trať je znát: sázka za kurz 2,10 místo 2,00 přinese z každé výhry o 5 % víc. U zápasů na SportStreamy proto zobrazujeme kurzy [Tipsportu](/sazkove-kancelare/tipsport/) a [Chance](/sazkove-kancelare/chance/) vedle sebe a vyšší označujeme.
 
-## Pozor
+## Jak se kurzy mění
+
+- **Před zápasem** – podle zpráv o sestavách, zraněních a podle toho, jak lidé sázejí.
+- **Během zápasu (live)** – každou chvíli podle skóre, času a vývoje hry.
+- **Uzavření sázek** – při nebezpečných situacích se live sázky na chvíli zavřou.
+
+## Další typy sázek
+
+1X2 je jen začátek. Na stejný zápas se dá vsadit na [handicap](/clanky/handicap-sazka/), počet gólů (méně/více), oba týmy skórují nebo přesný výsledek. Více zápasů najednou kombinuješ v AKO nebo [systémovém tiketu](/clanky/systemova-sazka/).
 
 Kurzy se v čase mění, zvlášť těsně před výkopem a během zápasu. Nevsázej víc, než si můžeš dovolit prohrát. Sázky jsou pouze pro osoby starší 18 let.

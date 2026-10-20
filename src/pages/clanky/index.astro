@@ -5,7 +5,7 @@ export const prerender = false;
 const items = (await getCollection('clanky')).sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
 const fmt = new Intl.DateTimeFormat('cs-CZ', { day: 'numeric', month: 'long', year: 'numeric' });
 ---
-<Base title="Články o živých přenosech a sázkách | SportStreamy" description="Praktické články: jak sledovat přenosy zdarma, jak číst kurzy a kde najít zápasy NHL, tenisu a fotbalu." section="clanky" ttl={600}>
+<Base title="Články a průvodci: přenosy, sázky, kurzy | SportStreamy" description="Průvodci k živým přenosům a sázkám: Tipsport TV, sportovní kanály online, Liga mistrů, biatlon, kurzy 1X2, handicap, systémová sázka, live sázky, daň z výhry." section="clanky" ttl={600}>
   <div class="wrap">
     <section class="pagehead"><h1>Články</h1><p class="lead">Návody a vysvětlení k živým přenosům a kurzům.</p></section>
     <section class="sec">

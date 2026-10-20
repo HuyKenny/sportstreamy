@@ -4,7 +4,7 @@ import Crumbs from '../../../components/Crumbs.astro';
 import Faq from '../../../components/Faq.astro';
 import { getEnv } from '../../../lib/page';
 import { loadBranches, citiesOf, CITY_MIN, hoursText, mapLink } from '../../../lib/pobocky';
-import { BOOK_BY_SLUG, ctaFor, type BookSlug } from '../../../lib/books';
+import { BOOKS, BOOK_BY_SLUG, ctaFor, type BookSlug } from '../../../lib/books';
 import { BONUS } from '../../../lib/bonus';
 import { breadcrumbLd, faqLd } from '../../../lib/seo';
 export const prerender = false;
@@ -16,11 +16,17 @@ const rows = all.filter((r) => r.citySlug === Astro.params.mesto);
 if (rows.length < CITY_MIN) return Astro.rewrite('/404/');
 const city = rows[0].city;
 const withHours = rows.some((r) => r.hours.some(Boolean));
+// Same city at the other brands — useful to people comparing shops and a natural internal link.
+const siblings = BOOKS.filter((o) => o.branches && o.slug !== b.slug)
+  .map((o) => ({ o, n: (doc.brands[o.slug] ?? []).filter((r) => r.citySlug === Astro.params.mesto).length }))
+  .filter((x) => x.n > 0);
+const parts = [...new Set(rows.map((r) => r.part).filter(Boolean))];
+const inCity = city === 'Praha' ? 'v Praze' : `ve městě ${city}`;
 const others = citiesOf(all).filter((c) => c.n >= CITY_MIN && c.slug !== Astro.params.mesto && c.region === rows[0].region).slice(0, 12);
 const crumbs = [{ name: 'Domů', href: '/' }, { name: 'Pobočky', href: '/pobocky/' }, { name: `${b.short} pobočky`, href: `/pobocky/${b.slug}/` }, { name: city }];
 const faq = [
-  { q: `Kolik poboček má ${b.short} v ${city === 'Praha' ? 'Praze' : `obci ${city}`}?`, a: `Podle vyhledávače provozovatele ${rows.length}. Seznam s adresami a otevírací dobou je výše.` },
-  { q: 'Musím na pobočku, abych mohl sledovat zápas?', a: `Ne, přenosy a sázky fungují online. ${b.partner ? `Účet u ${b.short} si založíš přes odkaz na této stránce.` : `S bonusem ${BONUS.amount} přes nás funguje Tipsport.`}` },
+  { q: `Kolik poboček má ${b.short} ${city === 'Praha' ? 'v Praze' : `ve městě ${city}`}?`, a: `Podle vyhledávače provozovatele ${rows.length}. Seznam s adresami${rows.some((r) => r.hours.some(Boolean)) ? ' a otevírací dobou' : ''} je výše.` },
+  { q: 'Musím na pobočku, abych mohl sledovat zápas?', a: `Ne, přenosy a sázky fungují online. ${b.partner ? `Účet u ${b.gen} si založíš přes odkaz na této stránce.` : `S bonusem ${BONUS.amount} přes nás funguje Tipsport.`}` },
 ];
 const ld = rows.map((r) => ({ '@context': 'https://schema.org', '@type': 'LocalBusiness', name: `${b.short} ${r.name}`, address: { '@type': 'PostalAddress', streetAddress: r.street, addressLocality: r.part || r.city, postalCode: r.zip, addressCountry: 'CZ' }, ...(r.lat != null ? { geo: { '@type': 'GeoCoordinates', latitude: r.lat, longitude: r.lon } } : {}), parentOrganization: { '@type': 'Organization', name: b.full } }));
 ---
@@ -45,6 +51,12 @@ const ld = rows.map((r) => ({ '@context': 'https://schema.org', '@type': 'LocalB
           </div>
         ))}
       </div>
+    </section>
+    <section class="sec prose">
+      <h2>{b.short} {inCity}</h2>
+      <p>{b.short} má {inCity} {rows.length} {rows.length < 5 ? 'pobočky' : 'poboček'}{parts.length > 1 ? `, rozmístěné v částech ${parts.slice(0, 8).join(', ')}${parts.length > 8 ? ' a dalších' : ''}` : ''}. Na pobočce podáš tiket, zkontroluješ ho a vyzvedneš výhru; u vyšších výher počítej s dokladem totožnosti. Jak zkontrolovat tiket online i z pobočky, popisuje návod <a href={`/sazkove-kancelare/${b.slug}/kontrola-tiketu/`}>{b.short} kontrola tiketu</a>.</p>
+      {siblings.length ? <p>{city === 'Praha' ? 'V Praze' : `Ve městě ${city}`} najdeš i pobočky {siblings.map((x, i) => <>{i ? (i === siblings.length - 1 ? ' a ' : ', ') : ''}<a href={x.n >= CITY_MIN ? `/pobocky/${x.o.slug}/${Astro.params.mesto}/` : `/pobocky/${x.o.slug}/`}>{x.o.short}</a> ({x.n})</>)}.</p> : null}
+      <p>Na pobočku nemusíš, pokud chceš jen sledovat zápasy: přenosy běží online pro registrované zákazníky – přehled je v <a href="/zive/">živých přenosech</a>.</p>
     </section>
     {others.length ? <section class="sec"><div class="sec-head"><h2>Další města v kraji</h2></div><div class="chips" style="flex-wrap:wrap">{others.map((c) => <a class="chip" href={`/pobocky/${b.slug}/${c.slug}/`}>{c.city}<em>{c.n}</em></a>)}</div></section> : null}
     <section class="sec"><div class="sec-head"><h2>Časté otázky</h2></div><Faq items={faq} /></section>

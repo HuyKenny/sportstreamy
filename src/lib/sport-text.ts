@@ -27,21 +27,25 @@ const BODIES: Record<string, string> = {
 <h2>Kdy se hraje</h2>
 <p>Evropské poháry mají pevné časy: Liga mistrů úterý a středa, Evropská a Konferenční liga čtvrtek, výkopy v 18:45 a 21:00. Ligy se hrají od pátku do pondělí. Jihoamerické zápasy začínají u nás v noci, asijské dopoledne – proto má fotbal živý přenos skoro v každou denní dobu.</p>
 <h3>Jak se dostat k přenosu nejrychleji</h3>
-<p>Klikni na „Sledovat“ přímo v řádku zápasu. Otevře se stránka zápasu u Tipsportu, kde po přihlášení spustíš přenos. Pokud účet ještě nemáš, registrace trvá pár minut a noví hráči dostávají bonus.</p>`,
+<p>Klikni na „Sledovat“ přímo v řádku zápasu. Otevře se stránka zápasu u Tipsportu, kde po přihlášení spustíš přenos. Pokud účet ještě nemáš, registrace trvá pár minut a noví hráči dostávají bonus.</p>
+<h3>Průvodci</h3>
+<p><a href="/clanky/liga-mistru-kde-sledovat/">Liga mistrů: kde sledovat a jak funguje formát</a> · <a href="/clanky/pocet-golu-vice-mene/">sázka na počet gólů</a> · <a href="/clanky/sazka-bez-remizy-dvojtip/">sázka bez remízy a dvojtip</a> · <a href="/clanky/handicap-sazka/">handicap</a></p>`,
   hokej: `
 <h2>Kde sledovat hokej online</h2>
 <p>Tipsport vysílá velkou část hokejových zápasů – od zahraničních lig po nižší soutěže. U <a href="/hokej-online/tipsport-extraliga/">Tipsport extraligy</a> a <a href="/hokej-online/nhl/">NHL</a>, kde práva drží televize, najdeš u Tipsportu živé statistiky, průběžné skóre a kurzy.</p>
 <h2>NHL v českém čase</h2>
 <p>Zápasy NHL začínají u nás většinou mezi 0:00 a 2:00 v noci, víkendová matiné kolem 19:00 a 21:00. Program na noc najdeš už večer v <a href="/program/zitra/">programu na zítřek</a>, časy jsou vždy přepočítané na středoevropský čas.</p>
 <h2>Česká a evropská soutěže</h2>
-<p>Extraliga se hraje v úterý, pátek a neděli, většinou od 17:30 nebo 18:00. Druhá liga – <a href="/hokej-online/maxa-liga/">Maxa liga</a> – má zápasy ve středu a v sobotu. Ze zahraničí sledujeme švédskou, finskou, švýcarskou a slovenskou ligu, kde je video k dispozici častěji.</p>`,
+<p>Extraliga se hraje v úterý, pátek a neděli, většinou od 17:30 nebo 18:00. Druhá liga – <a href="/hokej-online/maxa-liga/">Maxa liga</a> – má zápasy ve středu a v sobotu. Ze zahraničí sledujeme švédskou, finskou, švýcarskou a slovenskou ligu, kde je video k dispozici častěji.</p>
+<p>Podrobně o časech NHL a evropských ligách s videem v článku <a href="/clanky/kde-sledovat-hokej-nhl-v-cesku/">kde sledovat NHL a hokej online</a>.</p>`,
   tenis: `
 <h2>Kde sledovat tenis online</h2>
 <p>Tenis je sport s největší nabídkou živého videa. Tipsport vysílá turnaje <a href="/tenis-online/atp/">ATP</a>, <a href="/tenis-online/wta/">WTA</a>, Challengery i ITF – na velkých turnajích běží souběžně desítky zápasů.</p>
 <h2>Jak se v programu vyznat</h2>
 <p>Turnaje mají v názvu město a povrch (antuka, tvrdý povrch, tráva), čtyřhra je označená „4hra“. Časy jsou orientační: tenisový zápas začíná až po skončení předchozího na stejném kurtu, takže se může posunout. Proto u živých zápasů ukazujeme stav setů a gamů, který se obnovuje každých 30 sekund.</p>
 <h3>České tenistky a tenisté</h3>
-<p>Zápasy Čechů najdeš nejrychleji přes hledání v hlavičce – napiš příjmení a uvidíš všechny jejich zápasy v nabídce.</p>`,
+<p>Zápasy Čechů najdeš nejrychleji přes hledání v hlavičce – napiš příjmení a uvidíš všechny jejich zápasy v nabídce.</p>
+<p>Úrovně turnajů, grandslamy a tenisové sázky vysvětluje článek <a href="/clanky/tenis-atp-wta-kde-sledovat/">tenis online: jak sledovat ATP a WTA</a>.</p>`,
   basketbal: `
 <h2>Kde sledovat basketbal online</h2>
 <p>Basketbal má u Tipsportu video hlavně u evropských soutěží – EuroCup, Liga mistrů FIBA, francouzská, španělská a čínská liga. U <a href="/basketbal-online/nba/">NBA</a> najdeš živé skóre po čtvrtinách a kurzy.</p>
@@ -57,6 +61,34 @@ const BODIES: Record<string, string> = {
   esporty: `
 <h2>E-sporty online</h2>
 <p>E-sportové turnaje v Counter-Strike 2, League of Legends, Dota 2 nebo Valorantu běží v sériích na dvě až pět map. Video bývá u velkých turnajů i u kvalifikací, mezi zápasy jsou krátké pauzy.</p>`,
+  hazena: `
+<h2>Kde sledovat házenou online</h2>
+<p>Házená má u Tipsportu video hlavně u zahraničních lig a evropských pohárů – německá Bundesliga, dánská, francouzská a polská liga, Liga mistrů EHF a Evropská liga. Z českých soutěží sledujeme <a href="/hazena-online/chance-extraliga-hazena/">Chance extraligu</a>.</p>
+<h2>Kdy se hraje</h2>
+<p>Ligové zápasy se hrají ve středu, ve čtvrtek a o víkendu, většinou odpoledne a večer. Zápas trvá 2 × 30 minut, v play-off a pohárech může přijít prodloužení a sedmičky. U živých zápasů ukazujeme průběžné skóre.</p>`,
+  florbal: `
+<h2>Florbal online</h2>
+<p>Florbal je u nás jeden z nejpopulárnějších halových sportů. V nabídce bývá česká Superliga a švédská a finská liga, které patří ke světové špičce. Zápasy se hrají většinou o víkendu, 3 × 20 minut čistého času.</p>
+<p>Video je dostupné hlavně u zahraničních soutěží; zápasy, které právě běží, poznáš podle červené tečky „Živě“.</p>`,
+  sipky: `
+<h2>Šipky online</h2>
+<p>Šipky jsou díky turnajům PDC jeden z nejrychleji rostoucích sportů. V nabídce najdeš Premier League Darts, turnaje European Tour, Players Championship i mistrovství světa na přelomu prosince a ledna.</p>
+<h2>Jak se hraje</h2>
+<p>Zápas se hraje na legy (každý leg od 501 dolů s dohozem na double) nebo na sety. Kurzy se sázejí na vítěze zápasu, počet 180 nebo nejvyšší zavření. Dnešní program je na stránce <a href="/sipky-dnes/">šipky dnes</a>.</p>`,
+  snooker: `
+<h2>Snooker online</h2>
+<p>Snookerová sezóna má desítky bodovaných turnajů – UK Championship, Masters a vrchol na jaře, mistrovství světa v Sheffieldu. Zápasy se hrají na framy (na 4, 5, 6 i víc vítězných framů) a mohou trvat i několik hodin, proto začátky dalších zápasů na stole bývají orientační.</p>`,
+  'bojove-sporty': `
+<h2>Bojové sporty online</h2>
+<p>MMA a kickbox mají v Česku silnou fanouškovskou základnu. Programy galavečerů a kurzy na zápasy najdeš u <a href="/bojove-sporty-online/oktagon/">Oktagonu</a>, <a href="/bojove-sporty-online/clash/">Clash MMA</a> a <a href="/bojove-sporty-online/ufc/">UFC</a>.</p>
+<h2>Kde sledovat</h2>
+<p>Velké galavečery (Oktagon, Clash, UFC) se vysílají jako placené PPV přes pořadatele nebo televizi. Sázkové kanceláře vypisují kurzy na vítěze, způsob výhry (KO, submise, na body) a kolo ukončení. Menší turnaje a kickbox bývají u Tipsportu i s videem.</p>`,
+  'americky-fotbal': `
+<h2>Americký fotbal online</h2>
+<p>Hlavní soutěží je NFL – základní část od září do ledna, play-off a Super Bowl v únoru. Zápasy začínají u nás v neděli večer (19:00 a 22:25) a v noci na pondělí a pátek. U NFL najdeš živé skóre a kurzy, včetně handicapu a počtu bodů.</p>`,
+  futsal: `
+<h2>Futsal online</h2>
+<p>Futsal se hraje 2 × 20 minut čistého času a padá v něm hodně gólů. Česká liga patří k nejlepším v Evropě, v nabídce bývají i španělská, portugalská a brazilská liga a Liga mistrů UEFA.</p>`,
 };
 export const sportBody = (s: Sport) => BODIES[s.slug] ?? '';
 

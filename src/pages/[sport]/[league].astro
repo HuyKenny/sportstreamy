@@ -17,8 +17,9 @@ const raw = Astro.params.sport ?? '';
 const sport = raw.endsWith('-online') ? SPORT_BY_SLUG.get(raw.slice(0, -7)) : undefined;
 if (!sport) return Astro.rewrite('/404/');
 const slug = Astro.params.league ?? '';
-const comp = competitionBySlug(slug);
-if (comp && comp.sp !== sport.id) return Astro.rewrite('/404/');
+// A curated slug belongs to one sport ("liga-mistru" is football); other sports' "Liga mistrů" stays uncurated.
+const curated = competitionBySlug(slug);
+const comp = curated?.sp === sport.id ? curated : undefined;
 const v = await view(getEnv());
 const now = Date.now();
 const inComp = (m: { sp: number; lg: string }) => m.sp === sport.id && competitionSlug(m.sp, m.lg) === slug;
@@ -27,6 +28,8 @@ const next = v.upcoming.filter(inComp);
 // Uncurated competitions exist only while Tipsport lists them; curated ones always render.
 if (!comp && !live.length && !next.length) return Astro.rewrite('/404/');
 const name = comp?.name ?? (live[0] ?? next[0]).lg;
+// Generic names ("Finská liga") repeat across sports — uncurated titles carry the sport.
+const label = comp ? name : `${name} (${sport.name.toLowerCase()})`;
 const total = live.length + next.length;
 const todayN = live.length + next.filter((m) => dayKey(m.st) === dayKey(now)).length;
 const photo = photoFor(sport.slug);
@@ -38,14 +41,14 @@ const faq = [
   { q: 'Je sledování zdarma?', a: 'Pro registrované zákazníky Tipsportu ano. Registrace je bezplatná, sázení dobrovolné a jen od 18 let.' },
 ];
 ---
-<Base title={comp ? `${name} dnes a živě – program a přenosy | SportStreamy` : `${name} živě online – program a přenosy | SportStreamy`} description={`${name} dnes: ${todayN} ${plural(todayN, 'zápas', 'zápasy', 'zápasů')} (${live.length} živě), ${next.length} v programu. ${comp ? comp.intro.split('. ')[0] + '.' : `Zápasy soutěže ${name} s časem a kurzy.`}`.slice(0, 158)} ld={[breadcrumbLd(crumbs), faqLd(faq), itemListLd([...live, ...next], name)]} section={comp?.slug ?? sport.slug} noindex={!comp && total < 2} lcp={sport.slug}>
+<Base title={comp ? `${name} dnes a živě – program a přenosy | SportStreamy` : `${label} živě – program a přenosy | SportStreamy`} description={`${name} dnes: ${todayN} ${plural(todayN, 'zápas', 'zápasy', 'zápasů')} (${live.length} živě), ${next.length} v programu. ${comp ? comp.intro.split('. ')[0] + '.' : `Zápasy soutěže ${name} s časem a kurzy.`}`.slice(0, 158)} ld={[breadcrumbLd(crumbs), faqLd(faq), itemListLd([...live, ...next], name)]} section={comp?.slug ?? sport.slug} noindex={!comp && total < 2} lcp={sport.slug}>
   <section class="hero">
     <Photo sport={sport.slug} eager alt={photo.alt} />
     <div class="wrap">
       <Crumbs items={crumbs} />
       <div style="display:flex;align-items:center;gap:14px;margin-top:14px">
         {comp ? <span class="badge" style={`background:${comp.color};width:56px;height:56px;font-size:1.1rem`}>{comp.short}</span> : null}
-        <h1>{name} živě</h1>
+        <h1>{label} živě</h1>
       </div>
       <p class="lead">{comp?.intro ?? `${total} ${plural(total, 'zápas', 'zápasy', 'zápasů')} soutěže ${name} s přenosem nebo živými statistikami.`}</p>
       <div class="stats"><div class:list={["live", !live.length && "zero"]}>{live.length}<span>živě teď</span></div><div>{next.length}<span>v programu</span></div></div>

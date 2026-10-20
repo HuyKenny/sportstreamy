@@ -82,7 +82,7 @@ export function topicPage(b: BookInfo, t: Topic): TopicPage {
         ],
         faq: [
           { q: 'Jak dlouho mám na vyzvednutí výhry?', a: 'Lhůtu určují herní pravidla provozovatele – najdeš je na jeho webu v sekci pravidel.' },
-          { q: 'Musí se výhra danit?', a: 'Výhry nad 50 000 Kč od jednoho provozovatele za rok podléhají dani z příjmů. Podrobnosti v článku Daň z výhry ze sázek.' },
+          { q: 'Musí se výhra danit?', a: 'U kurzových sázek je osvobozený roční rozdíl výher a vkladů do 50 000 Kč; co je nad, uvádíš v daňovém přiznání. Podrobnosti v článku Daň z výhry ze sázek.' },
         ],
       };
     case 'bonus':

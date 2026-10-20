@@ -4,6 +4,13 @@ import { z } from 'astro/zod';
 
 const clanky = defineCollection({
   loader: glob({ pattern: '*.md', base: './src/content/clanky' }),
-  schema: z.object({ title: z.string(), description: z.string(), date: z.coerce.date(), updated: z.coerce.date().optional() }),
+  schema: z.object({
+    title: z.string(),
+    description: z.string(),
+    date: z.coerce.date(),
+    updated: z.coerce.date().optional(),
+    faq: z.array(z.object({ q: z.string(), a: z.string() })).optional(), // rendered under the article + FAQPage JSON-LD
+    related: z.array(z.string()).optional(), // slugs of related articles; falls back to the newest others
+  }),
 });
 export const collections = { clanky };
