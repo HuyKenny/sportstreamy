@@ -5,13 +5,19 @@
     python3 scripts/nahledy.py --dry-run    # only list the candidates
     python3 scripts/nahledy.py --no-deploy  # write files, skip build/deploy/commit
     python3 scripts/nahledy.py --id 123     # force one Tipsport match id (still validated)
+    NAHLEDY_WRITE_MODEL=… NAHLEDY_OPENAI_MODEL=… NAHLEDY_CHECK_MODEL=…   # switch models
 
 Which matches: football Liga mistrů / Evropská liga / Konferenční liga with a Czech club, Liga mistrů between two
 big clubs, Chance Liga games between the top Czech clubs, Czech national teams (football, hockey).
-Text: `claude -p` (Sonnet, account petr.korec = ~/.claude_account4) with WebSearch/WebFetch. It gets our facts
-(time, odds, stream) as JSON and may add only what it verifies on the web — every such claim needs a source URL,
-the Czech TV broadcaster only with a source, otherwise the page says it is not verified. A validator rejects
-the text otherwise (length, team names, sources, banned phrases); a rejected match is retried next run.
+Pipeline (OpenAI Responses API, key in credentials/.openai-credentials.env; ~$0.1–0.2 per preview, switched from
+claude -p on 20. 10. 2026 to cut cost):
+  1. TV: parsed from telly.cz competition pages (no model) — match line, else the competition's channels, else "not verified".
+  2. research (gpt-5-mini + web search): facts about form/table/absences, each with source URL and a verbatim quote.
+  3. fact check (gpt-5-mini + web search): reopens every source, fixes or drops facts.
+  4. writing (gpt-5.4-mini, no web): text only from our data, the TV line and the checked facts.
+Why split: one model with web search wrote Spanish broadcasters as "TV", invented Tipsport audio streams and misread
+goal sequences. The validator rejects the text otherwise (length, team names, unverified or foreign TV, banned phrases,
+missing match link); a rejected match is retried next run.
 Cron: bin/sportstreamy-nahledy.sh (daily 8:20).
 """
 import json, os, re, subprocess, sys, time, unicodedata, urllib.request
@@ -21,12 +27,15 @@ from zoneinfo import ZoneInfo
 
 APP = Path(__file__).resolve().parent.parent
 OUT = APP / 'src' / 'content' / 'nahledy'
-WORK = Path('/home/kenny/ai/tmp/sportstreamy-nahledy')
 KV_ID = 'ad0a4a01c23a4ed7b01a4690449014f1'
 TZ = ZoneInfo('Europe/Prague')
 MAX = int(os.environ.get('NAHLEDY_MAX', '4'))
-CLAUDE = os.environ.get('CLAUDE_BIN', '/home/kenny/.local/bin/claude')
-MODEL = os.environ.get('NAHLEDY_MODEL', 'claude-sonnet-5')
+MODEL = os.environ.get('NAHLEDY_OPENAI_MODEL', 'gpt-5-mini')  # research (web search)
+CHECK_MODEL = os.environ.get('NAHLEDY_CHECK_MODEL', MODEL)  # fact check (web search)
+WRITE_MODEL = os.environ.get('NAHLEDY_WRITE_MODEL', 'gpt-5.4-mini')  # writing, no web — better Czech than gpt-5-mini
+# USD per 1M tokens (input, cached input, output) and per web search call — for the cost line in the log
+PRICES = {'gpt-5-mini': (0.25, 0.025, 2.0), 'gpt-5-nano': (0.05, 0.005, 0.40), 'gpt-5.4-mini': (0.75, 0.075, 4.5), 'gpt-5.4-nano': (0.20, 0.02, 1.25)}
+SEARCH_CALL = 0.01
 FOOTBALL, HOCKEY = 16, 23
 
 CZ_CLUBS = re.compile(r'\b(Slavia Praha|Sparta Praha|Plzeň|Viktoria Plzeň|Baník Ostrava|Jablonec|Mladá Boleslav|Sigma Olomouc|Olomouc|Slovan Liberec|Liberec|'
@@ -36,7 +45,7 @@ BIG = re.compile(r'^(Real Madrid|FC Barcelona|Barcelona|Atlético Madrid|Bayern 
                  r'Liverpool|Arsenal|Chelsea|Tottenham|Juventus Torino|Inter Milano|AC Milán|AC Milan|Napoli|AS Roma|Bayer Leverkusen|Leverkusen|Benfica|FC Porto)$')
 EURO = {'Liga mistrů', 'Evropská liga', 'Konferenční liga'}
 TV_NAMES = re.compile(r'\b(Nova Sport \d?|Nova Action|Voyo|O2 TV Sport|O2 TV|Oneplay|ČT ?sport|ČT ?Sport|Sport ?1|Sport ?2|Canal\+|Premier Sport|Eurosport|Max|Skylink|DAZN|Prima)\b')
-BANNED = re.compile(r'jistá výhra|tutovka|garantovan|sázka jistoty|100\s*% jist|nelze prohrát|zaručen', re.I)
+BANNED = re.compile(r'jistá výhra|tutovka|garantovan|sázka jistoty|100\s*% jist|nelze prohrát|zaručen|našich dat|interních dat|naše data|\(Pozn|\(Nap|Vykop|audio', re.I)
 
 
 def slugify(s):
@@ -52,12 +61,12 @@ def kv(key):
 def score(m):
     """0 = not a preview; higher = more interest from Czech searchers."""
     h, a, lg, sp = m['h'], m.get('a') or '', m['lg'], m['sp']
-    if not a:
-        return 0
+    if not a or re.search(r'U\d\d|žen|\(ž\)|IPH|para|sledge|inline|futsal|beach|plážov', lg + h + a, re.I):
+        return 0  # youth, women's, para and variant tournaments are not the "big match" searchers mean
     if sp == FOOTBALL:
         if lg in EURO and (CZ_CLUBS.search(h) or CZ_CLUBS.search(a)):
             return 100
-        if re.search(r'Česko', h + a) and not re.search(r'U\d\d|žen|\(ž\)', lg + h + a):
+        if 'Česko' in (h, a):
             return 95
         if lg == 'Česká Chance Liga' and TOP_CZ.match(h) and TOP_CZ.match(a):
             return 90
@@ -77,37 +86,96 @@ def existing_ids():
     return ids
 
 
-SCHEMA = {
-    'type': 'object', 'additionalProperties': False,
-    'required': ['title', 'description', 'tv', 'tvSource', 'sources', 'body', 'faq'],
-    'properties': {
-        'title': {'type': 'string'}, 'description': {'type': 'string'},
-        'tv': {'type': 'string'}, 'tvSource': {'type': 'string'},
-        'sources': {'type': 'array', 'items': {'type': 'string'}},
-        'body': {'type': 'string'},
-        'faq': {'type': 'array', 'items': {'type': 'object', 'additionalProperties': False, 'required': ['q', 'a'], 'properties': {'q': {'type': 'string'}, 'a': {'type': 'string'}}}},
-    },
+FAQ_SCHEMA = {'type': 'array', 'items': {'type': 'object', 'additionalProperties': False, 'required': ['q', 'a'], 'properties': {'q': {'type': 'string'}, 'a': {'type': 'string'}}}}
+FACTS_SCHEMA = {
+    'type': 'object', 'additionalProperties': False, 'required': ['facts'],
+    'properties': {'facts': {'type': 'array', 'items': {
+        'type': 'object', 'additionalProperties': False, 'required': ['text', 'source', 'quote'],
+        'properties': {'text': {'type': 'string'}, 'source': {'type': 'string'}, 'quote': {'type': 'string'}}}}},
+}
+CHECKED_SCHEMA = {
+    'type': 'object', 'additionalProperties': False, 'required': ['facts', 'changes'],
+    'properties': {'facts': FACTS_SCHEMA['properties']['facts'], 'changes': {'type': 'array', 'items': {'type': 'string'}}},
+}
+WRITE_SCHEMA = {
+    'type': 'object', 'additionalProperties': False, 'required': ['title', 'description', 'body', 'faq'],
+    'properties': {'title': {'type': 'string'}, 'description': {'type': 'string'}, 'body': {'type': 'string'}, 'faq': FAQ_SCHEMA},
 }
 
-PROMPT = """Jsi sportovní redaktor českého webu SportStreamy.cz (přehled živých přenosů, licencované sázkové kanceláře Tipsport a Chance). Napiš náhled zápasu pro čtenáře, kteří hledají „{home} {away} online / kde sledovat / TV“.
+# Step 2 — research: only facts with a source and a verbatim quote, nothing about TV (that comes from telly.cz).
+RESEARCH_PROMPT = """Najdi na webu aktuální fakta k fotbalovému/hokejovému zápasu {home} – {away} ({league}, {kickoff}).
+Hledej jen: postavení obou týmů v tabulce / ligové fázi soutěže {league}, výsledky jejich posledních zápasů (i v domácí lize), důležité absence (zranění, tresty) a vzájemné zápasy.
+Zdroje: oficiální weby soutěží a klubů (uefa.com, clubs), livesport.cz, flashscore, sport.cz, isport.cz, idnes.cz, sport.aktualne.cz, ceskenoviny.cz, ESPN, BBC, kicker. Ne tipovací a sázkové weby.
+Pravidla: každý fakt jedna česká věta s konkrétním údajem, k ní plná URL zdroje a doslovná citace ze zdroje (originální jazyk), která fakt dokládá. Jen fakta k sezóně 2026/27 a k těmto týmům. Max 8 faktů. Když nic spolehlivého nenajdeš, vrať prázdný seznam. Nic o TV vysílání ani o kurzech."""
 
-FAKTA Z NAŠICH DAT (smíš je použít bez zdroje):
-{facts}
+# Step 3 — fact check: open every source again, keep only what it really says.
+CHECK_PROMPT = """Ověř fakta k zápasu {home} – {away} ({league}, {kickoff}). U každého faktu otevři jeho zdroj (vyhledávání na webu) a porovnej s citací a se zdrojem.
+- Zdroj fakt potvrzuje → ponech beze změny.
+- Zdroj fakt vyvrací nebo ho říká jinak (pozor na skóre, kdo vedl, kdo srovnal, minuty, pořadí, body, data) → oprav text podle zdroje.
+- Nejde ověřit, zdroj neexistuje, je o jiné sezóně nebo jiném zápase → fakt vyřaď.
+Vrať ponechaná/opravená fakta a v „changes“ jednou větou každou opravu či vyřazení.
 
-POSTUP
-1. Přes WebSearch/WebFetch ověř na důvěryhodných zdrojích (oficiální weby klubů, soutěže, UEFA, ČT, Nova, O2 TV, sport.cz, isport.cz, idnes.cz, sport.aktualne.cz, livesport.cz, ESPN, BBC):
-   a) KDO zápas vysílá v české televizi / na české streamovací službě – jen pokud to výslovně uvádí zdroj pro TENTO zápas nebo pro celou soutěž v sezóně 2026/27 (zdroj z dřívějších sezón nestačí, práva se mění). Nejlepší zdroj TV: stránky soutěží na telly.cz (např. https://telly.cz/liga-mistru/, /evropska-liga/, /konferencni-liga/, /chance-liga/) – u zápasů uvádějí kanál. Tipovací a sázkové weby nejsou zdroj. Jinak nech tv a tvSource prázdné a v textu ani v FAQ žádnou stanici nejmenuj – napiš jen, že vysílatele se nepodařilo ověřit a ať čtenář mrkne do TV programu.
-   b) Kontext: postavení v tabulce / skupině, forma posledních zápasů, důležité absence, vzájemné zápasy. Uveď jen to, co jsi ve zdroji skutečně našel. Každý zdroj, ze kterého bereš fakt, dej do „sources“ (plné URL).
-2. Nic si nevymýšlej. Žádná čísla, jména hráčů ani výsledky, které nejsou ve faktech nebo ve zdrojích. Když něco nenajdeš, prostě to vynech.
-3. Žádné tipy na výsledek, žádné „jisté výhry“. Kurzy jen popiš (favorit, pravděpodobnost z našich dat) a uveď, že jde o stav v době psaní – aktuální kurzy jsou v tabulce na stránce.
+FAKTA (JSON):
+{facts}"""
 
-VÝSTUP (JSON podle schématu), česky, tykáním jako zbytek webu:
-- title: „{home} – {away}: kde sledovat živě, TV a kurzy“ (můžeš upravit, max 70 znaků, obě jména týmů).
-- description: 140–160 znaků, obsahuje obě jména, datum a „kde sledovat“.
-- tv: název stanice / služby (např. „Nova Sport 1“) nebo prázdný řetězec; tvSource: URL zdroje nebo prázdný řetězec.
-- body: Markdown, 350–600 slov, bez H1. Sekce (## nadpisy): „Kdy a kde se hraje“, „Kde sledovat {home} – {away} v TV a online“, „Forma a kontext“, „Co říkají kurzy“. V sekci o sledování: TV jen podle ověřeného zdroje; online uveď, že {stream_line}; přidej odkaz [detail zápasu se živým skóre]({match_url}). Odkazy používej jen tyto naše: {our_links}. Konec: věta o 18+ a zodpovědném hraní.
-- faq: 3 otázky a odpovědi (kdy se hraje, kde sledovat, kdo je favorit podle kurzů), odpovědi 1–2 věty, bez odkazů.
-"""
+# Step 4 — writing without web access: only our data, the TV line and the checked facts.
+WRITE_PROMPT = """Jsi sportovní redaktor českého webu SportStreamy.cz (přehled živých přenosů). Napiš náhled zápasu {home} – {away} pro čtenáře, kteří hledají „{home} {away} online / kde sledovat / TV“.
+
+POUŽIJ VÝHRADNĚ TATO FAKTA (nic jiného nevíš; žádná jiná jména, čísla, výsledky ani stanice):
+Naše data: {data}
+TV v Česku: {tv_line}
+Online: {stream_line}
+Ověřená fakta o formě a kontextu: {facts}
+
+STYL: sportovní novinář, plynulá přirozená čeština v celých větách, tykání. Žádné odrážky typu „Zápas: … Výkop: …“, žádné poznámky v závorkách, žádné zmínky o datech, zdrojích nebo ověřování, nic neopakuj. Výkop (ne „vykop“). Žádné tipy na výsledek. Kurzy jen popiš (favorit, pravděpodobnost z našich dat) a řekni, že jde o stav v době psaní a aktuální kurzy jsou v tabulce na stránce. Když je ověřených faktů málo, sekci o formě napiš krátce a obecně – nevymýšlej. Drž chronologii podle dat ve faktech („poslední zápas“ = nejnovější datum) a data zápasů ve faktech zachovej.
+
+VÝSTUP (JSON):
+- title: „{home} – {away}: kde sledovat živě, TV a kurzy“ (max 70 znaků).
+- description: 140–160 znaků, obě jména, datum a „kde sledovat“.
+- body: Markdown, 300–500 slov, bez H1, sekce ## „Kdy a kde se hraje“, „Kde sledovat {home} – {away} v TV a online“, „Forma a kontext“, „Co říkají kurzy“. V sekci o sledování přesně tento odkaz: [detail zápasu se živým skóre]({match_url}). Jiné odkazy jen tyto: {our_links}. Poslední věta: 18+ a zodpovědné hraní.
+- faq: 3 otázky a odpovědi (kdy se hraje, kde sledovat, kdo je favorit podle kurzů), 1–2 věty, bez odkazů, bez zmínek „náš přehled / naše data“.
+Názvy klubů skloňuj správně česky (porazil Sevillu, proti Lipsku)."""
+
+TELLY = {'Liga mistrů': 'liga-mistru', 'Evropská liga': 'evropska-liga', 'Konferenční liga': 'konferencni-liga'}
+CZ_TV = re.compile(r'(Nova Sport \d(?:, \d)*(?: a \d)?|Nova Action|ČT ?sport(?: Plus)?|Sport \d(?:, Sport \d)*(?: a Nova Sport \d)?|O2 TV Sport|Oneplay|Voyo|Premier Sport|Eurosport \d?|Canal\+ Sport)', re.I)
+
+
+def tokens(name):
+    w = re.findall(r'[a-z]{3,}', unicodedata.normalize('NFD', name.lower()).encode('ascii', 'ignore').decode())
+    return [x for x in w if x not in ('fc', 'fk', 'afc', 'sk', 'rb', 'cf', 'ac', 'sc', 'club', 'praha')] or w
+
+
+def tv_for(m):
+    """Czech broadcaster from telly.cz: the match line if listed ("A vs. B: čtvrtek 22. 10. od 21:00, …, Sport 1"),
+    else the competition's channel sentence. Returns (line for the writer, tv field, source) — tv '' when unknown."""
+    page = TELLY.get(m['lg'])
+    if not page:
+        return 'Českého vysílatele se nepodařilo ověřit – čtenář ať se podívá do TV programu.', '', ''
+    url = f'https://telly.cz/{page}/'
+    try:
+        raw = urllib.request.urlopen(urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'}), timeout=30).read().decode('utf-8', 'ignore')
+    except Exception:
+        return 'Českého vysílatele se nepodařilo ověřit – čtenář ať se podívá do TV programu.', '', ''
+    text = re.sub(r'<[^>]+>', ' ', re.sub(r'</(p|li|h\d|div|tr)>', '\n', raw))
+    import html as _html
+    lines = [re.sub(r'\s+', ' ', _html.unescape(l)).strip() for l in text.split('\n')]
+    st = datetime.fromtimestamp(m['st'] / 1000, TZ)
+    date = f'{st.day}. {st.month}.'
+    th, ta = tokens(m['h']), tokens(m['a'])
+    for l in lines:
+        if ' vs. ' not in l or date not in l or len(l) > 220:
+            continue
+        low = ' '.join(tokens(l))
+        if any(t[:5] in low for t in th) or any(t[:5] in low for t in ta):
+            ch = CZ_TV.findall(l.split(date, 1)[1])
+            if ch:
+                return f'Zápas vysílá v Česku {ch[-1]} (živě).', ch[-1], url
+    comp = next((l for l in lines if 'najdete na Telly na kanálech' in l), '')
+    ch = re.search(r'na kanálech (.+?)\s*\.', comp)
+    if ch:
+        return (f'Soutěž {m["lg"]} vysílají letos v Česku kanály {ch.group(1)}; na kterém poběží tento zápas, upřesní TV program.',
+                ch.group(1).replace(', ', ' / ').replace(' a ', ' / '), url)
+    return 'Českého vysílatele se nepodařilo ověřit – čtenář ať se podívá do TV programu.', '', ''
 
 
 def facts_for(m, comp_path):
@@ -130,83 +198,120 @@ def facts_for(m, comp_path):
     }
 
 
-def claude(prompt, schema=None):
-    env = {k: v for k, v in os.environ.items() if not (k.startswith('CLAUDE_CODE') or k in ('CLAUDECODE', 'CLAUDE_EFFORT', 'CLAUDE_PID'))}
-    env['CLAUDE_CONFIG_DIR'] = '/home/kenny/.claude_account4'
-    WORK.mkdir(parents=True, exist_ok=True)
-    r = subprocess.run([CLAUDE, '-p', prompt, '--model', MODEL, '--output-format', 'json', '--json-schema', json.dumps(schema or SCHEMA),
-                        '--allowedTools', 'WebSearch', 'WebFetch', '--name', 'discord-bot: sportstreamy-nahledy'],
-                       cwd=WORK, env=env, capture_output=True, text=True, timeout=900)
-    d = json.loads(r.stdout)
-    if d.get('is_error'):
-        raise RuntimeError(f"claude: {str(d.get('result'))[:200]}")
-    out = d.get('structured_output') or d.get('result')
-    if isinstance(out, str):
-        out = json.loads(re.search(r'\{.*\}', out, re.S).group(0))
-    return out, d.get('total_cost_usd', 0)
+def openai_key():
+    for l in open('/home/kenny/ai/credentials/.openai-credentials.env', encoding='utf-8'):
+        if l.startswith('OPENAI_API_KEY='):
+            return l.split('=', 1)[1].strip().strip('"\'')
+    raise RuntimeError('OPENAI_API_KEY missing')
 
 
-CHECK_SCHEMA = {
-    'type': 'object', 'additionalProperties': False, 'required': ['body', 'faq', 'changes'],
-    'properties': {
-        'body': {'type': 'string'},
-        'faq': SCHEMA['properties']['faq'],
-        'changes': {'type': 'array', 'items': {'type': 'string'}},
-    },
-}
-
-CHECK_PROMPT = """Jsi ověřovatel faktů. Níže je náhled zápasu {home} – {away} a seznam zdrojů. Fakta z našich dat (čas, kurzy, pravděpodobnost, jestli Tipsport vysílá video) jsou správně:
-{facts}
-
-ZDROJE: {sources}
-
-ÚKOL: Otevři zdroje přes WebFetch (případně dohledej přes WebSearch) a ověř KAŽDÉ jiné faktické tvrzení v textu i v FAQ: výsledky, skóre, kdo vedl a kdo srovnal, střelci a minuty, data zápasů, pořadí a body v tabulce, jména trenérů a hráčů, absence, kdo vysílá v TV. Pozor hlavně na průběh zápasu (kdo dal gól na jaký stav).
-- Tvrzení, které zdroj potvrzuje → nech.
-- Tvrzení, které zdroj vyvrací → oprav podle zdroje.
-- Tvrzení, které nejde potvrdit → smaž (případně přeformuluj obecněji bez čísel a jmen).
-Nic nového nepřidávej. Zachovej nadpisy, odkazy, styl a délku přibližně stejnou. V „changes“ vypiš každou provedenou opravu nebo smazání jednou větou (prázdné pole, když bylo vše v pořádku).
-
-TEXT:
-{body}
-
-FAQ (JSON):
-{faq}
-"""
+CITE = re.compile(r'\s*\(\[[^\]]*\]\((https?://[^)\s]+)\)\)')  # "([telly.cz](https://…?utm_source=openai))" web search appends
 
 
-def factcheck(p, m, facts):
-    out, cost = claude(CHECK_PROMPT.format(home=m['h'], away=m['a'], facts=json.dumps(facts, ensure_ascii=False), sources='\n'.join(p['sources']) or '(žádné)',
-                                           body=p['body'], faq=json.dumps(p['faq'], ensure_ascii=False)), CHECK_SCHEMA)
-    return {**p, 'body': out['body'], 'faq': out['faq']}, out['changes'], cost
+def clean_url(u):
+    return re.sub(r'[?&]utm_source=openai$', '', re.sub(r'utm_source=openai&', '', u))
+
+
+def ask(prompt, schema, model, effort='low', web=True):
+    """One Responses API call with strict JSON output (and the web_search tool) → (dict, cost in USD)."""
+    body = {'model': model, 'reasoning': {'effort': effort}, 'input': prompt,
+            'text': {'format': {'type': 'json_schema', 'name': 'out', 'strict': True, 'schema': schema}}}
+    if web:
+        body['tools'] = [{'type': 'web_search'}]
+    req = urllib.request.Request('https://api.openai.com/v1/responses', data=json.dumps(body).encode(),
+                                 headers={'Authorization': f'Bearer {openai_key()}', 'Content-Type': 'application/json'})
+    for i in range(3):
+        try:
+            r = json.load(urllib.request.urlopen(req, timeout=600))
+            break
+        except urllib.error.HTTPError as e:
+            if e.code in (429, 500, 502, 503) and i < 2:
+                time.sleep(30 * (i + 1))
+                continue
+            raise RuntimeError(f'openai {e.code}: {e.read()[:200]}')
+    if r.get('status') != 'completed':
+        raise RuntimeError(f"openai status {r.get('status')}: {str(r.get('incomplete_details') or r.get('error'))[:200]}")
+    text = ''.join(c['text'] for o in r['output'] if o['type'] == 'message' for c in o['content'] if c['type'] == 'output_text')
+    u = r.get('usage') or {}
+    pin, pcache, pout = PRICES.get(model, PRICES['gpt-5-mini'])
+    cached = (u.get('input_tokens_details') or {}).get('cached_tokens', 0)
+    searches = sum(1 for o in r['output'] if o['type'] == 'web_search_call')
+    cost = ((u.get('input_tokens', 0) - cached) * pin + cached * pcache + u.get('output_tokens', 0) * pout) / 1e6 + searches * SEARCH_CALL
+    out = json.loads(text)
+    for f in out.get('facts', []):
+        f['text'] = CITE.sub('', f['text'])
+        u = re.search(r'https?://[^\s)\]]+', f['source'])  # the checker sometimes returns "([site](url))"
+        f['source'] = clean_url(u.group(0)) if u else ''
+    return out, cost
+
+
+def preview(m, comp, match_url):
+    """Steps 1–4 for one match → (preview dict, cost, log lines)."""
+    log, cost = [], 0.0
+    kickoff = datetime.fromtimestamp(m['st'] / 1000, TZ).strftime('%-d. %-m. %Y %H:%M')
+    tv_line, tv, tv_src = tv_for(m)
+    log.append(f'TV: {tv or "neověřeno"}')
+    found, c1 = ask(RESEARCH_PROMPT.format(home=m['h'], away=m['a'], league=m['lg'], kickoff=kickoff), FACTS_SCHEMA, MODEL, 'medium')
+    facts = [f for f in found['facts'] if f['source'] and f['quote'].strip()]
+    checked, c2 = ask(CHECK_PROMPT.format(home=m['h'], away=m['a'], league=m['lg'], kickoff=kickoff, facts=json.dumps(facts, ensure_ascii=False, indent=1)),
+                      CHECKED_SCHEMA, CHECK_MODEL, 'medium') if facts else ({'facts': [], 'changes': []}, 0.0)
+    checked['facts'] = [f for f in checked['facts'] if f['source']]
+    log += [f'fakta: nalezeno {len(facts)}, po kontrole {len(checked["facts"])}'] + [f'oprava: {x}' for x in checked['changes']]
+    stream_line = ('Tipsport zápas vysílá živě registrovaným zákazníkům zdarma (tlačítko Sledovat na naší stránce).' if m.get('stream') else
+                   'Tipsport k zápasu video nevysílá (práva drží televize), ale nabízí živé statistiky, průběžné skóre a kurzy. O Tipsportu nic dalšího netvrď.')
+    prompt = WRITE_PROMPT.format(home=m['h'], away=m['a'], data=json.dumps(facts_for(m, comp), ensure_ascii=False), tv_line=tv_line, stream_line=stream_line,
+                                 facts=json.dumps([f['text'] for f in checked['facts']], ensure_ascii=False) if checked['facts'] else '(žádná – sekci o formě napiš obecně)',
+                                 match_url=match_url, our_links=f"{comp}, /sazkove-kancelare/tipsport/tv/, /clanky/kurzy-1x2-vysvetleni/, /zive/")
+    c3 = 0.0
+    for attempt in range(2):  # writing is cheap (no web): one retry with the validator's complaints
+        p, c = ask(prompt, WRITE_SCHEMA, WRITE_MODEL, 'low', web=False)
+        c3 += c
+        p.update(tv=tv, tvSource=tv_src, tvLine=tv_line, sources=list(dict.fromkeys(([tv_src] if tv_src else []) + [f['source'] for f in checked['facts']])))
+        errs = validate(p, m)
+        if not errs:
+            break
+        log.append(f'přepis po validaci: {"; ".join(errs)}')
+        prompt += '\n\nPŘEDCHOZÍ VERZE BYLA ODMÍTNUTA, oprav: ' + '; '.join(errs)
+    return p, c1 + c2 + c3, log
+
+
+def expand_channels(line):
+    """'Nova Sport 3, 4, 5 a 6' → 'Nova Sport 3, Nova Sport 4, Nova Sport 5, Nova Sport 6' (validator compares names one by one)."""
+    return re.sub(r'(Nova Sport|Sport|Eurosport) (\d)((?:, \d)*)(?: a (\d))?',
+                  lambda m: ', '.join(f'{m.group(1)} {d}' for d in [m.group(2)] + re.findall(r'\d', m.group(3)) + ([m.group(4)] if m.group(4) else [])), line)
 
 
 def validate(p, m):
     errs = []
     words = len(re.sub(r'[#*\[\]()]', ' ', p['body']).split())
-    if not 300 <= words <= 900:
+    if not 250 <= words <= 800:
         errs.append(f'délka {words} slov')
     for team in (m['h'], m['a']):
         if team.split(' ')[0].lower() not in (p['title'] + p['body']).lower():
             errs.append(f'chybí tým {team}')
-    if len(p['title']) > 80 or len(p['description']) > 170 or len(p['description']) < 90:
+    if len(p['title']) > 80 or len(p['description']) > 170 or len(p['description']) < 120:
         errs.append('délka title/description')
-    if p['tv'] and not p['tvSource'].startswith('http'):
-        errs.append('TV bez zdroje')
-    # A broadcaster named in the text must be the verified one — the model likes to fill in last season's rights holder.
+    # A broadcaster named in the text must be one telly.cz gave us — models like to fill in another country's or last season's.
     text = p['body'] + ' ' + ' '.join(q['a'] for q in p['faq'])
-    named = {t for t in TV_NAMES.findall(text)}
-    if named and not p['tv']:
+    allowed = {t.lower().replace(' ', '') for t in TV_NAMES.findall(expand_channels(p.get('tvLine', '')))}
+    named = {t for t in TV_NAMES.findall(text) if t.lower().replace(' ', '') not in allowed}
+    if named:
         errs.append(f'TV v textu bez ověření {sorted(named)}')
+    if re.search(r'Movistar|Orange TV|DAZN|Sky Sport|beIN|TNT Sports|CBS|Prime Video', text):
+        errs.append('zahraniční vysílatel')
     if re.search(r'TV program[^.]{0,40}na (naší|našem)', text):
         errs.append('slibuje TV program na našem webu')
-    if BANNED.search(p['body'] + p['description']):
-        errs.append('zakázaná fráze')
-    if not p['sources'] and re.search(r'Forma a kontext', p['body']) and re.search(r'\d+\.\s*místě|\d+:\d+', p['body'].split('Forma a kontext')[-1].split('##')[0]):
-        errs.append('fakta o formě bez zdrojů')
+    bad_phrase = BANNED.search(p['body'] + ' ' + p['description'] + ' ' + ' '.join(q['a'] for q in p['faq']))
+    if bad_phrase:
+        errs.append(f'zakázaná fráze „{bad_phrase.group(0)}“')
     links = re.findall(r'\]\((https?://[^)]+|/[^)]*)\)', p['body'])
     bad = [l for l in links if l.startswith('http') and 'sportstreamy.cz' not in l]
     if bad:
         errs.append(f'cizí odkazy v textu {bad[:2]}')
+    if '18' not in p['body'].strip().split('\n')[-1]:
+        errs.append('chybí závěrečná věta 18+')
+    if '/zapas/' not in p['body']:
+        errs.append('chybí odkaz na detail zápasu')
     if len(p['faq']) < 2:
         errs.append('málo FAQ')
     return errs
@@ -220,7 +325,7 @@ def write(slug, m, p, sport_slug):
     st = datetime.fromtimestamp(m['st'] / 1000, timezone.utc).isoformat().replace('+00:00', 'Z')
     fm = ['---', f"title: {yaml_str(p['title'])}", f"description: {yaml_str(p['description'])}", f"matchId: {m['id']}",
           f"home: {yaml_str(m['h'])}", f"away: {yaml_str(m['a'])}", f"league: {yaml_str(m['lg'])}", f"sport: {sport_slug}", f'start: {st}']
-    if p['tv'] and p['tvSource'].startswith('http'):
+    if p.get('tv') and p.get('tvSource', '').startswith('http'):
         fm += [f"tv: {yaml_str(p['tv'])}", f"tvSource: {yaml_str(p['tvSource'])}"]
     src = [u for u in p['sources'] if u.startswith('http')][:8]
     fm.append('sources: ' + json.dumps(src, ensure_ascii=False))
@@ -235,34 +340,7 @@ def sh(cmd, **kw):
     return subprocess.run(cmd, cwd=APP, check=True, capture_output=True, text=True, **kw)
 
 
-def check_file(path):
-    """Fact-check an already written preview in place (used for the first batch and for spot checks)."""
-    f = Path(path)
-    raw = f.read_text(encoding='utf-8')
-    fm, body = raw.split('\n---\n', 1)
-    g = lambda k: json.loads(re.search(rf'^{k}: (.*)$', fm, re.M).group(1))
-    faq = [{'q': json.loads(q), 'a': json.loads(a)} for q, a in re.findall(r'- q: (.*)\n    a: (.*)', fm)]
-    mid = int(re.search(r'^matchId: (\d+)', fm, re.M).group(1))
-    items = {x['id']: x for x in kv('pre') + kv('live')}
-    m = items.get(mid) or {'h': g('home'), 'a': g('away'), 'st': 0}
-    p = {'title': g('title'), 'description': g('description'), 'tv': '', 'tvSource': '', 'sources': g('sources'), 'body': body, 'faq': faq}
-    p2, changes, cost = factcheck(p, m, facts_for(m, '') if m.get('st') else {})
-    print(f'{f.name}: ${cost:.2f}')
-    for ch in changes:
-        print('  -', ch)
-    errs = validate(p2, m)
-    if errs:
-        print('  ZAMÍTNUTO po kontrole:', errs)
-        return
-    fm_new = re.sub(r'faq:\n(?:  - q: .*\n    a: .*\n?)+', 'faq:\n' + ''.join(f"  - q: {yaml_str(q['q'])}\n    a: {yaml_str(q['a'])}\n" for q in p2['faq'][:4]), fm + '\n')
-    f.write_text(fm_new.rstrip('\n') + '\n---\n' + p2['body'].strip() + '\n', encoding='utf-8')
-
-
 def main():
-    if '--check' in sys.argv:
-        for path in sys.argv[sys.argv.index('--check') + 1:]:
-            check_file(path)
-        return
     dry = '--dry-run' in sys.argv
     force = [int(sys.argv[i + 1]) for i, a in enumerate(sys.argv) if a == '--id']
     items = kv('pre') + kv('live')
@@ -294,18 +372,11 @@ def main():
         comp = comp.rstrip('/') + '/'
         slug = f"{slugify(m['h'])}-{slugify(m['a'])}-{datetime.fromtimestamp(m['st'] / 1000, TZ):%Y-%m-%d}"
         match_url = f"/zapas/{m['id']}-{slugify(m['h'] + ' ' + m['a'])}/"
-        facts = facts_for(m, comp)
-        stream_line = 'Tipsport zápas vysílá živě registrovaným zákazníkům zdarma (tlačítko Sledovat na naší stránce)' if m.get('stream') else \
-            'Tipsport k zápasu video nevysílá (práva drží televize), ale nabízí živé statistiky, průběžné skóre a kurzy'
-        prompt = PROMPT.format(home=m['h'], away=m['a'], facts=json.dumps(facts, ensure_ascii=False, indent=1), stream_line=stream_line,
-                               match_url=match_url, our_links=f"{match_url}, {comp}, /sazkove-kancelare/tipsport/tv/, /clanky/kurzy-1x2-vysvetleni/, /zive/")
         try:
-            p, cost = claude(prompt)
-            p, changes, cost2 = factcheck(p, m, facts)
-            cost = (cost or 0) + (cost2 or 0)
+            p, cost, log = preview(m, comp, match_url)
             total += cost
-            for ch in changes:
-                print(f'  oprava {slug}: {ch}')
+            for line in log:
+                print(f'  {slug}: {line}')
             errs = validate(p, m)
             if errs:
                 print(f"ZAMÍTNUTO {slug}: {'; '.join(errs)}", file=sys.stderr)
