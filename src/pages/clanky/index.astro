@@ -7,7 +7,7 @@ const fmt = new Intl.DateTimeFormat('cs-CZ', { day: 'numeric', month: 'long', ye
 ---
 <Base title="Články o živých přenosech a sázkách | SportStreamy" description="Praktické články: jak sledovat přenosy zdarma, jak číst kurzy a kde najít zápasy NHL, tenisu a fotbalu." section="clanky" ttl={600}>
   <div class="wrap">
-    <section class="hero"><h1>Články</h1><p class="lead">Návody a vysvětlení k živým přenosům a kurzům.</p></section>
+    <section class="pagehead"><h1>Články</h1><p class="lead">Návody a vysvětlení k živým přenosům a kurzům.</p></section>
     <section class="sec">
       <div class="cards">
         {items.map((a) => <a class="card" href={`/clanky/${a.id}/`}><div><small style="color:var(--ink-2)">{fmt.format(a.data.date)}</small><h3>{a.data.title}</h3><p>{a.data.description}</p></div></a>)}

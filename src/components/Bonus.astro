@@ -1,11 +1,13 @@
 ---
-interface Props { placement: string; compact?: boolean }
-const { placement, compact = false } = Astro.props;
+import { BONUS } from '../lib/bonus';
+interface Props { placement: string }
+const { placement } = Astro.props;
 ---
-<div class="bonus">
-  <span class="tag">Reklama</span>
-  <h3>Sleduj zápasy a vsaď si u Tipsportu</h3>
-  {compact ? null : <p>Přenosy z desítek soutěží a živé kurzy v jedné appce. Registrace trvá pár minut, bonus pro nové hráče najdeš na stránce Tipsportu.</p>}
-  <a class="btn lg" href={`/go/tipsport/?p=${placement}`} rel="sponsored nofollow noopener" target="_blank">Registrace a bonus</a>
-  <small>Pouze 18+. Hazard může způsobit závislost. Podmínky bonusu platí u provozovatele. Hraj rozumně.</small>
+<div class="ticket">
+  <span class="ad">Reklama</span>
+  <div class="k">Bonus pro nové hráče · {BONUS.book}</div>
+  <div class="amt">{BONUS.amount}</div>
+  <p>Zaregistruj se u Tipsportu, sleduj stovky přenosů a k tomu bonus na první sázky.</p>
+  <a class="btn lg" href={`/go/registrace/?p=${placement}`} rel="sponsored nofollow noopener" target="_blank">{BONUS.cta} zdarma</a>
+  <small>{BONUS.terms} {BONUS.warn}</small>
 </div>

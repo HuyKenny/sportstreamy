@@ -3,81 +3,128 @@ import Base from '../../layouts/Base.astro';
 import Rows from '../../components/Rows.astro';
 import Faq from '../../components/Faq.astro';
 import Aside from '../../components/Aside.astro';
+import Stage from '../../components/Stage.astro';
+import StickyCta from '../../components/StickyCta.astro';
+import Crumbs from '../../components/Crumbs.astro';
+import Icon from '../../components/Icon.astro';
 import { getEnv, view, sportCounts, leagues } from '../../lib/page';
-import { hhmm, longDay, dayLabel } from '../../lib/text';
-import { matchTitle, matchPath, sportOf, goPath, sportPath, leaguePath } from '../../lib/url';
+import { hhmm, longDay, dayLabel, shortDay } from '../../lib/text';
+import { matchTitle, matchPath, sportOf, goPath, sportPath, leaguePathOf } from '../../lib/url';
+import { competitionOf, competitionSlug } from '../../lib/competitions';
+import { BONUS } from '../../lib/bonus';
+import { breadcrumbLd, faqLd, sportsEventLd, clip } from '../../lib/seo';
 
 export const prerender = false;
 const id = Number((Astro.params.slug ?? '').split('-')[0]);
 const v = await view(getEnv());
 const now = Date.now();
-const m = [...v.live, ...v.recent, ...v.upcoming].find((x) => x.id === id);
+const m = id ? [...v.live, ...v.recent, ...v.upcoming].find((x) => x.id === id) : undefined;
 if (!m) {
-  // Finished and gone from the feeds: a 410-ish soft landing keeps crawlers from keeping dead URLs.
-  Astro.response.headers.set('Cache-Control', 'public, s-maxage=300');
-  return Astro.rewrite('/zapas-skoncil/');
+  // Finished and gone from the feeds: 410 tells crawlers the URL is not coming back.
+  Astro.response.status = id ? 410 : 404;
+  Astro.response.headers.set('X-Robots-Tag', 'noindex');
 }
-if (Astro.url.pathname !== matchPath(m)) return Astro.redirect(matchPath(m), 301);
-const sport = sportOf(m);
-const state = v.live.includes(m) ? 'live' : m.st > now ? 'pre' : 'recent';
-const same = [...v.live, ...v.upcoming].filter((x) => x.lg === m.lg && x.id !== m.id).slice(0, 6);
-const o = m.o?.t;
-const c = m.o?.c;
-const title = matchTitle(m);
-const best = (i: 0 | 1 | 2) => {
-  const a = o?.[i] ?? 0; const b = c?.[i] ?? 0;
-  return a === b ? '' : a > b ? 't' : 'c';
+if (m && Astro.url.pathname !== matchPath(m)) return Astro.redirect(matchPath(m), 301);
+const sport = m ? sportOf(m) : undefined;
+const comp = m ? competitionOf(m.sp, m.lg) : null;
+const state: 'live' | 'pre' | 'recent' = !m ? 'recent' : v.live.includes(m) ? 'live' : m.st > now ? 'pre' : 'recent';
+const pool = [...v.live, ...v.upcoming].filter((x) => m && x.id !== m.id);
+const same = m ? pool.filter((x) => x.sp === m.sp && competitionSlug(x.sp, x.lg) === competitionSlug(m.sp, m.lg)).slice(0, 6) : [];
+const sameSport = m ? pool.filter((x) => x.sp === m.sp && !same.includes(x)).slice(0, 8 - Math.min(same.length, 4)) : [];
+const o = m?.o?.t;
+const c = m?.o?.c;
+const title = m ? matchTitle(m) : '';
+const best = (i: number) => {
+  const a = o?.[i] ?? 0;
+  const b = c?.[i] ?? 0;
+  return !c || a === b ? '' : a > b ? 't' : 'c';
 };
-const faq = [
-  { q: `Kde sledovat ${title}?`, a: m.stream ? 'Zápas má video přenos u Tipsportu. Klikni na tlačítko „Sledovat“, přihlas se (nebo se bezplatně registruj) a přenos se ti otevře.' : 'U tohoto zápasu nemáme video, ale můžeš sledovat živé skóre a kurzy u provozovatele.' },
-  { q: 'Kdy zápas začíná?', a: `${longDay(m.st)} v ${hhmm(m.st)} (středoevropský čas).` },
-  { q: 'Je sledování zdarma?', a: 'Přenos zpřístupňuje licencovaný provozovatel. Obvykle stačí registrace a přihlášení, vsázet nemusíš. Sázení je dobrovolné a pouze pro osoby od 18 let.' },
-];
-const ld = [
-  { '@context': 'https://schema.org', '@type': 'SportsEvent', name: title, startDate: new Date(m.st).toISOString(), eventStatus: 'https://schema.org/EventScheduled', eventAttendanceMode: 'https://schema.org/OnlineEventAttendanceMode', location: { '@type': 'VirtualLocation', url: `https://sportstreamy.cz${matchPath(m)}` }, sport: sport?.name, ...(m.a ? { competitor: [{ '@type': 'SportsTeam', name: m.h }, { '@type': 'SportsTeam', name: m.a }] } : {}) },
-  { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [{ '@type': 'ListItem', position: 1, name: 'Domů', item: 'https://sportstreamy.cz/' }, { '@type': 'ListItem', position: 2, name: `${sport?.name} online`, item: `https://sportstreamy.cz${sportPath(sport!.slug)}` }, { '@type': 'ListItem', position: 3, name: title }] },
-  { '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: faq.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) },
-];
-const when = state === 'live' ? 'právě běží' : `${dayLabel(m.st, now).toLowerCase()} v ${hhmm(m.st)}`;
+// Implied probabilities from Tipsport odds, normalised to 100 % (the margin is removed).
+const prob = o ? (() => { const inv = o.map((x) => (x ? 1 / x : 0)); const s = inv.reduce((a, b) => a + b, 0); return inv.map((x) => Math.round((x / s) * 100)); })() : null;
+const lgName = comp?.name ?? m?.lg ?? '';
+const faq = m ? [
+  { q: `Kde sledovat ${title} živě?`, a: m.stream ? `Zápas vysílá Tipsport. Klikni na „Sledovat“, přihlas se nebo se bezplatně zaregistruj a přenos se spustí. Noví hráči dostanou bonus ${BONUS.amount}.` : 'K tomuto zápasu Tipsport video nevysílá (práva drží televize), ale nabízí živé statistiky, průběžné skóre a kurzy.' },
+  { q: `Kdy začíná ${title}?`, a: `${longDay(m.st)} v ${hhmm(m.st)} středoevropského času.` },
+  { q: 'Je sledování zdarma?', a: 'Pro registrované zákazníky Tipsportu ano. Vsázet nemusíš, sázení je dobrovolné a pouze pro osoby od 18 let.' },
+  ...(o ? [{ q: 'Kdo je favorit?', a: `Podle kurzů Tipsportu ${o[0] < o[2] ? m.h : m.a || m.h} (${Math.min(o[0], o[2]).toFixed(2)}). Kurzy se do začátku zápasu mění.` }] : []),
+] : [];
+const crumbs = m && sport ? [{ name: 'Domů', href: '/' }, { name: `${sport.name} online`, href: sportPath(sport.slug) }, { name: lgName, href: leaguePathOf(m) }, { name: title }] : [];
+const date = m ? shortDay(m.st).replace(/\s/g, '') : '';
+const pageTitle = m ? clip(`${title} živě online ${date}`, 52) + ' | SportStreamy' : 'Zápas skončil | SportStreamy';
+const desc = m ? clip(`${title} (${lgName}): ${state === 'live' ? 'právě běží' : `${dayLabel(m.st, now).toLowerCase()} v ${hhmm(m.st)}`}. ${m.stream ? 'Živý přenos zdarma po registraci u Tipsportu' : 'Živé statistiky a skóre u Tipsportu'}, kurzy a ${BONUS.amount} bonus.`, 158) : '';
 ---
-<Base title={`${title} online – přenos ${state === 'live' ? 'živě' : `${longDay(m.st)}`} | SportStreamy`} description={`${title} (${m.lg}): ${when}. ${m.stream ? 'Video přenos zdarma po registraci, ' : ''}kurzy a odkaz na zápas.`} ld={ld} section={sport?.slug} ttl={30}>
+{m && sport ? (
+<Base title={pageTitle} description={desc} ld={[sportsEventLd(m, state), breadcrumbLd(crumbs), faqLd(faq)]} section={sport.slug} ttl={state === 'live' ? 30 : 60} lcp={sport.slug} dock={false}>
   <div class="wrap">
-    <nav class="crumbs" aria-label="Drobečky"><a href="/">Domů</a> › {sport ? <a href={sportPath(sport.slug)}>{sport.name} online</a> : null} › <a href={leaguePath(sport!.slug, m.lg)}>{m.lg}</a></nav>
-    <div class="cols" style="margin-top:14px">
+    <Crumbs items={crumbs} />
+    <section class="pagehead" style="padding-bottom:14px">
+      <div class="kicker">
+        {state === 'live' ? <span class="tag-live"><span class="dot"></span>Živě</span> : state === 'pre' ? <span style="color:var(--cta)">Bude se vysílat</span> : <span>Záznam</span>}
+        <span>· {hhmm(m.st)} · {dayLabel(m.st, now)} · {sport.name}</span>
+      </div>
+      <h1>{title} živě</h1>
+    </section>
+    <div class="cols">
       <div>
-        <div class="stage">
-          <div class="sub">
-            {state === 'live' ? <span class="pill live" style="color:#ff6a5d"><span class="dot"></span>Živě{m.ti ? ` · ${m.ti}` : ''}</span> : state === 'recent' ? 'Právě skončilo / záznam' : `${longDay(m.st)} · ${hhmm(m.st)}`} · {m.lg}
-          </div>
-          <h1 class="vs">
-            <span>{m.h}</span>
-            <span class="mid">{state === 'live' && m.sc ? m.sc : m.a ? 'vs' : ''}</span>
-            <span>{m.a}</span>
-          </h1>
-          <a class="btn lg" href={goPath(m, 'detail')} rel="sponsored nofollow noopener" target="_blank">Sledovat {state === 'live' ? 'živě' : 'zápas'}</a>
-          <div class="note">Reklama · přenos zpřístupňuje Tipsport, nutná registrace a přihlášení · 18+</div>
+        <Stage m={m} state={state} now={now} />
+        <div class="watchbar">
+          <p>{m.stream ? BONUS.watch : 'Živé statistiky a skóre u Tipsportu'}<small>Reklama · registrace a přihlášení u provozovatele · 18+</small></p>
+          <a class="btn lg" href={goPath(m, 'watchbar')} rel="sponsored nofollow noopener" target="_blank"><Icon name="play" />{state === 'live' ? 'Sledovat živě' : 'Sledovat zápas'}</a>
         </div>
+
+        <section class="sec">
+          <div class="sec-head"><h2>O zápase</h2></div>
+          <dl class="facts">
+            <div><dt>Začátek</dt><dd>{hhmm(m.st)} · {shortDay(m.st)}</dd></div>
+            <div><dt>Sport</dt><dd><a href={sportPath(sport.slug)}>{sport.name}</a></dd></div>
+            <div><dt>Soutěž</dt><dd><a href={leaguePathOf(m)}>{lgName}</a></dd></div>
+            <div><dt>Přenos</dt><dd>{m.stream ? 'Video · Tipsport' : 'Statistiky · Tipsport'}</dd></div>
+          </dl>
+        </section>
 
         {o ? (
           <section class="sec">
-            <div class="sec-head"><h2>Kurzy na zápas</h2></div>
+            <div class="sec-head"><h2>Kurzy</h2><span class="n">Tipsport vs Chance</span></div>
             <div class="rows" style="padding:4px 6px">
               <table class="odds-table">
                 <thead><tr><th>Kancelář</th><th>1</th>{o[1] !== null ? <th>X</th> : null}<th>2</th><th></th></tr></thead>
                 <tbody>
-                  <tr><td><b>Tipsport</b></td>{o.map((x, i) => x === null ? null : <td class:list={[best(i as 0|1|2) === 't' && 'best']}><b>{x.toFixed(2)}</b></td>)}<td><a class="btn sm" href={goPath(m, 'detail-odds')} rel="sponsored nofollow noopener" target="_blank">Vsadit</a></td></tr>
-                  {c ? <tr><td><b>Chance</b></td>{c.map((x, i) => x === null ? null : <td class:list={[best(i as 0|1|2) === 'c' && 'best']}><b>{x.toFixed(2)}</b></td>)}<td><a class="btn sm ghost" href={goPath(m, 'detail-odds', 'chance')} rel="sponsored nofollow noopener" target="_blank">Vsadit</a></td></tr> : null}
+                  <tr><td><b style="font-family:inherit">Tipsport</b></td>{o.map((x, i) => x === null ? null : <td class:list={[best(i) === 't' && 'best']}><b>{x.toFixed(2)}</b></td>)}<td><a class="btn sm" href={goPath(m, 'odds')} rel="sponsored nofollow noopener" target="_blank">Vsadit</a></td></tr>
+                  {c ? <tr><td><b style="font-family:inherit">Chance</b></td>{c.map((x, i) => x === null ? null : <td class:list={[best(i) === 'c' && 'best']}><b>{x.toFixed(2)}</b></td>)}<td><a class="btn sm ghost" href={goPath(m, 'odds', 'chance')} rel="sponsored nofollow noopener" target="_blank">Vsadit</a></td></tr> : null}
                 </tbody>
               </table>
             </div>
-            <p style="font-size:.78rem;color:var(--ink-2);margin-top:8px">Kurzy jsou orientační a mění se. Zeleně je vyšší kurz. Pouze 18+, hazard může způsobit závislost.</p>
+            {prob ? (
+              <div class="prob" aria-label="Pravděpodobnost podle kurzů">
+                <span class="p1" style={`width:${prob[0]}%`}>{prob[0] >= 12 ? `${m.h.split(' ')[0]} ${prob[0]} %` : `${prob[0]} %`}</span>
+                {o[1] !== null ? <span class="px" style={`width:${prob[1]}%`}>{prob[1] >= 10 ? `X ${prob[1]} %` : ''}</span> : null}
+                <span class="p2" style={`width:${prob[2]}%`}>{prob[2] >= 12 && m.a ? `${m.a.split(' ')[0]} ${prob[2]} %` : `${prob[2]} %`}</span>
+              </div>
+            ) : null}
+            <p class="muted" style="font-size:.76rem;margin-top:8px">Pravděpodobnost je spočítaná z kurzů Tipsportu bez marže. Vyšší kurz zeleně. Kurzy se mění. 18+, hazard může způsobit závislost.</p>
           </section>
         ) : null}
 
-        {same.length ? (<section class="sec"><div class="sec-head"><h2>Další zápasy: {m.lg}</h2></div><Rows items={same} now={now} placement="detail-same" groupByDay /></section>) : null}
+        {same.length ? (<section class="sec"><div class="sec-head"><h2>Další zápasy · {lgName}</h2><a href={leaguePathOf(m)}>Vše ›</a></div><Rows items={same} now={now} placement="detail-same" groupByDay /></section>) : null}
+        {sameSport.length ? (<section class="sec"><div class="sec-head"><h2>Další {sport.genitive === 'fotbalu' ? 'fotbal' : sport.name.toLowerCase()} živě a dnes</h2><a href={sportPath(sport.slug)}>{sport.name} online ›</a></div><Rows items={sameSport} now={now} placement="detail-sport" /></section>) : null}
+
+        <section class="sec prose">
+          <h2>{title} – živý přenos</h2>
+          <p>{state === 'live' ? `Zápas ${title} právě běží` : `Zápas ${title} začíná ${longDay(m.st)} v ${hhmm(m.st)}`} v rámci soutěže {lgName} ({sport.name.toLowerCase()}). {m.stream ? 'Tipsport ho vysílá živě svým registrovaným zákazníkům – stačí se přihlásit a přenos spustit, sázet nemusíš.' : 'Video k němu Tipsport nevysílá, živě ale ukazuje statistiky, průběžné skóre a kurzy.'} Další zápasy najdeš v <a href={leaguePathOf(m)}>přehledu soutěže {lgName}</a> nebo v <a href="/program/">programu přenosů</a>.</p>
+        </section>
         <section class="sec"><div class="sec-head"><h2>Časté otázky</h2></div><Faq items={faq} /></section>
       </div>
-      <Aside sports={sportCounts(v)} leagues={leagues(v)} placement="detail-aside" />
+      <Aside sports={sportCounts(v)} leagues={leagues(v, m.sp)} placement="detail-aside" />
     </div>
   </div>
+  <StickyCta m={m} live={state === 'live'} />
 </Base>
+) : (
+<Base title={pageTitle} description="Tenhle zápas už skončil a není v nabídce. Podívej se, co běží živě." noindex ttl={300}>
+  <div class="wrap">
+    <section class="pagehead"><h1>Tenhle zápas už skončil</h1><p class="lead">Přenos už není k dispozici. Tady je, co běží právě teď.</p></section>
+    <section class="sec"><Rows items={v.live} now={now} placement="gone" live limit={12} empty="Právě teď nic neběží, mrkni na program." /></section>
+    <p style="display:flex;gap:10px;flex-wrap:wrap"><a class="btn" href="/program/">Program přenosů</a><a class="btn ghost" href="/">Na úvod</a></p>
+  </div>
+</Base>
+)}

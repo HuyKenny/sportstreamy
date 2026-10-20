@@ -1,6 +1,6 @@
 ---
 import type { SportCount, League } from '../lib/page';
-import { sportPath, leaguePath } from '../lib/url';
+import { sportPath } from '../lib/url';
 import { SPORT_BY_ID } from '../lib/sports';
 import Bonus from './Bonus.astro';
 import Icon from './Icon.astro';
@@ -9,18 +9,18 @@ const { sports, leagues, placement } = Astro.props;
 ---
 <aside class="aside">
   <Bonus placement={placement} />
-  <div class="panel">
-    <h3>Sporty</h3>
-    <ul class="list">
-      {sports.map((s) => <li><a href={sportPath(s.slug)}><span class="lead"><Icon name={s.slug} />{s.name}</span><em>{s.live ? `${s.live} živě · ` : ''}{s.total}</em></a></li>)}
-    </ul>
-  </div>
   {leagues.length ? (
     <div class="panel">
       <h3>Soutěže</h3>
       <ul class="list">
-        {leagues.slice(0, 10).map((l) => <li><a href={leaguePath(SPORT_BY_ID.get(l.sp)!.slug, l.name)}><span>{l.name}</span><em>{l.n}</em></a></li>)}
+        {leagues.slice(0, 10).map((l) => <li><a href={`/${SPORT_BY_ID.get(l.sp)!.slug}-online/${l.slug}/`}><span class="lead"><span>{l.name}</span></span><em>{l.live ? <b>{l.live} živě · </b> : null}{l.n}</em></a></li>)}
       </ul>
     </div>
   ) : null}
+  <div class="panel">
+    <h3>Sporty</h3>
+    <ul class="list">
+      {sports.map((s) => <li><a href={sportPath(s.slug)}><span class="lead"><Icon name={s.slug} /><span>{s.name}</span></span><em>{s.live ? <b>{s.live} živě · </b> : null}{s.total}</em></a></li>)}
+    </ul>
+  </div>
 </aside>

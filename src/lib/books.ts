@@ -1,5 +1,6 @@
 /** Bookmaker facts only: no bonus amounts here, they change and must be read from the provider's own page. */
 export interface BookInfo {
+  bonus?: string; // headline amount, only where Kenny confirmed it
   slug: 'tipsport' | 'chance' | 'sazka';
   name: string;
   full: string;
@@ -12,7 +13,7 @@ export interface BookInfo {
 
 export const BOOKS: BookInfo[] = [
   {
-    slug: 'tipsport', name: 'Tipsport', full: 'Tipsport a.s.', go: 'tipsport',
+    slug: 'tipsport', name: 'Tipsport', full: 'Tipsport a.s.', go: 'registrace', bonus: '1000 Kč',
     blurb: 'Největší česká sázková kancelář s nejširší nabídkou živých přenosů. Právě odtud čerpáme program a živé skóre na SportStreamy.',
     pros: ['Nejvíc zápasů s videem v naší nabídce', 'Fotbal, hokej, tenis, basketbal, volejbal i e-sporty', 'Aplikace pro mobil a živé kurzy u každého zápasu', 'Licence České republiky'],
     watch: 'Přenosy se pouští po přihlášení do účtu. Registrace je bezplatná a trvá několik minut včetně ověření totožnosti.',

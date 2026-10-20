@@ -5,7 +5,7 @@ const { title, description, h1, lead } = Astro.props;
 ---
 <Base title={`${title} | SportStreamy`} description={description} ttl={3600}>
   <div class="wrap">
-    <section class="hero"><h1>{h1}</h1>{lead ? <p class="lead">{lead}</p> : null}</section>
+    <section class="pagehead"><h1>{h1}</h1>{lead ? <p class="lead">{lead}</p> : null}</section>
     <article class="sec prose"><slot /></article>
   </div>
 </Base>

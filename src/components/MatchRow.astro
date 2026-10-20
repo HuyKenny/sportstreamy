@@ -2,23 +2,29 @@
 import type { Match } from '../lib/types';
 import { hhmm, shortDay, dayKey } from '../lib/text';
 import { goPath, matchPath, matchTitle, sportOf } from '../lib/url';
+import { competitionOf } from '../lib/competitions';
 import Icon from './Icon.astro';
 interface Props { m: Match; now: number; placement?: string; showDay?: boolean; live?: boolean; recent?: boolean }
 const { m, now, placement = 'row', showDay = false, live = false, recent = false } = Astro.props;
 const sport = sportOf(m);
-const isToday = dayKey(m.st) === dayKey(now);
+const comp = competitionOf(m.sp, m.lg);
 const o = m.o?.t;
-const c = m.o?.c;
 ---
 <div class:list={['row', live && 'is-live']} data-id={m.id}>
   <div class="when">
-    {live ? (<span class="pill live"><span class="dot"></span>Živě</span>) : hhmm(m.st)}
-    {!live && recent ? <small>záznam</small> : (!live && showDay && !isToday ? <small>{shortDay(m.st)}</small> : null)}
+    {live ? <span class="tag-live"><span class="dot"></span>Živě</span> : hhmm(m.st)}
+    {!live && recent ? <small>záznam</small> : !live && showDay && dayKey(m.st) !== dayKey(now) ? <small>{shortDay(m.st)}</small> : null}
   </div>
-  <a class="teams" href={matchPath(m)}>
-    <b>{matchTitle(m)}</b>
-    <span class="meta"><Icon name={sport?.slug ?? 'ball'} class="ico" />{live ? <span class="ti" data-t>{m.ti ?? ''}</span> : null}<span>{m.lg}</span></span>
-  </a>
+  <div style="min-width:0">
+    <div class="meta">
+      <Icon name={sport?.slug ?? 'ball'} />
+      <span class="sp">{sport?.name}</span>
+      {live ? <span class="ti" data-t>{m.ti ?? ''}</span> : null}
+      <span class="lg">{comp?.name ?? m.lg}</span>
+      {!m.stream ? <span class="novid" title="Tipsport k zápasu nenabízí video, jen živé statistiky">stats</span> : null}
+    </div>
+    <a class="tm" href={matchPath(m)}>{matchTitle(m)}</a>
+  </div>
   <div class="act">
     {live && m.sc ? <div class="score" data-s>{m.sc}</div> : null}
     {o && !live ? (
@@ -28,8 +34,8 @@ const c = m.o?.c;
         <span class="odd"><i>2</i>{o[2].toFixed(2)}</span>
       </div>
     ) : null}
-    <a class="btn sm" href={goPath(m, placement)} rel="sponsored nofollow noopener" target="_blank">
-      <Icon name="play" /><span class="lbl">{live ? 'Sledovat' : 'Zápas'}</span><span class="sr"> {matchTitle(m)}</span>
+    <a class="btn sm" href={goPath(m, placement)} rel="sponsored nofollow noopener" target="_blank" aria-label={`Sledovat ${matchTitle(m)} u Tipsportu`}>
+      <Icon name="play" /><span class="lbl">Sledovat</span>
     </a>
   </div>
 </div>

@@ -1,0 +1,36 @@
+---
+import Base from '../layouts/Base.astro';
+import Rows from '../components/Rows.astro';
+import Search from '../components/Search.astro';
+import { getEnv, view } from '../lib/page';
+import { COMPETITIONS, competitionOf } from '../lib/competitions';
+import { SPORT_BY_ID } from '../lib/sports';
+import { matchTitle } from '../lib/url';
+
+export const prerender = false;
+const q = (Astro.url.searchParams.get('q') ?? '').trim().slice(0, 80);
+const fold = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+const words = fold(q).split(/\s+/).filter(Boolean);
+const v = await view(getEnv());
+const now = Date.now();
+const hit = (s: string) => words.length > 0 && words.every((w) => fold(s).includes(w));
+const live = v.live.filter((m) => hit(`${matchTitle(m)} ${m.lg} ${competitionOf(m.sp, m.lg)?.name ?? ''} ${SPORT_BY_ID.get(m.sp)?.name}`));
+const next = v.upcoming.filter((m) => hit(`${matchTitle(m)} ${m.lg} ${competitionOf(m.sp, m.lg)?.name ?? ''} ${SPORT_BY_ID.get(m.sp)?.name}`)).slice(0, 60);
+const comps = COMPETITIONS.filter((c) => hit(`${c.name} ${SPORT_BY_ID.get(c.sp)?.name}`));
+---
+<Base title={q ? `Hledání: ${q} | SportStreamy` : 'Hledat zápas, tým nebo soutěž | SportStreamy'} description="Najdi zápas podle týmu, hráče nebo soutěže a sleduj ho živě." noindex section="hledat" ttl={q ? 60 : 3600}>
+  <div class="wrap">
+    <section class="pagehead">
+      <h1>Hledat zápas</h1>
+      <p class="lead">Napiš tým, hráče nebo soutěž – stačí část názvu, diakritika nevadí.</p>
+      <div style="margin-top:14px;max-width:640px"><Search id="pq" value={q} autofocus={!q} /></div>
+    </section>
+    {q ? (<>
+      {comps.length ? <section class="sec"><div class="sec-head"><h2>Soutěže</h2></div><div class="chips">{comps.map((c) => <a class="chip" href={`/${SPORT_BY_ID.get(c.sp)!.slug}-online/${c.slug}/`}>{c.name}</a>)}</div></section> : null}
+      {live.length ? <section class="sec"><div class="sec-head"><h2>Živě</h2><span class="n">{live.length}</span></div><Rows items={live} now={now} placement="search-live" live /></section> : null}
+      <section class="sec"><div class="sec-head"><h2>Zápasy</h2><span class="n">{next.length}</span></div><Rows items={next} now={now} placement="search" groupByDay empty={`Pro „${q}“ jsme na 7 dní dopředu nic nenašli. Zkus jen část názvu.`} /></section>
+    </>) : (
+      <section class="sec"><div class="sec-head"><h2>Populární</h2></div><div class="chips">{COMPETITIONS.filter((c) => c.top).map((c) => <a class="chip" href={`/${SPORT_BY_ID.get(c.sp)!.slug}-online/${c.slug}/`}>{c.name}</a>)}</div></section>
+    )}
+  </div>
+</Base>

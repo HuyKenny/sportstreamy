@@ -1,15 +1,16 @@
 ---
 import Base from '../../layouts/Base.astro';
 import { BOOK_BY_SLUG } from '../../lib/books';
+import { BONUS } from '../../lib/bonus';
 export const prerender = false;
 const b = BOOK_BY_SLUG.get(Astro.params.book as 'tipsport');
 if (!b) return Astro.rewrite('/404');
 ---
-<Base title={`${b.name} – přenosy, kurzy a registrace | SportStreamy`} description={`${b.name}: co nabízí, jak se sledují přenosy a kde najdeš aktuální bonus. Reklama, 18+.`} section="bonusy" ttl={600}>
+<Base title={`${b.name}${b.bonus ? ` bonus ${b.bonus}` : ''} – přenosy a registrace | SportStreamy`} description={`${b.name}: co nabízí, jak se sledují přenosy a kde najdeš aktuální bonus. Reklama, 18+.`} section="bonusy" ttl={600}>
   <div class="wrap">
     <nav class="crumbs" aria-label="Drobečky"><a href="/">Domů</a> › <a href="/sazkove-kancelare/">Sázkové kanceláře</a> › {b.name}</nav>
-    <section class="hero"><h1>{b.name}</h1><p class="lead">{b.blurb}</p>
-      <div class="cta-row"><a class="btn lg" href={`/go/${b.go}/?p=book-${b.slug}`} rel="sponsored nofollow noopener" target="_blank">Přejít na {b.name.split(' ')[0]}</a><span style="font-size:.8rem;color:var(--ink-2)">Reklama · 18+</span></div>
+    <section class="pagehead"><h1>{b.name}{b.bonus ? ` – bonus ${b.bonus}` : ''}</h1><p class="lead">{b.blurb}</p>
+      <div class="cta-row"><a class="btn lg" href={`/go/${b.go}/?p=book-${b.slug}`} rel="sponsored nofollow noopener" target="_blank">{b.bonus ? `Chci ${b.bonus}` : `Přejít na ${b.name.split(' ')[0]}`}</a><span style="font-size:.8rem;color:var(--ink-2)">Reklama · 18+</span></div>
     </section>
     <section class="sec prose">
       <h2>Co nabízí</h2>
@@ -18,7 +19,7 @@ if (!b) return Astro.rewrite('/404');
       <p>{b.watch}</p>
       <p>{b.note}</p>
       <h2>Bonus pro nové hráče</h2>
-      <p>Aktuální uvítací nabídka a její podmínky jsou vždy na stránce provozovatele, proto zde nezveřejňujeme konkrétní částky, které by mohly být zastaralé. Před registrací si pečlivě přečti podmínky.</p>
+      {b.bonus ? <p>Noví hráči {b.name} dostanou po registraci a ověření účtu bonus <strong>{b.bonus}</strong>. {BONUS.terms}</p> : <p>Aktuální uvítací nabídka a její podmínky jsou vždy na stránce provozovatele. Před registrací si pečlivě přečti podmínky.</p>}
       <p style="font-size:.85rem;color:var(--ink-2)">Pouze 18+. Hazard může způsobit závislost. Hraj rozumně. Při registraci přes náš odkaz můžeme získat provizi, cena pro tebe se nemění.</p>
     </section>
   </div>

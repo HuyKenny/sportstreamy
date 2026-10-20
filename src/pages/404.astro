@@ -8,7 +8,7 @@ Astro.response.status = 404;
 ---
 <Base title="Stránka nenalezena | SportStreamy" description="Tuhle stránku jsme nenašli." noindex ttl={60}>
   <div class="wrap">
-    <section class="hero"><h1>Tady nic není</h1><p class="lead">Stránka neexistuje nebo se přesunula. Podívej se, co běží živě.</p></section>
+    <section class="pagehead"><h1>Tady nic není</h1><p class="lead">Stránka neexistuje nebo se přesunula. Podívej se, co běží živě.</p></section>
     <section class="sec"><Rows items={v.live} now={Date.now()} placement="404" live limit={8} empty="Právě teď nic neběží, mrkni na program." /></section>
     <p><a class="btn" href="/">Na úvod</a> <a class="btn ghost" href="/program/">Program</a></p>
   </div>

@@ -3,69 +3,86 @@ import Base from '../layouts/Base.astro';
 import Rows from '../components/Rows.astro';
 import Aside from '../components/Aside.astro';
 import Faq from '../components/Faq.astro';
+import Carousel from '../components/Carousel.astro';
+import CompetitionTiles from '../components/CompetitionTiles.astro';
+import Search from '../components/Search.astro';
 import Icon from '../components/Icon.astro';
-import { getEnv, view, featured, sportCounts, leagues } from '../lib/page';
-import { dayKey, plural } from '../lib/text';
-import { sportPath } from '../lib/url';
+import { getEnv, view, featured, tier, mixSports, sportCounts, leagues } from '../lib/page';
+import { dayKey, plural, hhmm } from '../lib/text';
+import { sportPath, sportOf } from '../lib/url';
+import { faqLd, itemListLd, siteLd } from '../lib/seo';
 
 export const prerender = false;
 const v = await view(getEnv());
 const now = Date.now();
 const sports = sportCounts(v);
 const lg = leagues(v);
-const today = v.upcoming.filter((m) => dayKey(m.st) === dayKey(now));
-const later = featured(v.upcoming.filter((m) => dayKey(m.st) !== dayKey(now)));
+const todayKey = dayKey(now);
+const today = featured(v.upcoming.filter((m) => dayKey(m.st) === todayKey));
+const later = featured(v.upcoming.filter((m) => dayKey(m.st) !== todayKey));
+// Carousel: live matches with video from top competitions / main sports; fall back to the next big kick-offs.
+const liveSlides = mixSports(featured(v.live.filter((m) => m.stream && tier(m) < 2)), 9);
+const slides = [...liveSlides, ...mixSports(featured(v.upcoming.filter((m) => m.stream && tier(m) < 2)), 9 - liveSlides.length)];
+const liveTop = v.live.slice(0, 12);
 const faq = [
-  { q: 'Dají se zápasy opravdu sledovat zdarma?', a: 'Přenosy zpřístupňují licencované sázkové kanceláře. Pro sledování většinou stačí bezplatná registrace a přihlášení – vsázet nemusíš. My videa nevysíláme, jen ukazujeme, co kde běží, a vedeme tě rovnou na správný zápas.' },
-  { q: 'Odkud jsou data o zápasech a kurzech?', a: 'Program, živé skóre a kurzy čteme z oficiálního partnerského rozhraní Tipsportu a Chance. Aktualizují se každých pár minut.' },
-  { q: 'Musím se registrovat?', a: 'Ke sledování většiny přenosů ano – to vyžaduje zákon i provozovatel. Registrace je bezplatná a vyplatí se ji udělat přes odkaz u zápasu, protože ti nabídne uvítací bonus.' },
-  { q: 'Jak poznám, že zápas už běží?', a: 'U běžících zápasů svítí červená tečka „Živě“, skóre a minuta se obnovují každých 30 sekund. Zápasy, které teprve začnou, mají čas výkopu a kurzy.' },
-  { q: 'Platí pro zápasy bonus?', a: 'Podmínky bonusu stanovuje provozovatel a mění se. Aktuální nabídka je vždy na jeho stránce, my ji jen zprostředkujeme.' },
+  { q: 'Dají se zápasy sledovat zdarma?', a: 'Ano. Přenosy vysílá Tipsport svým registrovaným zákazníkům a sledování je bezplatné – vsázet nemusíš. My videa nevysíláme, jen ukazujeme, co kde běží, a vedeme tě rovnou na správný zápas.' },
+  { q: 'Odkud jsou data o zápasech a kurzech?', a: 'Program, živé skóre a kurzy čteme z oficiálního partnerského rozhraní Tipsportu a Chance. Obnovují se každé 3 minuty, skóre na stránce každých 30 sekund.' },
+  { q: 'Proč se musím registrovat?', a: 'Provozovatel s českou licencí smí vysílat jen ověřeným zákazníkům starším 18 let. Registrace je bezplatná a noví hráči Tipsportu k ní dostávají bonus 1000 Kč.' },
+  { q: 'Co znamená štítek „stats“?', a: 'K zápasu nemá Tipsport video (práva drží televize), ale nabízí živé statistiky, průběžné skóre a kurzy.' },
+  { q: 'Jak najdu konkrétní tým?', a: 'Napiš jeho název do hledání nahoře – stačí část názvu a bez diakritiky. Uvidíš všechny jeho zápasy na 7 dní dopředu.' },
 ];
-const ld = [
-  { '@context': 'https://schema.org', '@type': 'WebSite', name: 'SportStreamy', url: 'https://sportstreamy.cz/', inLanguage: 'cs' },
-  { '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: faq.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) },
-];
+const ld = [...siteLd(), faqLd(faq), itemListLd([...v.live, ...today].slice(0, 20), 'Živé přenosy dnes')];
 ---
-<Base title="Živé přenosy zdarma online – program a výsledky | SportStreamy" description={`Živé sportovní přenosy online: ${v.live.length} zápasů právě teď, program na dnes a následující dny. Fotbal, hokej, tenis, basketbal i e-sporty na jednom místě.`} ld={ld} section="home">
+<Base title="Živé přenosy zdarma – sport online dnes | SportStreamy" description={`Živé přenosy zdarma: právě běží ${v.live.length} zápasů, dnes dalších ${today.length}. Fotbal, hokej, tenis, NBA i Chance Liga – najdi zápas a sleduj ho online.`} ld={ld} section="home" lcp={slides[0] ? sportOf(slides[0])?.slug : undefined}>
   <div class="wrap">
-    <section class="hero">
-      <h1>Sport živě. <em>Rovnou</em> na správný zápas.</h1>
-      <p class="lead">Přehled živých přenosů a programu na týden dopředu – fotbal, hokej, tenis, basketbal i e-sporty. Klikneš a jsi u zápasu, bez hledání po webech sázkových kanceláří.</p>
-      <div class="cta-row">
-        <a class="btn lg" href="/zive/"><Icon name="tv" />Co běží teď</a>
-        <a class="btn lg ghost" href="/go/tipsport/?p=hero" rel="sponsored nofollow noopener" target="_blank">Bonus pro nové hráče</a>
-      </div>
-      <div class="stat">
-        <div>{v.live.length}<span>{plural(v.live.length, 'zápas právě běží', 'zápasy právě běží', 'zápasů právě běží')}</span></div>
-        <div>{today.length}<span>dalších dnes</span></div>
-        <div>{sports.length}<span>{plural(sports.length, 'sport', 'sporty', 'sportů')} v nabídce</span></div>
-      </div>
+    <section class="pagehead">
+      <div class="kicker"><span class="tag-live"><span class="dot"></span>{v.live.length} živě</span><span>· {today.length} dnes · aktualizováno {hhmm(v.at || now)}</span></div>
+      <h1>Živé přenosy zdarma</h1>
+      <p class="lead">Najdi zápas, klikni a sleduj. Fotbal, hokej, tenis, basketbal a dalších {Math.max(0, sports.length - 4)} sportů – program na 7 dní dopředu.</p>
+      <div style="margin-top:14px;max-width:560px" class="hide-desk"><Search id="mq" /></div>
     </section>
 
     <div class="chips" aria-label="Sporty">
-      <a class="chip" href="/zive/" aria-current="page">Vše</a>
-      {sports.map((s) => <a class="chip" href={sportPath(s.slug)}>{s.name}<em>{s.total}</em></a>)}
+      <a class="chip" href="/zive/" aria-current="page"><Icon name="live" />Vše<em>{v.live.length + v.upcoming.length}</em></a>
+      {sports.map((s) => <a class="chip" href={sportPath(s.slug)}><Icon name={s.slug} />{s.name}<em>{s.total}</em></a>)}
     </div>
+
+    {slides.length ? (
+      <section class="sec">
+        <div class="sec-head"><h2>Sledujte teď</h2><a href="/zive/">Všechny živé ›</a></div>
+        <Carousel items={slides} placement="carousel" eagerFirst />
+      </section>
+    ) : null}
 
     <div class="cols">
       <div>
         <section class="sec">
-          <div class="sec-head"><h2><span class="pill live" style="font-size:inherit"><span class="dot"></span></span> Živě právě teď</h2><a href="/zive/">Vše živě ›</a></div>
-          <Rows items={v.live} now={now} placement="home-live" live limit={12} empty="Právě teď neběží žádný přenos. Podívej se na program níž." />
+          <div class="sec-head"><h2>Živě právě teď</h2><span class="n">{v.live.length}</span></div>
+          <Rows items={liveTop.length ? v.live : []} now={now} placement="home-live" live limit={12} more={{ href: '/zive/', label: 'Všechny živé přenosy' }} empty="Právě teď neběží žádný přenos – nejbližší začátky jsou níže." />
         </section>
+
         <section class="sec">
-          <div class="sec-head"><h2>Dnešní program</h2><a href="/program/">Celý program ›</a></div>
-          <Rows items={featured(today)} now={now} placement="home-today" limit={15} empty="Na dnešek už nic nezbývá – mrkni na zítřek." />
+          <div class="sec-head"><h2>Populární soutěže</h2><a href="/program/">Program ›</a></div>
+          <CompetitionTiles items={lg.filter((l) => l.top).slice(0, 8)} />
         </section>
+
         <section class="sec">
-          <div class="sec-head"><h2>Zítra a dál</h2><a href="/program/zitra/">Zítra ›</a></div>
+          <div class="sec-head"><h2>Dnes</h2><span class="n">{today.length} {plural(today.length, 'zápas', 'zápasy', 'zápasů')}</span></div>
+          <Rows items={today} now={now} placement="home-today" limit={15} more={{ href: '/program/', label: 'Celý dnešní program' }} empty="Na dnešek už nic nezbývá – mrkni na zítřek." />
+        </section>
+
+        <section class="sec">
+          <div class="sec-head"><h2>Zítra a další dny</h2><a href="/program/zitra/">Zítra ›</a></div>
           <Rows items={later.slice(0, 12).sort((a, b) => a.st - b.st)} now={now} placement="home-next" groupByDay />
         </section>
+
         <section class="sec prose">
-          <h2>Kde sledovat sport online</h2>
-          <p>SportStreamy sbírá živé přenosy a program ze dvou největších českých licencovaných kanceláří. U každého zápasu uvidíš čas výkopu, soutěž a hlavní kurzy, u běžících zápasů průběžné skóre. Tlačítko tě přesune přímo na stránku zápasu u provozovatele.</p>
-          <p>Nejčastěji hledané jsou <a href="/fotbal-online/">fotbal online</a>, <a href="/hokej-online/">hokej online</a> a <a href="/tenis-online/">tenis online</a>, ale najdeš tu i <a href="/basketbal-online/">basketbal</a>, <a href="/volejbal-online/">volejbal</a> a <a href="/esporty-online/">e-sporty</a>. Pro přehled nabídek a bonusů mrkni na stránku <a href="/sazkove-kancelare/">sázkové kanceláře</a>.</p>
+          <h2>Živé přenosy zdarma na jednom místě</h2>
+          <p>SportStreamy hlídá program živých přenosů u největší české sázkové kanceláře a ukazuje ho přehledně na jednom místě: co právě běží, co začne dnes a co se hraje v dalších dnech. U každého zápasu vidíš čas, soutěž, kurzy a u běžících zápasů průběžné skóre. Tlačítkem „Sledovat“ se dostaneš přímo na zápas – bez hledání po webu provozovatele.</p>
+          <h3>Nejsledovanější sporty</h3>
+          <p>Nejvíc přenosů nabízí <a href="/fotbal-online/">fotbal online</a> a <a href="/tenis-online/">tenis online</a>, velký zájem je o <a href="/hokej-online/">hokej online</a> včetně <a href="/hokej-online/nhl/">NHL</a> a <a href="/hokej-online/tipsport-extraliga/">Tipsport extraligy</a>. Fanoušci českého fotbalu najdou všechna kola <a href="/fotbal-online/chance-liga/">Chance Ligy</a>, z Evropy pak <a href="/fotbal-online/liga-mistru/">Ligu mistrů</a> a <a href="/fotbal-online/premier-league/">Premier League</a>.</p>
+          <h3>Jak sledovat zápas</h3>
+          <p>Vyber zápas, klikni na „Sledovat“ a přihlas se u Tipsportu. Kdo ještě účet nemá, zaregistruje se za pár minut a jako nový hráč dostane <a href="/sazkove-kancelare/tipsport/">bonus 1000 Kč</a>. Přenos je pak dostupný zdarma, sázení je dobrovolné a jen pro plnoleté.</p>
         </section>
         <section class="sec"><div class="sec-head"><h2>Časté otázky</h2></div><Faq items={faq} /></section>
       </div>
@@ -73,3 +90,6 @@ const ld = [
     </div>
   </div>
 </Base>
+<style>
+  @media (min-width: 760px) { .hide-desk { display: none; } }
+</style>

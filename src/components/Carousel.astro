@@ -1,0 +1,30 @@
+---
+import type { Match } from '../lib/types';
+import { hhmm } from '../lib/text';
+import { goPath, matchPath, sportOf } from '../lib/url';
+import { competitionOf } from '../lib/competitions';
+import Photo from './Photo.astro';
+import Icon from './Icon.astro';
+interface Props { items: Match[]; placement: string; eagerFirst?: boolean }
+const { items, placement, eagerFirst = false } = Astro.props;
+---
+<div class="carousel" role="list">
+  {items.map((m, i) => {
+    const s = sportOf(m);
+    const live = !!m.ti || m.st <= Date.now();
+    return (
+      <article class="slide" role="listitem" data-id={m.id}>
+        <Photo sport={s?.slug} seed={i} sizes="(min-width: 900px) 400px, 86vw" eager={eagerFirst && i === 0} />
+        <div class="top">
+          {live ? <span class="tag-live" style="color:#ff6b5e"><span class="dot"></span>Živě</span> : <span>{hhmm(m.st)}</span>}
+          <span>· {s?.name} · {competitionOf(m.sp, m.lg)?.name ?? m.lg}</span>
+        </div>
+        <a class="tm" href={matchPath(m)}>{m.h}{m.a ? <small>{m.a}</small> : null}</a>
+        <div class="bot">
+          <div>{live && m.sc ? <span class="sc" data-s>{m.sc}</span> : null}{live && m.ti ? <span class="ti" data-t>{m.ti}</span> : null}</div>
+          <a class="btn" href={goPath(m, placement)} rel="sponsored nofollow noopener" target="_blank"><Icon name="play" />Sledovat</a>
+        </div>
+      </article>
+    );
+  })}
+</div>

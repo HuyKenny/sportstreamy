@@ -2,29 +2,61 @@
 import Base from '../../layouts/Base.astro';
 import Rows from '../../components/Rows.astro';
 import Aside from '../../components/Aside.astro';
+import Faq from '../../components/Faq.astro';
+import Photo from '../../components/Photo.astro';
+import Crumbs from '../../components/Crumbs.astro';
 import { getEnv, view, sportCounts, leagues } from '../../lib/page';
 import { SPORT_BY_SLUG } from '../../lib/sports';
-import { slugify, plural } from '../../lib/text';
+import { competitionBySlug, competitionSlug } from '../../lib/competitions';
+import { photoFor } from '../../lib/photos';
+import { plural, hhmm, longDay } from '../../lib/text';
+import { breadcrumbLd, faqLd, itemListLd } from '../../lib/seo';
 
 export const prerender = false;
-const sport = Astro.params.sport?.endsWith('-online') ? SPORT_BY_SLUG.get(Astro.params.sport.replace(/-online$/, '')) : undefined;
-if (!sport) return Astro.rewrite('/404');
+const raw = Astro.params.sport ?? '';
+const sport = raw.endsWith('-online') ? SPORT_BY_SLUG.get(raw.slice(0, -7)) : undefined;
+if (!sport) return Astro.rewrite('/404/');
+const slug = Astro.params.league ?? '';
+const comp = competitionBySlug(slug);
+if (comp && comp.sp !== sport.id) return Astro.rewrite('/404/');
 const v = await view(getEnv());
 const now = Date.now();
-const all = [...v.live, ...v.upcoming].filter((m) => m.sp === sport.id && slugify(m.lg) === Astro.params.league);
-if (!all.length) return Astro.rewrite('/404');
-const name = all[0].lg;
-const live = v.live.filter((m) => all.includes(m));
-const next = v.upcoming.filter((m) => all.includes(m));
+const inComp = (m: { sp: number; lg: string }) => m.sp === sport.id && competitionSlug(m.sp, m.lg) === slug;
+const live = v.live.filter(inComp);
+const next = v.upcoming.filter(inComp);
+// Uncurated competitions exist only while Tipsport lists them; curated ones always render.
+if (!comp && !live.length && !next.length) return Astro.rewrite('/404/');
+const name = comp?.name ?? (live[0] ?? next[0]).lg;
+const total = live.length + next.length;
+const photo = photoFor(sport.slug);
+const crumbs = [{ name: 'Domů', href: '/' }, { name: `${sport.name} online`, href: `/${sport.slug}-online/` }, { name }];
+const first = next[0];
+const faq = [
+  { q: `Kde sledovat ${name} online?`, a: `Zápasy soutěže ${name} najdeš v přehledu níže. Tlačítko „Sledovat“ tě přesune na zápas u Tipsportu, kde po přihlášení spustíš přenos${comp && !live.concat(next).some((m) => m.stream) ? ' nebo živé statistiky' : ''}.` },
+  { q: `Kdy se hraje další zápas – ${name}?`, a: first ? `Nejbližší zápas je ${first.h}${first.a ? ' – ' + first.a : ''}, ${longDay(first.st)} v ${hhmm(first.st)}.` : 'Další zápasy zatím nejsou v nabídce. Program se doplňuje průběžně, obvykle týden dopředu.' },
+  { q: 'Je sledování zdarma?', a: 'Pro registrované zákazníky Tipsportu ano. Registrace je bezplatná, sázení dobrovolné a jen od 18 let.' },
+];
 ---
-<Base title={`${name} online – živé přenosy a program | SportStreamy`} description={`${name} (${sport.name.toLowerCase()}): ${live.length} živě, ${next.length} v programu. Čas zápasů, kurzy a odkaz na přenos.`} section={sport.slug}>
+<Base title={`${name} živě online – program a přenosy | SportStreamy`} description={`${name} online: ${live.length} živě, ${next.length} v programu. ${comp ? comp.intro.split('. ')[0] + '.' : `Zápasy soutěže ${name} s časem a kurzy.`}`.slice(0, 158)} ld={[breadcrumbLd(crumbs), faqLd(faq), itemListLd([...live, ...next], name)]} section={comp?.slug ?? sport.slug} noindex={!comp && total < 2} lcp={sport.slug}>
+  <section class="hero">
+    <Photo sport={sport.slug} eager alt={photo.alt} />
+    <div class="wrap">
+      <Crumbs items={crumbs} />
+      <div style="display:flex;align-items:center;gap:14px;margin-top:14px">
+        {comp ? <span class="badge" style={`background:${comp.color};width:56px;height:56px;font-size:1.1rem`}>{comp.short}</span> : null}
+        <h1>{name} živě</h1>
+      </div>
+      <p class="lead">{comp?.intro ?? `${total} ${plural(total, 'zápas', 'zápasy', 'zápasů')} soutěže ${name} s přenosem nebo živými statistikami.`}</p>
+      <div class="stats"><div class:list={["live", !live.length && "zero"]}>{live.length}<span>živě teď</span></div><div>{next.length}<span>v programu</span></div></div>
+    </div>
+    <a class="credit" href={photo.url} rel="noopener nofollow">Foto: {photo.author} / Pexels</a>
+  </section>
   <div class="wrap">
-    <nav class="crumbs" aria-label="Drobečky"><a href="/">Domů</a> › <a href={`/${sport.slug}-online/`}>{sport.name} online</a> › {name}</nav>
-    <section class="hero"><h1>{name} online</h1><p class="lead">{all.length} {plural(all.length, 'zápas', 'zápasy', 'zápasů')} s přenosem v soutěži {name}. Sleduj živě nebo se podívej na program.</p></section>
     <div class="cols">
       <div>
         {live.length ? (<section class="sec"><div class="sec-head"><h2>Živě</h2></div><Rows items={live} now={now} placement="league-live" live /></section>) : null}
-        <section class="sec"><div class="sec-head"><h2>Program</h2></div><Rows items={next} now={now} placement="league" groupByDay empty="Žádné další zápasy zatím nejsou v nabídce." /></section>
+        <section class="sec"><div class="sec-head"><h2>Program</h2><span class="n">{next.length}</span></div><Rows items={next} now={now} placement="league" groupByDay empty={`Další zápasy soutěže ${name} zatím nejsou v nabídce. Program se doplňuje průběžně, obvykle týden dopředu.`} /></section>
+        <section class="sec"><div class="sec-head"><h2>Časté otázky</h2></div><Faq items={faq} /></section>
       </div>
       <Aside sports={sportCounts(v)} leagues={leagues(v, sport.id)} placement="league-aside" />
     </div>

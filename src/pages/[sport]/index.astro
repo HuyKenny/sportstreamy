@@ -3,43 +3,59 @@ import Base from '../../layouts/Base.astro';
 import Rows from '../../components/Rows.astro';
 import Aside from '../../components/Aside.astro';
 import Faq from '../../components/Faq.astro';
-import { getEnv, view, sportCounts, leagues } from '../../lib/page';
+import Photo from '../../components/Photo.astro';
+import Crumbs from '../../components/Crumbs.astro';
+import CompetitionTiles from '../../components/CompetitionTiles.astro';
+import { getEnv, view, featured, sportCounts, leagues } from '../../lib/page';
 import { SPORT_BY_SLUG } from '../../lib/sports';
-import { sportLead, sportFaq } from '../../lib/sport-text';
-import { leaguePath } from '../../lib/url';
+import { COMPETITIONS } from '../../lib/competitions';
+import { sportLead, sportBody, sportFaq } from '../../lib/sport-text';
+import { photoFor } from '../../lib/photos';
 import { plural } from '../../lib/text';
+import { breadcrumbLd, faqLd, itemListLd } from '../../lib/seo';
 
 export const prerender = false;
-const slug = (Astro.params.sport ?? '').replace(/-online$/, '');
-const sport = Astro.params.sport?.endsWith('-online') ? SPORT_BY_SLUG.get(slug) : undefined;
-if (!sport) return Astro.rewrite('/404');
+const raw = Astro.params.sport ?? '';
+const sport = raw.endsWith('-online') ? SPORT_BY_SLUG.get(raw.slice(0, -7)) : undefined;
+if (!sport) return Astro.rewrite('/404/');
 const v = await view(getEnv());
 const now = Date.now();
 const live = v.live.filter((m) => m.sp === sport.id);
 const next = v.upcoming.filter((m) => m.sp === sport.id);
 const lg = leagues(v, sport.id);
+// Curated competitions of this sport are always linked (stable pages), even with nothing scheduled.
+const curated = COMPETITIONS.filter((c) => c.sp === sport.id).map((c) => lg.find((l) => l.slug === c.slug) ?? { name: c.name, slug: c.slug, sp: c.sp, n: 0, live: 0, top: !!c.top, short: c.short, color: c.color });
+const others = lg.filter((l) => !curated.some((c) => c.slug === l.slug)).slice(0, 12);
 const faq = sportFaq(sport, live.length > 0);
-const ld = [
-  { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [{ '@type': 'ListItem', position: 1, name: 'Domů', item: 'https://sportstreamy.cz/' }, { '@type': 'ListItem', position: 2, name: `${sport.name} online`, item: `https://sportstreamy.cz/${sport.slug}-online/` }] },
-  { '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: faq.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) },
-];
+const photo = photoFor(sport.slug);
+const crumbs = [{ name: 'Domů', href: '/' }, { name: `${sport.name} online` }];
+const body = sportBody(sport);
+const LIMIT = 80;
+const shown = next.length > LIMIT ? featured(next).slice(0, LIMIT).sort((a, b) => a.st - b.st) : next;
 ---
-<Base title={`${sport.name} online zdarma – živé přenosy a program | SportStreamy`} description={`${sport.name} online: ${live.length} ${plural(live.length, 'zápas', 'zápasy', 'zápasů')} živě, ${next.length} v programu. Čas, soutěž, kurzy a odkaz na přenos.`} ld={ld} section={sport.slug}>
-  <div class="wrap">
-    <nav class="crumbs" aria-label="Drobečky"><a href="/">Domů</a> › {sport.name} online</nav>
-    <section class="hero">
-      <h1>{sport.name} online</h1>
+<Base title={`${sport.name} online zdarma – živé přenosy dnes | SportStreamy`} description={`${sport.name} online: ${live.length} ${plural(live.length, 'zápas', 'zápasy', 'zápasů')} živě, ${next.length} v programu na 7 dní. Čas, soutěž, kurzy a odkaz na přenos zdarma.`} ld={[breadcrumbLd(crumbs), faqLd(faq), itemListLd([...live, ...next], `${sport.name} online`)]} section={sport.slug} lcp={sport.slug}>
+  <section class="hero">
+    <Photo sport={sport.slug} eager alt={photo.alt} />
+    <div class="wrap">
+      <Crumbs items={crumbs} />
+      <h1 style="margin-top:14px">{sport.name} online</h1>
       <p class="lead">{sportLead(sport)}</p>
-    </section>
-    {lg.length ? (
-      <div class="chips" aria-label="Soutěže">
-        {lg.slice(0, 14).map((l) => <a class="chip" href={leaguePath(sport.slug, l.name)}>{l.name}<em>{l.n}</em></a>)}
+      <div class="stats">
+        <div class:list={["live", !live.length && "zero"]}>{live.length}<span>živě teď</span></div>
+        <div>{next.length}<span>v programu</span></div>
+        <div>{lg.length}<span>{plural(lg.length, 'soutěž', 'soutěže', 'soutěží')}</span></div>
       </div>
-    ) : null}
+    </div>
+    <a class="credit" href={photo.url} rel="noopener nofollow">Foto: {photo.author} / Pexels</a>
+  </section>
+  <div class="wrap">
+    {others.length ? <div class="chips" aria-label="Další soutěže" style="margin-top:14px">{others.map((l) => <a class="chip" href={`/${sport.slug}-online/${l.slug}/`}>{l.name}<em>{l.n}</em></a>)}</div> : null}
     <div class="cols">
       <div>
-        {live.length ? (<section class="sec"><div class="sec-head"><h2>Živě</h2></div><Rows items={live} now={now} placement="sport-live" live /></section>) : null}
-        <section class="sec"><div class="sec-head"><h2>Program</h2><span class="n">{next.length} {plural(next.length, 'zápas', 'zápasy', 'zápasů')}</span></div><Rows items={next} now={now} placement="sport" groupByDay limit={80} empty="Zatím žádné naplánované přenosy." /></section>
+        {live.length ? (<section class="sec"><div class="sec-head"><h2>{sport.name} živě</h2><span class="n">{live.length}</span></div><Rows items={live} now={now} placement="sport-live" live /></section>) : null}
+        {curated.length ? <section class="sec"><div class="sec-head"><h2>Soutěže</h2></div><CompetitionTiles items={curated} /></section> : null}
+        <section class="sec"><div class="sec-head"><h2>Program</h2><span class="n">{next.length}</span></div><Rows items={shown} now={now} placement="sport" groupByDay empty="Zatím žádné naplánované přenosy." /></section>
+        {body ? <section class="sec prose" set:html={body} /> : null}
         <section class="sec"><div class="sec-head"><h2>Časté otázky</h2></div><Faq items={faq} /></section>
       </div>
       <Aside sports={sportCounts(v)} leagues={lg} placement="sport-aside" />

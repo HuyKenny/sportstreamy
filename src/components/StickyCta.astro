@@ -1,0 +1,12 @@
+---
+import type { Match } from '../lib/types';
+import { goPath } from '../lib/url';
+import { BONUS } from '../lib/bonus';
+import Icon from './Icon.astro';
+interface Props { m: Match; live: boolean }
+const { m, live } = Astro.props;
+---
+<div class="sticky-cta">
+  <span class="t">{live ? 'Běží právě teď' : 'Bonus'} · {BONUS.amount}<br />Reklama 18+</span>
+  <a class="btn lg" href={goPath(m, 'sticky')} rel="sponsored nofollow noopener" target="_blank"><Icon name="play" />Sledovat zápas</a>
+</div>

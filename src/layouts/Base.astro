@@ -1,93 +1,128 @@
 ---
 import '../styles/global.css';
 import Icon from '../components/Icon.astro';
+import Search from '../components/Search.astro';
 import { SPORTS } from '../lib/sports';
-interface Props { title: string; description: string; path?: string; noindex?: boolean; ld?: object[]; ttl?: number; image?: string; section?: string }
-const { title, description, path = Astro.url.pathname, noindex = false, ld = [], ttl = 60, image = '/og/default.png', section = '' } = Astro.props;
+import { COMPETITIONS } from '../lib/competitions';
+import { SPORT_BY_ID } from '../lib/sports';
+import { BONUS } from '../lib/bonus';
+import { photoFor } from '../lib/photos';
+interface Props {
+  title: string;
+  description: string;
+  path?: string;
+  noindex?: boolean;
+  ld?: object[];
+  ttl?: number;
+  image?: string;
+  section?: string;
+  /** Sport slug whose photo is the LCP element (preloaded). */
+  lcp?: string;
+  /** Detail pages swap the dock for their own sticky CTA. */
+  dock?: boolean;
+}
+const { title, description, path = Astro.url.pathname, noindex = false, ld = [], ttl = 60, image, section = '', lcp, dock = true } = Astro.props;
 const canonical = new URL(path, Astro.site).toString();
+const lcpSlug = lcp ? photoFor(lcp).slug : '';
+const og = new URL(image ?? '/og/default.png', Astro.site).toString();
 if (ttl > 0) Astro.response.headers.set('Cache-Control', `public, max-age=0, s-maxage=${ttl}, stale-while-revalidate=${ttl * 4}`);
 const nav = [
   { href: '/zive/', label: 'Živě', k: 'zive', hot: true },
   { href: '/program/', label: 'Program', k: 'program' },
-  ...SPORTS.filter((s) => s.main).slice(0, 5).map((s) => ({ href: `/${s.slug}-online/`, label: s.name, k: s.slug })),
+  ...SPORTS.filter((s) => s.main).map((s) => ({ href: `/${s.slug}-online/`, label: s.name, k: s.slug })),
+  { href: '/fotbal-online/chance-liga/', label: 'Chance Liga', k: 'chance-liga' },
+  { href: '/hokej-online/nhl/', label: 'NHL', k: 'nhl' },
   { href: '/sazkove-kancelare/', label: 'Bonusy', k: 'bonusy' },
   { href: '/clanky/', label: 'Články', k: 'clanky' },
 ];
+const footComps = COMPETITIONS.filter((c) => c.top);
 ---
 <!doctype html>
 <html lang="cs">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>{title}</title>
   <meta name="description" content={description} />
   <link rel="canonical" href={canonical} />
-  {noindex ? <meta name="robots" content="noindex, follow" /> : <meta name="robots" content="index, follow, max-image-preview:large" />}
-  <meta name="theme-color" content="#f4f0e6" media="(prefers-color-scheme: light)" />
-  <meta name="theme-color" content="#12120e" media="(prefers-color-scheme: dark)" />
+  <meta name="robots" content={noindex ? 'noindex, follow' : 'index, follow, max-image-preview:large, max-snippet:-1'} />
+  <meta name="theme-color" content="#0e1311" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="manifest" href="/site.webmanifest" />
+  {lcpSlug ? <link rel="preload" as="image" type="image/avif" imagesrcset={`/img/sport/${lcpSlug}-800.avif 800w, /img/sport/${lcpSlug}-1600.avif 1600w`} imagesizes="100vw" fetchpriority="high" /> : null}
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="SportStreamy" />
   <meta property="og:locale" content="cs_CZ" />
   <meta property="og:title" content={title} />
   <meta property="og:description" content={description} />
   <meta property="og:url" content={canonical} />
-  <meta property="og:image" content={new URL(image, Astro.site).toString()} />
+  <meta property="og:image" content={og} />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
   <meta name="twitter:card" content="summary_large_image" />
   {ld.map((o) => <script type="application/ld+json" set:html={JSON.stringify(o)} />)}
 </head>
 <body>
-  <div class="age"><div class="wrap"><span>Web nevysílá – odkazuje na licencované provozovatele. Pouze 18+.</span><a href="/zodpovedne-hrani/">Hraj rozumně</a></div></div>
+  <a class="promo" href="/go/registrace/?p=promo" rel="sponsored nofollow noopener" target="_blank">
+    <span class="wrap"><span class="long">{BONUS.promo}</span><span class="short">{BONUS.promoShort}</span><b>{BONUS.amount}</b><small>Reklama · 18+</small></span>
+  </a>
   <header class="bar">
     <div class="wrap">
-      <a class="logo" href="/" aria-label="SportStreamy – úvod">
-        <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="currentColor"/><path d="M11.5 8.5v15l12.5-7.5z" fill="var(--paper)"/></svg>
-        <span>sport<b>streamy</b></span>
+      <a class="logo" href="/" aria-label="SportStreamy – úvodní stránka">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="5" fill="#ffd23f" stroke="#000" stroke-width="2"/><path d="M12 9v14l11-7z" fill="#0e1311"/></svg>
+        <span>Sport<b>streamy</b></span>
       </a>
-      <nav class="nav" aria-label="Hlavní">
-        {nav.map((n) => <a href={n.href} class:list={[n.hot && 'hot']} aria-current={section === n.k ? 'page' : undefined}>{n.hot ? <span class="dot"></span> : null}{n.label}</a>)}
-      </nav>
-      <a class="btn sm cta" href="/go/tipsport/?p=header" rel="sponsored nofollow noopener" target="_blank">Bonus 18+</a>
+      <div class="search"><Search id="hq" /></div>
+      <a class="btn sm bonus-btn" href="/go/registrace/?p=header" rel="sponsored nofollow noopener" target="_blank"><Icon name="gift" />{BONUS.amount}</a>
     </div>
   </header>
+  <nav class="nav" aria-label="Hlavní navigace">
+    <div class="wrap">
+      {nav.map((n) => <a href={n.href} aria-current={section === n.k ? 'page' : undefined}>{n.hot ? <span class="dot"></span> : null}{n.label}</a>)}
+    </div>
+  </nav>
   <main><slot /></main>
   <footer>
     <div class="wrap">
       <div class="grid">
-        <div><h4>Sporty</h4>{SPORTS.filter((s) => s.main || ['stolni-tenis','hazena','florbal','snooker','sipky'].includes(s.slug)).map((s) => <a href={`/${s.slug}-online/`}>{s.name} online</a>)}</div>
-        <div><h4>Přehledy</h4><a href="/zive/">Živé přenosy</a><a href="/program/">Program přenosů</a><a href="/program/zitra/">Přenosy zítra</a><a href="/sazkove-kancelare/">Sázkové kanceláře a bonusy</a><a href="/clanky/">Články</a></div>
-        <div><h4>Web</h4><a href="/o-webu/">O webu</a><a href="/zodpovedne-hrani/">Zodpovědné hraní</a><a href="/osobni-udaje/">Ochrana údajů</a><a href="/podminky/">Podmínky</a><a href="/kontakt/">Kontakt</a></div>
+        <div><h4>Sporty online</h4>{SPORTS.filter((s) => s.main || ['stolni-tenis', 'hazena', 'florbal', 'esporty'].includes(s.slug)).map((s) => <a href={`/${s.slug}-online/`}>{s.name} online</a>)}</div>
+        <div><h4>Soutěže</h4>{footComps.map((c) => <a href={`/${SPORT_BY_ID.get(c.sp)!.slug}-online/${c.slug}/`}>{c.name} živě</a>)}</div>
+        <div><h4>Přehledy</h4><a href="/zive/">Živé přenosy</a><a href="/program/">Program dnes</a><a href="/program/zitra/">Program zítra</a><a href="/hledat/">Hledat zápas</a><a href="/sazkove-kancelare/">Sázkové kanceláře a bonusy</a><a href="/clanky/">Články</a></div>
+        <div><h4>Web</h4><a href="/o-webu/">O webu</a><a href="/zodpovedne-hrani/">Zodpovědné hraní</a><a href="/osobni-udaje/">Ochrana údajů</a><a href="/podminky/">Podmínky</a><a href="/zdroje-fotek/">Zdroje fotek</a><a href="/kontakt/">Kontakt</a></div>
       </div>
-      <p class="legal">SportStreamy je nezávislý přehled sportovních přenosů. Videa nevysíláme ani neukládáme – odkazy vedou na stránky licencovaných sázkových kanceláří (Tipsport, Chance, Allwyn), od kterých můžeme získat provizi, pokud se zaregistruješ. Sledování přenosů bývá vázané na registraci a přihlášení. Hazardní hry jsou určeny osobám starším 18 let a mohou způsobit závislost. Pomoc: <a href="https://www.hrajrozumne.cz" rel="noopener nofollow" style="display:inline;text-decoration:underline">hrajrozumne.cz</a>. Odkazy označené „Reklama“ jsou komerční sdělení.</p>
+      <div class="warn"><b>18+</b><span>{BONUS.warn} Pomoc: <a href="https://www.hrajrozumne.cz" rel="noopener nofollow" style="display:inline;text-decoration:underline">hrajrozumne.cz</a>.</span></div>
+      <p class="legal">SportStreamy je nezávislý přehled sportovních přenosů. Videa nevysíláme ani neukládáme – odkazy vedou na stránky licencovaných provozovatelů (Tipsport, Chance, Allwyn), od kterých můžeme získat provizi, pokud se zaregistruješ. Sledování přenosů je vázané na registraci a přihlášení u provozovatele. Komerční sdělení jsou označena „Reklama“.</p>
     </div>
   </footer>
-  <nav class="dock" aria-label="Rychlá navigace">
-    <a href="/" aria-current={section === 'home' ? 'page' : undefined}><Icon name="home" />Domů</a>
-    <a href="/zive/" aria-current={section === 'zive' ? 'page' : undefined}><Icon name="tv" />Živě</a>
-    <a href="/program/" aria-current={section === 'program' ? 'page' : undefined}><Icon name="calendar" />Program</a>
-    <a href="/go/tipsport/?p=dock" class="go" rel="sponsored nofollow noopener" target="_blank"><Icon name="gift" />Bonus</a>
-  </nav>
+  {dock ? (
+    <nav class="dock" aria-label="Rychlá navigace">
+      <a href="/" aria-current={section === 'home' ? 'page' : undefined}><Icon name="home" />Domů</a>
+      <a href="/zive/" aria-current={section === 'zive' ? 'page' : undefined}><Icon name="live" />Živě</a>
+      <a href="/program/" class="main" aria-current={section === 'program' ? 'page' : undefined}><span class="ic"><Icon name="calendar" /></span>Program</a>
+      <a href="/hledat/" aria-current={section === 'hledat' ? 'page' : undefined}><Icon name="search" />Hledat</a>
+      <a href="/go/registrace/?p=dock" rel="sponsored nofollow noopener" target="_blank"><Icon name="gift" />{BONUS.amount}</a>
+    </nav>
+  ) : null}
   <script>
-    // Live scores: refresh score + minute in place every 30 s while the tab is visible (no framework, ~400 B of work).
-    const rows = () => document.querySelectorAll<HTMLElement>('.row.is-live[data-id]');
-    if (rows().length) {
-      const tick = async () => {
+    // Live scores: refresh score + minute in place every 30 s while the tab is visible.
+    const nodes = () => document.querySelectorAll<HTMLElement>('.row.is-live[data-id], .slide[data-id], .stage[data-id]');
+    if (document.querySelector('[data-s], [data-t]')) {
+      setInterval(async () => {
         if (document.hidden) return;
         try {
-          const r = await fetch('/api/live.json');
-          const d: Record<string, [string, string]> = await r.json();
-          rows().forEach((row) => {
-            const v = d[row.dataset.id!];
+          const d: Record<string, [string, string]> = await (await fetch('/api/live.json')).json();
+          nodes().forEach((n) => {
+            const v = d[n.dataset.id!];
             if (!v) return;
-            const s = row.querySelector('[data-s]');
-            const t = row.querySelector('[data-t]');
+            const s = n.querySelector('[data-s]');
+            const t = n.querySelector('[data-t]');
             if (s && v[0]) s.textContent = v[0];
-            if (t && v[1]) t.textContent = v[1];
+            if (t && v[1]) t.textContent = n.classList.contains('stage') ? ` · ${v[1]}` : v[1];
           });
         } catch { /* keep what is on screen */ }
-      };
-      setInterval(tick, 30_000);
+      }, 30_000);
     }
   </script>
 </body>
