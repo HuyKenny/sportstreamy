@@ -66,3 +66,23 @@ export const sportFaq = (s: Sport, hasLive: boolean) => [
   { q: 'Proč má některý zápas štítek „stats“?', a: 'U zápasů, ke kterým má televizní práva někdo jiný, Tipsport video nevysílá, ale nabízí živé statistiky, průběžné skóre a kurzy.' },
   { q: 'Jsou přenosy opravdu zdarma?', a: 'Sledování je pro registrované zákazníky provozovatele bezplatné. Případné sázky jsou dobrovolné a pouze pro osoby od 18 let.' },
 ];
+
+/** Sports that get a "/{sport}-dnes/" landing page (search demand: hokej dnes 62k, fotbal dnes 45k, tenis dnes 11k…). */
+export const TODAY_SPORTS = new Set(['fotbal', 'hokej', 'tenis', 'basketbal', 'volejbal', 'sipky']);
+
+/** When things usually happen on a given day, per sport — evergreen, no dates that go stale. */
+const TODAY_LEADS: Record<string, string> = {
+  fotbal: 'Všechny dnešní fotbalové zápasy na jednom místě – od dopoledních asijských lig přes evropské večery až po noční Jižní Ameriku. U každého zápasu je čas výkopu, soutěž, kurzy a odkaz na přímý přenos.',
+  hokej: 'Dnešní hokej v přehledu: Tipsport extraliga začíná většinou v 17:30 nebo 18:00, evropské ligy odpoledne a večer, NHL v noci našeho času. Klikni na zápas a sleduj ho živě.',
+  tenis: 'Dnešní tenisový program ATP, WTA, Challengerů i ITF. Časy jsou orientační – zápas začíná po skončení předchozího na kurtu – a živě běží stav setů.',
+  basketbal: 'Dnešní basketbal: evropské poháry a ligy večer, NBA v noci našeho času.',
+  volejbal: 'Dnešní volejbalové zápasy – ligy, evropské poháry a reprezentace s průběžným stavem setů.',
+  sipky: 'Dnešní šipkařské zápasy – turnaje PDC i ligové večery s živými výsledky.',
+};
+export const todayLead = (s: Sport) => TODAY_LEADS[s.slug] ?? `${s.name} dnes – zápasy s přenosem a živým skóre.`;
+
+export const todayFaq = (s: Sport, n: number) => [
+  { q: `Kde sledovat ${s.genitive === 'fotbalu' ? 'fotbal' : s.name.toLowerCase()} dnes?`, a: n ? `Dnes je v nabídce ${n} zápasů. Klikni na „Sledovat“ u zápasu – přenos se otevře u Tipsportu, kde po bezplatné registraci a přihlášení běží zdarma.` : 'Dnes už žádný zápas nezbývá. Program na zítřek najdeš přes odkaz pod seznamem.' },
+  { q: `Dávají dnes ${s.genitive === 'fotbalu' ? 'fotbal' : s.name.toLowerCase()} v televizi?`, a: 'Televizní program nesledujeme. Zápasy na této stránce vysílá online Tipsport svým zákazníkům – sleduješ je v mobilu nebo počítači bez televize.' },
+  { q: 'V kolik zápasy začínají?', a: 'Všechny časy jsou v českém čase. U zápasů, které právě běží, svítí červená tečka „Živě“ a skóre se obnovuje každých 30 sekund.' },
+];

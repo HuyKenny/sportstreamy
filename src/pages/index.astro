@@ -72,6 +72,7 @@ const ld = [...siteLd(), faqLd(faq), itemListLd([...v.live, ...today].slice(0, 2
 
         <section class="sec">
           <div class="sec-head"><h2>Dnes <span class="cnt">{today.length}</span></h2><a href="/program/">Celý program ›</a></div>
+          <div class="chips" aria-label="Dnes podle sportu" style="margin-bottom:10px"><a class="chip" href="/fotbal-dnes/">Fotbal dnes</a><a class="chip" href="/hokej-dnes/">Hokej dnes</a><a class="chip" href="/tenis-dnes/">Tenis dnes</a><a class="chip" href="/basketbal-dnes/">Basketbal dnes</a><a class="chip" href="/volejbal-dnes/">Volejbal dnes</a></div>
           <Rows items={todayMix} now={now} placement="home-today" more={{ href: '/program/', label: 'Celý dnešní program' }} empty="Na dnešek už nic nezbývá – mrkni na zítřek." />
         </section>
 

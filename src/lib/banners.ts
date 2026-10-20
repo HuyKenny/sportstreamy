@@ -24,6 +24,7 @@ const CHANCE_LIGA = new Set(['chance-liga', 'chance-narodni-liga']);
 export function bannerFor(sport?: string, comp?: string): Banner {
   if (comp && POHARY.has(comp)) return BANNERS.pohary;
   if (comp && CHANCE_LIGA.has(comp)) return BANNERS.chanceFantasy;
+  if (comp === 'ms-v-hokeji') return BANNERS.sazkaHokej;
   if (sport === 'esporty') return BANNERS.esport;
   if (sport === 'bojove-sporty' || sport === 'box') return BANNERS.bojove;
   if (sport === 'hokej') return BANNERS.sazkaHokej;

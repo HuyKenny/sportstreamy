@@ -9,7 +9,7 @@ import { getEnv, view, sportCounts, leagues } from '../../lib/page';
 import { SPORT_BY_SLUG } from '../../lib/sports';
 import { competitionBySlug, competitionSlug } from '../../lib/competitions';
 import { photoFor } from '../../lib/photos';
-import { plural, hhmm, longDay } from '../../lib/text';
+import { plural, hhmm, longDay, dayKey } from '../../lib/text';
 import { breadcrumbLd, faqLd, itemListLd } from '../../lib/seo';
 
 export const prerender = false;
@@ -28,6 +28,7 @@ const next = v.upcoming.filter(inComp);
 if (!comp && !live.length && !next.length) return Astro.rewrite('/404/');
 const name = comp?.name ?? (live[0] ?? next[0]).lg;
 const total = live.length + next.length;
+const todayN = live.length + next.filter((m) => dayKey(m.st) === dayKey(now)).length;
 const photo = photoFor(sport.slug);
 const crumbs = [{ name: 'Domů', href: '/' }, { name: `${sport.name} online`, href: `/${sport.slug}-online/` }, { name }];
 const first = next[0];
@@ -37,7 +38,7 @@ const faq = [
   { q: 'Je sledování zdarma?', a: 'Pro registrované zákazníky Tipsportu ano. Registrace je bezplatná, sázení dobrovolné a jen od 18 let.' },
 ];
 ---
-<Base title={`${name} živě online – program a přenosy | SportStreamy`} description={`${name} online: ${live.length} živě, ${next.length} v programu. ${comp ? comp.intro.split('. ')[0] + '.' : `Zápasy soutěže ${name} s časem a kurzy.`}`.slice(0, 158)} ld={[breadcrumbLd(crumbs), faqLd(faq), itemListLd([...live, ...next], name)]} section={comp?.slug ?? sport.slug} noindex={!comp && total < 2} lcp={sport.slug}>
+<Base title={comp ? `${name} dnes a živě – program a přenosy | SportStreamy` : `${name} živě online – program a přenosy | SportStreamy`} description={`${name} dnes: ${todayN} ${plural(todayN, 'zápas', 'zápasy', 'zápasů')} (${live.length} živě), ${next.length} v programu. ${comp ? comp.intro.split('. ')[0] + '.' : `Zápasy soutěže ${name} s časem a kurzy.`}`.slice(0, 158)} ld={[breadcrumbLd(crumbs), faqLd(faq), itemListLd([...live, ...next], name)]} section={comp?.slug ?? sport.slug} noindex={!comp && total < 2} lcp={sport.slug}>
   <section class="hero">
     <Photo sport={sport.slug} eager alt={photo.alt} />
     <div class="wrap">

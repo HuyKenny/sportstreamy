@@ -9,15 +9,18 @@ import CompetitionTiles from '../../components/CompetitionTiles.astro';
 import { getEnv, view, featured, sportCounts, leagues } from '../../lib/page';
 import { SPORT_BY_SLUG } from '../../lib/sports';
 import { COMPETITIONS } from '../../lib/competitions';
-import { sportLead, sportBody, sportFaq } from '../../lib/sport-text';
+import { sportLead, sportBody, sportFaq, TODAY_SPORTS } from '../../lib/sport-text';
+import SportToday from '../../components/SportToday.astro';
 import { photoFor } from '../../lib/photos';
 import { plural } from '../../lib/text';
 import { breadcrumbLd, faqLd, itemListLd } from '../../lib/seo';
 
 export const prerender = false;
 const raw = Astro.params.sport ?? '';
-const sport = raw.endsWith('-online') ? SPORT_BY_SLUG.get(raw.slice(0, -7)) : undefined;
-if (!sport) return Astro.rewrite('/404/');
+// /{sport}-online/ = week hub, /{sport}-dnes/ = today only (separate search intent: "hokej dnes" 62k/month)
+const mode = raw.endsWith('-online') ? 'online' : raw.endsWith('-dnes') ? 'dnes' : '';
+const sport = mode ? SPORT_BY_SLUG.get(raw.replace(/-(online|dnes)$/, '')) : undefined;
+if (!sport || (mode === 'dnes' && !TODAY_SPORTS.has(sport.slug))) return Astro.rewrite('/404/');
 const v = await view(getEnv());
 const now = Date.now();
 const live = v.live.filter((m) => m.sp === sport.id);
@@ -33,6 +36,7 @@ const body = sportBody(sport);
 const LIMIT = 40;
 const shown = next.length > LIMIT ? featured(next).slice(0, LIMIT).sort((a, b) => a.st - b.st) : next;
 ---
+{mode === 'dnes' ? <SportToday sport={sport} v={v} /> : (
 <Base title={`${sport.name} online zdarma – živé přenosy dnes | SportStreamy`} description={`${sport.name} online: ${live.length} ${plural(live.length, 'zápas', 'zápasy', 'zápasů')} živě, ${next.length} v programu na 7 dní. Čas, soutěž, kurzy a odkaz na přenos zdarma.`} ld={[breadcrumbLd(crumbs), faqLd(faq), itemListLd([...live, ...next], `${sport.name} online`)]} section={sport.slug} lcp={sport.slug}>
   <section class="hero">
     <Photo sport={sport.slug} eager alt={photo.alt} />
@@ -40,6 +44,7 @@ const shown = next.length > LIMIT ? featured(next).slice(0, LIMIT).sort((a, b) =
       <Crumbs items={crumbs} />
       <h1 style="margin-top:14px">{sport.name} online</h1>
       <p class="lead">{sportLead(sport)}</p>
+      {TODAY_SPORTS.has(sport.slug) ? <p style="margin-top:12px"><a class="btn sm ghost" href={`/${sport.slug}-dnes/`}>{sport.genitive === 'fotbalu' ? 'Fotbal' : sport.name} dnes ›</a></p> : null}
       <div class="stats">
         <div class:list={["live", !live.length && "zero"]}>{live.length}<span>živě teď</span></div>
         <div>{next.length}<span>v programu</span></div>
@@ -62,3 +67,4 @@ const shown = next.length > LIMIT ? featured(next).slice(0, LIMIT).sort((a, b) =
     </div>
   </div>
 </Base>
+)}

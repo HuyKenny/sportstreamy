@@ -1,0 +1,65 @@
+---
+import Base from '../layouts/Base.astro';
+import Rows from './Rows.astro';
+import Aside from './Aside.astro';
+import Faq from './Faq.astro';
+import Crumbs from './Crumbs.astro';
+import Icon from './Icon.astro';
+import type { Sport } from '../lib/sports';
+import type { View } from '../lib/matches';
+import { sportCounts, leagues } from '../lib/page';
+import { dayKey, longDay, shortDay, plural, hhmm } from '../lib/text';
+import { todayLead, todayFaq } from '../lib/sport-text';
+import { breadcrumbLd, faqLd, itemListLd } from '../lib/seo';
+import { competitionSlug, competitionOf } from '../lib/competitions';
+
+/** "/{sport}-dnes/": only today's matches of one sport (live first). Week view lives on /{sport}-online/. */
+interface Props { sport: Sport; v: View }
+const { sport, v } = Astro.props;
+const now = Date.now();
+const today = dayKey(now);
+const live = v.live.filter((m) => m.sp === sport.id);
+const later = v.upcoming.filter((m) => m.sp === sport.id && dayKey(m.st) === today);
+const recent = v.recent.filter((m) => m.sp === sport.id).slice(0, 10);
+const tomorrow = v.upcoming.filter((m) => m.sp === sport.id && dayKey(m.st) !== today).length;
+const all = [...live, ...later];
+// Competitions playing today, biggest first.
+const comps = new Map<string, { name: string; n: number; top: boolean }>();
+for (const m of all) {
+  const k = competitionSlug(m.sp, m.lg);
+  const cur = competitionOf(m.sp, m.lg);
+  const c = comps.get(k) ?? { name: cur?.name ?? m.lg, n: 0, top: !!cur?.top };
+  c.n++;
+  comps.set(k, c);
+}
+// Top competitions (extraliga, NHL, Chance Liga…) first, then by number of matches today.
+const chips = [...comps.entries()].sort((a, b) => Number(b[1].top) - Number(a[1].top) || b[1].n - a[1].n).slice(0, 12);
+const name = sport.genitive === 'fotbalu' ? 'Fotbal' : sport.name;
+const date = longDay(now);
+const faq = todayFaq(sport, all.length);
+const crumbs = [{ name: 'Domů', href: '/' }, { name: `${sport.name} online`, href: `/${sport.slug}-online/` }, { name: `${name} dnes` }];
+const path = `/${sport.slug}-dnes/`;
+---
+<Base title={`${name} dnes – zápasy a přímé přenosy ${shortDay(now)} | SportStreamy`} description={`${name} dnes ${date}: ${live.length} živě, ${later.length} ${plural(later.length, 'další zápas', 'další zápasy', 'dalších zápasů')}. Časy, soutěže, kurzy a odkaz na přímý přenos zdarma.`} path={path} ld={[breadcrumbLd(crumbs), faqLd(faq), itemListLd(all, `${name} dnes`)]} section={sport.slug} ttl={60}>
+  <div class="wrap">
+    <Crumbs items={crumbs} />
+    <section class="pagehead">
+      <div class="kicker">{live.length ? <span class="tag-live"><span class="dot"></span>{live.length} živě</span> : null}<span>{date} · aktualizováno {hhmm(now)}</span></div>
+      <h1>{name} dnes</h1>
+      <p class="lead">{todayLead(sport)}</p>
+    </section>
+    {chips.length ? <div class="chips" aria-label="Dnešní soutěže">{chips.map(([slug, c]) => <a class="chip" href={`/${sport.slug}-online/${slug}/`}>{c.name}<em>{c.n}</em></a>)}</div> : null}
+    <div class="cols">
+      <div>
+        {live.length ? <section class="sec zone live"><div class="sec-head"><h2>Živě teď <span class="cnt live">{live.length}</span></h2></div><Rows items={live} now={now} placement="today-live" live /></section> : null}
+        <section class="sec"><div class="sec-head"><h2>Dnes začíná <span class="cnt">{later.length}</span></h2><a href={`/${sport.slug}-online/`}>Celý týden ›</a></div>
+          <Rows items={later} now={now} placement="today" empty={`Dnes už žádný ${sport.name.toLowerCase()} nezačíná.`} />
+          {tomorrow ? <p class="more"><a href={`/program/zitra/?sport=${sport.slug}`}><Icon name="calendar" class="ico" /> {name} zítra a další dny ›</a></p> : null}
+        </section>
+        {recent.length ? <section class="sec"><div class="sec-head"><h2>Právě skončilo</h2></div><Rows items={recent} now={now} placement="today-recent" recent /></section> : null}
+        <section class="sec"><div class="sec-head"><h2>Časté otázky</h2></div><Faq items={faq} /></section>
+      </div>
+      <Aside sports={sportCounts(v)} leagues={leagues(v, sport.id)} placement="today-aside" sport={sport.slug} />
+    </div>
+  </div>
+</Base>
