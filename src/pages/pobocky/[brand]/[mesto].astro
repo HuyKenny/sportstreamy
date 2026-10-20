@@ -15,20 +15,21 @@ const all = doc.brands[b.slug] ?? [];
 const rows = all.filter((r) => r.citySlug === Astro.params.mesto);
 if (rows.length < CITY_MIN) return Astro.rewrite('/404/');
 const city = rows[0].city;
+const withHours = rows.some((r) => r.hours.some(Boolean));
 const others = citiesOf(all).filter((c) => c.n >= CITY_MIN && c.slug !== Astro.params.mesto && c.region === rows[0].region).slice(0, 12);
 const crumbs = [{ name: 'Domů', href: '/' }, { name: 'Pobočky', href: '/pobocky/' }, { name: `${b.short} pobočky`, href: `/pobocky/${b.slug}/` }, { name: city }];
 const faq = [
   { q: `Kolik poboček má ${b.short} v ${city === 'Praha' ? 'Praze' : `obci ${city}`}?`, a: `Podle vyhledávače provozovatele ${rows.length}. Seznam s adresami a otevírací dobou je výše.` },
   { q: 'Musím na pobočku, abych mohl sledovat zápas?', a: `Ne, přenosy a sázky fungují online. ${b.partner ? `Účet u ${b.short} si založíš přes odkaz na této stránce.` : `S bonusem ${BONUS.amount} přes nás funguje Tipsport.`}` },
 ];
-const ld = rows.map((r) => ({ '@context': 'https://schema.org', '@type': 'LocalBusiness', name: `${b.short} ${r.name}`, address: { '@type': 'PostalAddress', streetAddress: r.street, addressLocality: r.part || r.city, postalCode: r.zip, addressCountry: 'CZ' }, geo: { '@type': 'GeoCoordinates', latitude: r.lat, longitude: r.lon }, parentOrganization: { '@type': 'Organization', name: b.full } }));
+const ld = rows.map((r) => ({ '@context': 'https://schema.org', '@type': 'LocalBusiness', name: `${b.short} ${r.name}`, address: { '@type': 'PostalAddress', streetAddress: r.street, addressLocality: r.part || r.city, postalCode: r.zip, addressCountry: 'CZ' }, ...(r.lat != null ? { geo: { '@type': 'GeoCoordinates', latitude: r.lat, longitude: r.lon } } : {}), parentOrganization: { '@type': 'Organization', name: b.full } }));
 ---
-<Base title={`${b.short} ${city} – pobočky, adresy a otevírací doba (${rows.length}) | SportStreamy`} description={`${rows.length} poboček ${b.short} – ${city}: adresy, otevírací doba a navigace. ${rows.slice(0, 2).map((r) => r.street).join(', ')}…`} ld={[breadcrumbLd(crumbs), faqLd(faq), ...ld.slice(0, 30)]} section="bonusy" ttl={3600}>
+<Base title={`${b.short} ${city} – pobočky${withHours ? ', adresy a otevírací doba' : ' a adresy'} (${rows.length}) | SportStreamy`} description={`${rows.length} poboček ${b.short} – ${city}: adresy${withHours ? ', otevírací doba' : ''} a navigace. ${rows.slice(0, 2).map((r) => r.street).join(', ')}…`} ld={[breadcrumbLd(crumbs), faqLd(faq), ...ld.slice(0, 30)]} section="bonusy" ttl={3600}>
   <div class="wrap">
     <Crumbs items={crumbs} />
     <section class="pagehead">
       <h1>{b.short} {city} – pobočky</h1>
-      <p class="lead">{rows.length} poboček {b.short} – {city}. Otevírací dobu přebíráme z vyhledávače provozovatele; před návštěvou ji ověř.</p>
+      <p class="lead">{rows.length} poboček {b.short} – {city}. {withHours ? 'Otevírací dobu přebíráme z vyhledávače provozovatele; před návštěvou ji ověř.' : `Adresy přebíráme z vyhledávače provozovatele; otevírací dobu konkrétní pobočky najdeš na ${b.site.replace('https://www.', '')}/pobocky.`}</p>
       <div class="cta-row"><a class="btn" href={`${ctaFor(b)}?p=pobocky-mesto-${b.slug}`} rel="sponsored nofollow noopener" target="_blank">{b.partner ? `Sázej online u ${b.short}` : `Online s bonusem: Tipsport ${BONUS.amount}`}</a><span class="tag-ad">Reklama · 18+</span></div>
     </section>
     <section class="sec">
@@ -38,7 +39,7 @@ const ld = rows.map((r) => ({ '@context': 'https://schema.org', '@type': 'LocalB
             <div style="min-width:0">
               <div class="meta"><span class="sp">{r.part || r.city}</span>{r.note ? <span class="lg">{r.note}</span> : null}{r.live ? <span class="novid">live sázky</span> : null}</div>
               <b class="tm" style="white-space:normal">{r.street}, {r.zip} {r.part || r.city}</b>
-              <div class="muted" style="font-size:.84rem;margin-top:2px">{hoursText(r.hours) || 'Otevírací doba neuvedena'}</div>
+              {withHours ? <div class="muted" style="font-size:.84rem;margin-top:2px">{hoursText(r.hours) || 'Otevírací doba neuvedena'}</div> : null}
             </div>
             <div class="act"><a class="btn sm ghost nav" href={mapLink(r)} rel="nofollow noopener" target="_blank">Navigovat</a></div>
           </div>

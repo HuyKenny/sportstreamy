@@ -3,7 +3,7 @@ import type { Env } from './types';
 /** One bookmaker shop. Filled by scripts/pobocky.py into KV `pobocky`. */
 export interface Branch {
   name: string; street: string; city: string; citySlug: string; part: string; zip: string; region: string;
-  lat: number; lon: number; note: string; hours: string[]; live: boolean;
+  lat: number | null; lon: number | null; // null where the source has no GPS (Tipsport, Chance) note: string; hours: string[]; live: boolean;
 }
 interface Doc { updated: string; brands: Record<string, Branch[]> }
 
@@ -29,7 +29,10 @@ export function citiesOf(rows: Branch[]): City[] {
 /** City pages exist only where there is more than one shop (single shops are listed on the brand page). */
 export const CITY_MIN = 2;
 export const DAY_NAMES = ['Po', 'Út', 'St', 'Čt', 'Pá', 'So', 'Ne'];
-export const mapLink = (b: Branch) => `https://mapy.com/fnc/v1/showmap?mapset=basic&center=${b.lon},${b.lat}&zoom=17&marker=true`;
+export const mapLink = (b: Branch) =>
+  b.lat != null && b.lon != null
+    ? `https://mapy.com/fnc/v1/showmap?mapset=basic&center=${b.lon},${b.lat}&zoom=17&marker=true`
+    : `https://mapy.com/fnc/v1/search?query=${encodeURIComponent(`${b.street}, ${b.zip} ${b.part.split(' – ')[0] || b.city}`)}`;
 
 /** Opening hours as compact ranges: "Po–Pá 7:30–15:00, So zavřeno". */
 export function hoursText(h: string[]): string {

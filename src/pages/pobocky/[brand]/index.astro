@@ -11,18 +11,19 @@ const b = BOOK_BY_SLUG.get(Astro.params.brand as BookSlug);
 if (!b || !b.branches) return Astro.rewrite('/404/');
 const doc = await loadBranches(getEnv());
 const rows = doc.brands[b.slug] ?? [];
+const withHours = rows.some((r) => r.hours.some(Boolean));
 const cities = citiesOf(rows);
 const byRegion = new Map<string, typeof cities>();
 for (const c of cities) byRegion.set(c.region || 'Ostatní', [...(byRegion.get(c.region || 'Ostatní') ?? []), c]);
 const regions = [...byRegion.entries()].sort((a, b2) => a[0].localeCompare(b2[0], 'cs'));
 const crumbs = [{ name: 'Domů', href: '/' }, { name: 'Pobočky', href: '/pobocky/' }, { name: `${b.short} pobočky` }];
 ---
-<Base title={`${b.short} pobočky – adresy a otevírací doba${rows.length ? ` (${rows.length})` : ''} | SportStreamy`} description={rows.length ? `${rows.length} poboček ${b.short} v ${cities.length} městech: adresy, otevírací doba, navigace. Nebo vsaď a sleduj zápasy online.` : `Pobočky ${b.short}: seznam připravujeme. Online účet a přenosy fungují bez pobočky.`} noindex={!rows.length} ld={[breadcrumbLd(crumbs)]} section="bonusy" ttl={3600}>
+<Base title={`${b.short} pobočky – adresy${withHours ? ' a otevírací doba' : ' podle měst'}${rows.length ? ` (${rows.length})` : ''} | SportStreamy`} description={rows.length ? `${rows.length} poboček ${b.short} v ${cities.length} městech: adresy${withHours ? ', otevírací doba' : ''} a navigace. Nebo vsaď a sleduj zápasy online.` : `Pobočky ${b.short}: seznam připravujeme. Online účet a přenosy fungují bez pobočky.`} noindex={!rows.length} ld={[breadcrumbLd(crumbs)]} section="bonusy" ttl={3600}>
   <div class="wrap">
     <Crumbs items={crumbs} />
     <section class="pagehead">
       <h1>{b.short} pobočky</h1>
-      <p class="lead">{rows.length ? `${rows.length} poboček v ${cities.length} městech. Vyber město – u každé pobočky je adresa, otevírací doba a navigace.` : `Seznam poboček ${b.short} připravujeme. Do té doby je najdeš ve vyhledávači na ${b.site.replace('https://', '')}.`}</p>
+      <p class="lead">{rows.length ? `${rows.length} poboček v ${cities.length} městech. Vyber město – u každé pobočky je adresa${withHours ? ', otevírací doba' : ''} a navigace.` : `Seznam poboček ${b.short} připravujeme. Do té doby je najdeš ve vyhledávači na ${b.site.replace('https://', '')}.`}</p>
       <div class="cta-row"><a class="btn" href={`${ctaFor(b)}?p=pobocky-${b.slug}`} rel="sponsored nofollow noopener" target="_blank">{b.partner ? `Sázej online u ${b.short}` : `Online s bonusem: Tipsport ${BONUS.amount}`}</a><a class="btn ghost" href={`/sazkove-kancelare/${b.slug}/`}>O kanceláři {b.short}</a></div>
     </section>
     {regions.map(([region, list]) => (
@@ -34,6 +35,6 @@ const crumbs = [{ name: 'Domů', href: '/' }, { name: 'Pobočky', href: '/pobock
         </div>
       </section>
     ))}
-    {doc.updated ? <p class="muted" style="font-size:.78rem;margin-top:20px">Zdroj: vyhledávač poboček provozovatele, aktualizováno {new Date(doc.updated).toLocaleDateString('cs-CZ')}. Před návštěvou si otevírací dobu ověř.</p> : null}
+    {doc.updated ? <p class="muted" style="font-size:.78rem;margin-top:20px">Zdroj: vyhledávač poboček provozovatele, aktualizováno {new Date(doc.updated).toLocaleDateString('cs-CZ')}. {withHours ? 'Před návštěvou si otevírací dobu ověř.' : ''}</p> : null}
   </div>
 </Base>
