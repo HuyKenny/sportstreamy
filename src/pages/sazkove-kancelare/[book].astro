@@ -2,6 +2,8 @@
 import Base from '../../layouts/Base.astro';
 import { BOOK_BY_SLUG } from '../../lib/books';
 import { BONUS } from '../../lib/bonus';
+import BannerSlot from '../../components/BannerSlot.astro';
+import { BANNERS } from '../../lib/banners';
 export const prerender = false;
 const b = BOOK_BY_SLUG.get(Astro.params.book as 'tipsport');
 if (!b) return Astro.rewrite('/404');
@@ -12,6 +14,7 @@ if (!b) return Astro.rewrite('/404');
     <section class="pagehead"><h1>{b.name}{b.bonus ? ` – bonus ${b.bonus}` : ''}</h1><p class="lead">{b.blurb}</p>
       <div class="cta-row"><a class="btn lg" href={`/go/${b.go}/?p=book-${b.slug}`} rel="sponsored nofollow noopener" target="_blank">{b.bonus ? `Chci ${b.bonus}` : `Přejít na ${b.name.split(' ')[0]}`}</a><span style="font-size:.8rem;color:var(--ink-2)">Reklama · 18+</span></div>
     </section>
+    {b.slug !== 'sazka' ? <div class="banners"><BannerSlot banner={b.slug === 'chance' ? BANNERS.chance200 : BANNERS.tipsport1000} placement={`book-${b.slug}-banner`} /></div> : null}
     <section class="sec prose">
       <h2>Co nabízí</h2>
       <ul>{b.pros.map((p) => <li>{p}</li>)}</ul>

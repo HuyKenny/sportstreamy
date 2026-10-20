@@ -1,0 +1,19 @@
+---
+import type { Banner } from '../lib/banners';
+/**
+ * One partner banner, centred, labelled as advertising. For script banners the default slot (our own ticket)
+ * stays visible until the partner script fills the box; a static banner replaces the fallback outright.
+ */
+interface Props { banner: Banner; placement: string }
+const { banner, placement } = Astro.props;
+---
+<div class:list={['bonus-slot', banner.kind === 'static' && 'is-static']}>
+  <div class="tipad">
+    <span class="tag-ad">Reklama · 18+</span>
+    {banner.kind === 'script'
+      ? <div class={`tipAd${banner.pl}`} title={banner.label}></div>
+      : <div><a href={`${banner.go}?p=${placement}`} rel="sponsored nofollow noopener" target="_blank"><img src={banner.img} alt={banner.alt} width="300" height="300" loading="lazy" /></a></div>}
+  </div>
+  {banner.kind === 'script' ? <slot /> : null}
+</div>
+{banner.kind === 'script' ? <script is:inline async src={`https://${banner.host}/c/textA.php?pl=${banner.pl}`}></script> : null}

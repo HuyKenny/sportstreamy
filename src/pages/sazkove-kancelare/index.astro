@@ -4,6 +4,8 @@ import Faq from '../../components/Faq.astro';
 import Crumbs from '../../components/Crumbs.astro';
 import { BOOKS } from '../../lib/books';
 import { BONUS } from '../../lib/bonus';
+import BannerSlot from '../../components/BannerSlot.astro';
+import { BANNERS } from '../../lib/banners';
 import { breadcrumbLd, faqLd } from '../../lib/seo';
 export const prerender = false;
 const faq = [
@@ -33,6 +35,10 @@ const crumbs = [{ name: 'Domů', href: '/' }, { name: 'Sázkové kanceláře a b
           <a href={`/sazkove-kancelare/${b.slug}/`} style="font-size:.86rem;font-weight:600;color:var(--ink-2)">Více o {b.name.split(' ')[0]} ›</a>
         </div>
       ))}
+    </div>
+    <div class="banners">
+      <BannerSlot banner={BANNERS.tipsport1000} placement="books-banner" />
+      <BannerSlot banner={BANNERS.chance200} placement="books-banner" />
     </div>
     <section class="sec prose">
       <h2>Jak sledovat přenos krok za krokem</h2>

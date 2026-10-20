@@ -70,7 +70,7 @@ const crumbs = [{ name: 'Domů', href: '/' }, { name: 'Program', href: '/program
           {filtered.length > shown.length ? <p class="empty">Zobrazeno {shown.length} z {filtered.length} zápasů. Zbytek najdeš po výběru sportu výše.</p> : null}
         </section>
       </div>
-      <Aside sports={sportCounts(v)} leagues={leagues(v)} placement="program-aside" />
+      <Aside sports={sportCounts(v)} leagues={leagues(v)} placement="program-aside" sport={sport?.slug} />
     </div>
   </div>
 </Base>

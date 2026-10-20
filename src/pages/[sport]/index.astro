@@ -58,7 +58,7 @@ const shown = next.length > LIMIT ? featured(next).slice(0, LIMIT).sort((a, b) =
         {body ? <section class="sec prose" set:html={body} /> : null}
         <section class="sec"><div class="sec-head"><h2>Časté otázky</h2></div><Faq items={faq} /></section>
       </div>
-      <Aside sports={sportCounts(v)} leagues={lg} placement="sport-aside" />
+      <Aside sports={sportCounts(v)} leagues={lg} placement="sport-aside" sport={sport.slug} />
     </div>
   </div>
 </Base>

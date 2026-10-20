@@ -58,7 +58,7 @@ const faq = [
         <section class="sec"><div class="sec-head"><h2>Program</h2><span class="n">{next.length}</span></div><Rows items={next} now={now} placement="league" groupByDay empty={`Další zápasy soutěže ${name} zatím nejsou v nabídce. Program se doplňuje průběžně, obvykle týden dopředu.`} /></section>
         <section class="sec"><div class="sec-head"><h2>Časté otázky</h2></div><Faq items={faq} /></section>
       </div>
-      <Aside sports={sportCounts(v)} leagues={leagues(v, sport.id)} placement="league-aside" />
+      <Aside sports={sportCounts(v)} leagues={leagues(v, sport.id)} placement="league-aside" sport={sport.slug} comp={slug} />
     </div>
   </div>
 </Base>

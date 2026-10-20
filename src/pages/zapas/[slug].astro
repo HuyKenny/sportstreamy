@@ -114,7 +114,7 @@ const desc = m ? clip(`${title} (${lgName}): ${state === 'live' ? 'právě běž
         </section>
         <section class="sec"><div class="sec-head"><h2>Časté otázky</h2></div><Faq items={faq} /></section>
       </div>
-      <Aside sports={sportCounts(v)} leagues={leagues(v, m.sp)} placement="detail-aside" />
+      <Aside sports={sportCounts(v)} leagues={leagues(v, m.sp)} placement="detail-aside" sport={sport.slug} comp={competitionSlug(m.sp, m.lg)} />
     </div>
   </div>
   <StickyCta m={m} live={state === 'live'} />

@@ -25,8 +25,9 @@ export function deeplink(env: Env, book: Book, path: string): string {
 }
 
 /** Where /go/<book>/ sends people when there is no specific match: the registered partner redirect. */
-export function generic(env: Env, book: Book | 'sazka' | 'tipsport-reg'): string {
+export function generic(env: Env, book: Book | 'sazka' | 'sazka-ms' | 'tipsport-reg'): string {
   if (book === 'sazka') return env.SAZKA_URL;
+  if (book === 'sazka-ms') return env.SAZKA_MS_URL;
   if (book === 'tipsport-reg') return env.TIPSPORT_REG_URL;
   return env[BOOKS[book].urlKey];
 }

@@ -4,16 +4,13 @@ import { sportPath } from '../lib/url';
 import { SPORT_BY_ID } from '../lib/sports';
 import Bonus from './Bonus.astro';
 import Icon from './Icon.astro';
-import { BONUS } from '../lib/bonus';
-interface Props { sports: SportCount[]; leagues: League[]; placement: string }
-const { sports, leagues, placement } = Astro.props;
+import BannerSlot from './BannerSlot.astro';
+import { bannerFor } from '../lib/banners';
+interface Props { sports: SportCount[]; leagues: League[]; placement: string; sport?: string; comp?: string }
+const { sports, leagues, placement, sport, comp } = Astro.props;
 ---
 <aside class="aside">
-  <div class="bonus-slot">
-    <div class="tipad"><span class="tag-ad">Reklama · 18+</span><div class={`tipAd${BONUS.tipsportBanner}`}></div></div>
-    <Bonus placement={placement} />
-  </div>
-  <script is:inline async src={`https://ban.tipsport.cz/c/textA.php?pl=${BONUS.tipsportBanner}`}></script>
+  <BannerSlot banner={bannerFor(sport, comp)} placement={placement}><Bonus placement={placement} /></BannerSlot>
   {leagues.length ? (
     <div class="panel">
       <h3>Soutěže</h3>

@@ -6,7 +6,7 @@ import { view } from '../../lib/matches';
 
 export const prerender = false;
 
-const BOOKS = new Set(['tipsport', 'chance', 'sazka', 'registrace']);
+const BOOKS = new Set(['tipsport', 'chance', 'sazka', 'sazka-ms', 'registrace']);
 
 /** Tracked redirect: /go/<book>/?m=<matchId>&p=<placement>. One Analytics Engine point per click, no cookies. */
 export const GET: APIRoute = async ({ params, url, request }) => {
@@ -14,7 +14,7 @@ export const GET: APIRoute = async ({ params, url, request }) => {
   const book = params.book ?? '';
   if (!BOOKS.has(book)) return new Response('Not found', { status: 404 });
 
-  let target = book === 'registrace' ? generic(e, 'tipsport-reg') : generic(e, book as Book | 'sazka');
+  let target = book === 'registrace' ? generic(e, 'tipsport-reg') : generic(e, book as Book | 'sazka' | 'sazka-ms');
   const id = Number(url.searchParams.get('m'));
   if ((book === 'tipsport' || book === 'chance') && id) {
     const v = await view(e);

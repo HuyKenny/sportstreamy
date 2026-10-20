@@ -373,8 +373,14 @@ footer .warn b { flex: none; display: grid; place-items: center; width: 40px; he
 
 /* Tipsport's official banner takes the slot as soon as their script fills it; until then our ticket stays. */
 .bonus-slot .tipad { display: none; }
-.bonus-slot:has(.tipad > div:not(:empty)) .tipad { display: block; }
+.bonus-slot.is-static .tipad, .bonus-slot:has(.tipad > div:not(:empty)) .tipad { display: flex; }
 .bonus-slot:has(.tipad > div:not(:empty)) .ticket { display: none; }
-.tipad .tag-ad { display: block; margin-bottom: 6px; }
-.tipad > div { overflow: hidden; border-radius: var(--r); }
-.tipad img { max-width: 100%; height: auto; }
+/* centred in the sidebar and on phones; the 300 px creative sits in a framed box like the rest of the UI */
+.tipad { flex-direction: column; align-items: center; gap: 8px; padding: 12px; border: var(--frame); border-radius: var(--r); background: var(--card); box-shadow: var(--lift); }
+.tipad .tag-ad { align-self: stretch; text-align: center; }
+.tipad > div { width: 100%; max-width: 300px; overflow: hidden; border-radius: 4px; line-height: 0; }
+.tipad > div a { display: block; }
+.tipad img { width: 100%; max-width: 300px; height: auto; margin-inline: auto; }
+.tipad > div img[width="1"], .tipad > div img:not([width]) { width: 1px; height: 1px; }
+.banners { display: flex; flex-wrap: wrap; justify-content: center; gap: 18px; margin-top: 22px; }
+.banners .bonus-slot { width: min(100%, 326px); }
