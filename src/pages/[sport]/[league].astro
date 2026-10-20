@@ -11,6 +11,9 @@ import { competitionBySlug, competitionSlug } from '../../lib/competitions';
 import { photoFor } from '../../lib/photos';
 import { plural, hhmm, longDay, dayKey } from '../../lib/text';
 import { breadcrumbLd, faqLd, itemListLd } from '../../lib/seo';
+import ResultRow from '../../components/ResultRow.astro';
+import { resultsConfig, resultsDb } from '../../lib/results/config';
+import { recentOfComp } from '../../lib/results/store';
 
 export const prerender = false;
 const raw = Astro.params.sport ?? '';
@@ -28,6 +31,10 @@ const next = v.upcoming.filter(inComp);
 // Uncurated competitions exist only while Tipsport lists them; curated ones always render.
 if (!comp && !live.length && !next.length) return Astro.rewrite('/404/');
 const name = comp?.name ?? (live[0] ?? next[0]).lg;
+// Results pilot: the latest results belong on this page, not on a second competition page under /vysledky/.
+const rcfg = resultsConfig(getEnv());
+const rdb = comp && rcfg.comps.includes(comp.slug) ? resultsDb(getEnv()) : null;
+const results = rdb ? await recentOfComp(rdb, comp!.slug, now, 10) : [];
 // Generic names ("Finská liga") repeat across sports — uncurated titles carry the sport.
 const label = comp ? name : `${name} (${sport.name.toLowerCase()})`;
 const total = live.length + next.length;
@@ -60,6 +67,7 @@ const faq = [
       <div>
         {live.length ? (<section class="sec zone live"><div class="sec-head"><h2>Živě <span class="cnt live">{live.length}</span></h2></div><Rows items={live} now={now} placement="league-live" live /></section>) : null}
         <section class="sec"><div class="sec-head"><h2>Program</h2><span class="n">{next.length}</span></div><Rows items={next} now={now} placement="league" groupByDay empty={`Další zápasy soutěže ${name} zatím nejsou v nabídce. Program se doplňuje průběžně, obvykle týden dopředu.`} /></section>
+        {results.length ? (<section class="sec"><div class="sec-head"><h2>Výsledky · {name}</h2><a href={`/vysledky/?soutez=${comp!.slug}`}>Všechny výsledky ›</a></div><div class="rows">{results.map((r) => <ResultRow r={r} now={now} staleMs={rcfg.staleMs} showDay />)}</div></section>) : null}
         <section class="sec"><div class="sec-head"><h2>Časté otázky</h2></div><Faq items={faq} /></section>
       </div>
       <Aside sports={sportCounts(v)} leagues={leagues(v, sport.id)} placement="league-aside" sport={sport.slug} comp={slug} />

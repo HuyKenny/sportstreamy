@@ -1,0 +1,10 @@
+---
+import ResultsPage from '../../components/ResultsPage.astro';
+import { getEnv } from '../../lib/page';
+import { resultsPage } from '../../lib/results/page';
+export const prerender = false;
+const d = await resultsPage(getEnv(), Astro.url, 'fotbal');
+if ('notFound' in d) return Astro.rewrite('/404/');
+if ('redirect' in d) return Astro.redirect(d.redirect, d.status);
+---
+<ResultsPage d={d} />

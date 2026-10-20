@@ -12,6 +12,10 @@ import { dayKey, plural, hhmm } from '../lib/text';
 import { sportPath, sportOf } from '../lib/url';
 import { faqLd, itemListLd, siteLd } from '../lib/seo';
 import { previews, previewPath } from '../lib/nahledy';
+import ResultsList from '../components/ResultsList.astro';
+import { resultsConfig, resultsDb } from '../lib/results/config';
+import { rowsBetween } from '../lib/results/store';
+import { pragueDay } from '../lib/results/time';
 
 export const prerender = false;
 const v = await view(getEnv());
@@ -36,6 +40,10 @@ const faq = [
 ];
 const ld = [...siteLd(), faqLd(faq), itemListLd([...v.live, ...today].slice(0, 20), 'Živé přenosy dnes')];
 const big = (await previews({ upcoming: true })).slice(0, 4);
+// Results pilot: today's started matches from the same stored data as /vysledky/ (nothing when the section is off).
+const rcfg = resultsConfig(getEnv());
+const rdb = resultsDb(getEnv());
+const resultsToday = rdb ? (await rowsBetween(rdb, ...pragueDay(todayKey), rcfg.comps)).filter((r) => r.status !== 'scheduled').slice(-6) : [];
 ---
 <Base title="Živé přenosy zdarma – sport online dnes | SportStreamy" description={`Živé přenosy zdarma: právě běží ${v.live.length} zápasů, dnes dalších ${today.length}. Fotbal, hokej, tenis, NBA i Chance Liga – najdi zápas a sleduj ho online.`} ld={ld} section="home" lcp={slides[0] ? sportOf(slides[0])?.slug : undefined} lcpSizes="(min-width: 900px) 400px, 86vw">
   <div class="wrap">
@@ -71,6 +79,12 @@ const big = (await previews({ upcoming: true })).slice(0, 4);
           <section class="sec">
             <div class="sec-head"><h2>Velké zápasy</h2><a href="/jak-sledovat/">Všechny náhledy ›</a></div>
             <div class="cards">{big.map((p) => <a class="card" href={previewPath(p)}><div><small style="color:var(--ink-2)">{p.data.league} · {hhmm(p.data.start.getTime())}</small><h3>{p.data.home} – {p.data.away}</h3><p>Kde sledovat, TV a kurzy</p></div></a>)}</div>
+          </section>
+        ) : null}
+        {resultsToday.length ? (
+          <section class="sec">
+            <div class="sec-head"><h2>Výsledky dnes</h2><a href="/vysledky/">Všechny výsledky ›</a></div>
+            <ResultsList rows={resultsToday} comps={rcfg.comps} now={now} staleMs={rcfg.staleMs} empty="" />
           </section>
         ) : null}
         <section class="sec zone">

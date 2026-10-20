@@ -1,3 +1,5 @@
+import type { ResultsEnv } from './results/config';
+
 /** Slim match record stored in KV (Tipsport field names expanded). Times are epoch ms. */
 export interface Match {
   id: number;
@@ -21,7 +23,7 @@ export interface Snapshot<T> {
   items: T[];
 }
 
-export interface Env {
+export interface Env extends ResultsEnv {
   DATA: KVNamespace;
   ASSETS: Fetcher;
   CLICKS?: AnalyticsEngineDataset;

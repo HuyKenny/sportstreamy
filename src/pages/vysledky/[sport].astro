@@ -1,0 +1,11 @@
+---
+import ResultsPage from '../../components/ResultsPage.astro';
+import { getEnv } from '../../lib/page';
+import { resultsPage } from '../../lib/results/page';
+export const prerender = false;
+// Only sports with a verified results source exist here (RESULT_SPORTS); anything else is a 404.
+const d = await resultsPage(getEnv(), Astro.url, Astro.params.sport ?? '');
+if ('notFound' in d) return Astro.rewrite('/404/');
+if ('redirect' in d) return Astro.redirect(d.redirect, d.status);
+---
+<ResultsPage d={d} />

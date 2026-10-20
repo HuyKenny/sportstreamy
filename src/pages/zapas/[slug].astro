@@ -9,6 +9,7 @@ import Crumbs from '../../components/Crumbs.astro';
 import OddsBlock from '../../components/OddsBlock.astro';
 import Icon from '../../components/Icon.astro';
 import GonePage from '../../components/GonePage.astro';
+import ResultRow from '../../components/ResultRow.astro';
 import { getEnv, view, sportCounts, leagues } from '../../lib/page';
 import { hhmm, longDay, dayLabel, shortDay } from '../../lib/text';
 import { matchTitle, matchPath, sportOf, goPath, sportPath, leaguePathOf } from '../../lib/url';
@@ -16,86 +17,144 @@ import { competitionOf, competitionSlug } from '../../lib/competitions';
 import { BONUS } from '../../lib/bonus';
 import { previewFor, previewPath } from '../../lib/nahledy';
 import { breadcrumbLd, faqLd, sportsEventLd, clip } from '../../lib/seo';
+import { resultsConfig, resultsDb } from '../../lib/results/config';
+import { rowByExt, recentOfComp, meetings } from '../../lib/results/store';
+import { asMatch, resultPath, scoreText, detailText, isStale } from '../../lib/results/view';
+import { isFinal, isInPlay, statusLabel } from '../../lib/results/status';
 
 export const prerender = false;
 const id = Number((Astro.params.slug ?? '').split('-')[0]);
-const v = await view(getEnv());
+const env = getEnv();
+const v = await view(env);
 const now = Date.now();
-const m = id ? [...v.live, ...v.recent, ...v.upcoming].find((x) => x.id === id) : undefined;
+// Results pilot: the stored record keeps the page alive after the match leaves the feeds (instead of 410).
+const rdb = resultsDb(env);
+const r = id && rdb ? await rowByExt(rdb, id) : null;
+const staleMs = resultsConfig(env).staleMs;
+const fresh = id ? [...v.live, ...v.recent, ...v.upcoming].find((x) => x.id === id) : undefined;
+const m = fresh ?? (r ? asMatch(r) : undefined);
 if (!m) {
   // Finished and gone from the feeds: 410 tells crawlers the URL is not coming back.
   Astro.response.status = id ? 410 : 404;
   Astro.response.headers.set('X-Robots-Tag', 'noindex');
 }
-if (m && Astro.url.pathname !== matchPath(m)) return Astro.redirect(matchPath(m), 301);
+// One URL per match: the stored slug wins, so a renamed team does not move an existing page.
+const canonicalPath = r ? resultPath(r) : m ? matchPath(m) : '';
+if (m && Astro.url.pathname !== canonicalPath) return Astro.redirect(canonicalPath, 301);
 const sport = m ? sportOf(m) : undefined;
 const pv = m ? await previewFor(m.id) : undefined;
 const comp = m ? competitionOf(m.sp, m.lg) : null;
-const state: 'live' | 'pre' | 'recent' = !m ? 'recent' : v.live.includes(m) ? 'live' : m.st > now ? 'pre' : 'recent';
+// Over: a confirmed final, a match the feed dropped without confirmation, or a cancelled one.
+const over = !!r && (isFinal(r.status) || r.status === 'unconfirmed' || r.status === 'cancelled');
+const final = !!r && isFinal(r.status);
+const state: 'live' | 'pre' | 'recent' = !m ? 'recent' : over ? 'recent' : r && isInPlay(r.status) ? 'live' : v.live.includes(m) ? 'live' : m.st > now ? 'pre' : 'recent';
+const sc = r ? scoreText(r) : null;
+const detail = r ? detailText(r) : '';
+const stale = r ? isStale(r, now, staleMs) : false;
 const pool = [...v.live, ...v.upcoming].filter((x) => m && x.id !== m.id);
 const same = m ? pool.filter((x) => x.sp === m.sp && competitionSlug(x.sp, x.lg) === competitionSlug(m.sp, m.lg)).slice(0, 6) : [];
 const sameSport = m ? pool.filter((x) => x.sp === m.sp && !same.includes(x)).slice(0, 8 - Math.min(same.length, 4)) : [];
-const o = m?.o?.t;
+const otherResults = r && rdb ? (await recentOfComp(rdb, r.comp, now, 7)).filter((x) => x.ext_id !== r.ext_id).slice(0, 6) : [];
+const h2h = r && rdb ? await meetings(rdb, r.home_ext, r.away_ext, r.ext_id) : [];
+const o = over ? undefined : m?.o?.t;
 const title = m ? matchTitle(m) : '';
 const lgName = comp?.name ?? m?.lg ?? '';
-const faq = m ? [
+const watchLabel = m?.stream ? (state === 'live' ? 'Sledovat živě' : 'Sledovat zápas') : 'Živé statistiky';
+const resultSentence = r && m ? (final
+  ? `Zápas ${title} skončil ${sc ?? 'bez zveřejněného skóre'}${r.status === 'aet' ? ' po prodloužení' : r.status === 'pen' ? ' po penaltách' : ''}${detail ? ` (${detail})` : ''}.`
+  : r.status === 'cancelled' ? `Zápas ${title} byl zrušen.`
+  : `Konečný výsledek zápasu ${title} zdroj nepotvrdil.${sc ? ` Poslední známé skóre bylo ${sc} (${hhmm(r.checked_at)}).` : ''}`) : '';
+const faq = !m ? [] : over ? [
+  { q: `Jak skončil zápas ${title}?`, a: `${resultSentence} Hrálo se ${longDay(m.st)} v ${hhmm(m.st)} v soutěži ${lgName}.` },
+  { q: 'Kde najdu další výsledky?', a: 'V přehledu výsledků na stránce Výsledky, nebo na stránce soutěže, kde jsou výsledky posledních zápasů i další program.' },
+] : [
   { q: `Kde sledovat ${title} živě?`, a: m.stream ? `Zápas vysílá Tipsport. Klikni na „Sledovat“, přihlas se nebo se bezplatně zaregistruj a přenos se spustí. Noví hráči dostanou bonus ${BONUS.amount}.` : 'K tomuto zápasu Tipsport video nevysílá (práva drží televize), ale nabízí živé statistiky, průběžné skóre a kurzy.' },
   { q: `Kdy začíná ${title}?`, a: `${longDay(m.st)} v ${hhmm(m.st)} středoevropského času.` },
   { q: 'Je sledování zdarma?', a: 'Pro registrované zákazníky Tipsportu ano. Vsázet nemusíš, sázení je dobrovolné a pouze pro osoby od 18 let.' },
   ...(o ? [{ q: 'Kdo je favorit?', a: `Podle kurzů Tipsportu ${o[0] < o[2] ? m.h : m.a || m.h} (${Math.min(o[0], o[2]).toFixed(2)}). Kurzy se do začátku zápasu mění.` }] : []),
-] : [];
-const crumbs = m && sport ? [{ name: 'Domů', href: '/' }, { name: `${sport.name} online`, href: sportPath(sport.slug) }, { name: lgName, href: leaguePathOf(m) }, { name: title }] : [];
+];
+const crumbs = m && sport ? [{ name: 'Domů', href: '/' }, ...(over ? [{ name: 'Výsledky', href: '/vysledky/' }] : [{ name: `${sport.name} online`, href: sportPath(sport.slug) }]), { name: lgName, href: leaguePathOf(m) }, { name: title }] : [];
 const date = m ? shortDay(m.st).replace(/\s/g, '') : '';
 // Searchers type "francie maroko online", "kde sledovat …": both phrasings in the title, brand only if it still fits.
-const base = m ? `${title} živě online ${date} – kde sledovat` : '';
+// After the match the title states the result instead — never "živě" for a finished match.
+const base = !m ? '' : final && sc ? `${title} ${sc} – výsledek ${date}` : over ? `${title} ${date} – výsledek zápasu` : `${title} živě online ${date} – kde sledovat`;
 const pageTitle = !m ? 'Zápas skončil | SportStreamy' : base.length <= 46 ? `${base} | SportStreamy` : clip(base, 60);
-const desc = m ? clip(`Kde sledovat ${title} (${lgName}) – ${state === 'live' ? 'právě běží' : `${dayLabel(m.st, now).toLowerCase()} v ${hhmm(m.st)}`}. ${m.stream ? 'Živý přenos zdarma po registraci u Tipsportu' : 'Živé statistiky a skóre u Tipsportu'}, kurzy a bonus ${BONUS.amount}.`, 158) : '';
+const desc = !m ? '' : over ? clip(`${resultSentence} ${lgName}, ${longDay(m.st)} ${hhmm(m.st)}. Další výsledky a program soutěže.`, 158) : clip(`Kde sledovat ${title} (${lgName}) – ${state === 'live' ? 'právě běží' : `${dayLabel(m.st, now).toLowerCase()} v ${hhmm(m.st)}`}. ${m.stream ? 'Živý přenos zdarma po registraci u Tipsportu' : 'Živé statistiky a skóre u Tipsportu'}, kurzy a bonus ${BONUS.amount}.`, 158);
+const ttl = over ? 3600 : state === 'live' ? 30 : 60;
 ---
 {m && sport ? (
-<Base title={pageTitle} description={desc} ld={[sportsEventLd(m, state), breadcrumbLd(crumbs), faqLd(faq)]} section={sport.slug} ttl={state === 'live' ? 30 : 60} lcp={sport.slug} lcpSizes="(min-width: 1000px) 860px, 100vw" dock={false}>
+<Base title={pageTitle} description={desc} path={canonicalPath} ld={[sportsEventLd(m, state, r?.status, final && sc ? sc : undefined), breadcrumbLd(crumbs), faqLd(faq)]} section={over ? 'vysledky' : sport.slug} ttl={ttl} lcp={over ? undefined : sport.slug} lcpSizes="(min-width: 1000px) 860px, 100vw" dock={over}>
   <div class="wrap">
     <Crumbs items={crumbs} />
     <section class="pagehead" style="padding-bottom:14px">
       <div class="kicker">
-        {state === 'live' ? <span class="tag-live"><span class="dot"></span>Živě</span> : state === 'pre' ? <span style="color:var(--cta)">Bude se vysílat</span> : <span>Záznam</span>}
-        <span>· {hhmm(m.st)} · {dayLabel(m.st, now)} · {sport.name}</span>
+        {over ? <span>{statusLabel(r!.status)}</span> : state === 'live' ? <span class="tag-live"><span class="dot"></span>Živě</span> : state === 'pre' ? <span style="color:var(--cta)">{m.stream ? 'Bude se vysílat' : 'Program'}</span> : <span>Záznam</span>}
+        <span>· {hhmm(m.st)} · {over ? longDay(m.st) : dayLabel(m.st, now)} · {sport.name}</span>
       </div>
-      <h1>{title} živě</h1>
+      <h1>{final && sc ? `${title} ${sc}` : over ? `${title} – výsledek` : `${title} živě`}</h1>
       {pv ? <p style="margin:.5em 0 0"><a href={previewPath(pv)}>Náhled zápasu: kde sledovat v TV, forma a kurzy ›</a></p> : null}
     </section>
     <div class="cols">
       <div>
-        <Stage m={m} state={state} now={now} />
-        <div class="watchbar">
-          <p>{m.stream ? BONUS.watch : 'Živé statistiky a skóre u Tipsportu'}<small>Reklama · registrace a přihlášení u provozovatele · 18+</small></p>
-          <a class="btn lg" href={goPath(m, 'watchbar')} rel="sponsored nofollow noopener" target="_blank"><Icon name="play" />{state === 'live' ? 'Sledovat živě' : 'Sledovat zápas'}</a>
-        </div>
+        {r && r.status !== 'scheduled' ? (
+          <section class="result-box" aria-label="Výsledek a stav zápasu" data-rid={r.ext_id}>
+            <div class="rb-st">{statusLabel(r.status, r.status_raw)}{isInPlay(r.status) && r.minute_raw ? ` · ${r.minute_raw}` : ''}</div>
+            <div class="rb-main">
+              <span class="rb-team">{r.home}</span>
+              <span class="rb-sc" aria-label={sc ? `Skóre ${sc}` : 'Skóre není k dispozici'}>{sc ?? '–'}</span>
+              <span class="rb-team b">{r.away}</span>
+            </div>
+            {detail ? <p class="rb-meta">{detail[0].toUpperCase()}{detail.slice(1)}</p> : null}
+            {r.status === 'unconfirmed' ? <p class="rb-meta">Zápas zmizel z nabídky zdroje bez potvrzeného konce. {sc ? 'Skóre je poslední známé, ne nutně konečné.' : ''}</p> : null}
+            {r.status === 'postponed' ? <p class="rb-meta">Zápas je odložený. Nový termín doplníme, jakmile ho zdroj zveřejní.</p> : null}
+            <p class="rb-meta">{final ? 'Výsledek potvrzen' : 'Poslední aktualizace'} {hhmm(final && r.final_at ? r.final_at : r.checked_at)} · zdroj Tipsport{stale ? ' · data mohou být zastaralá' : ''}</p>
+          </section>
+        ) : null}
+        {over ? (
+          <div class="watchbar">
+            <p>Detail zápasu u Tipsportu<small>Reklama · registrace a přihlášení u provozovatele · 18+</small></p>
+            <a class="btn" href={goPath(m, 'detail-final')} rel="sponsored nofollow noopener" target="_blank">Zápas u Tipsportu</a>
+          </div>
+        ) : (<>
+          <Stage m={m} state={state} now={now} />
+          <div class="watchbar">
+            <p>{m.stream ? BONUS.watch : 'Živé statistiky a skóre u Tipsportu'}<small>Reklama · registrace a přihlášení u provozovatele · 18+</small></p>
+            <a class="btn lg" href={goPath(m, 'watchbar')} rel="sponsored nofollow noopener" target="_blank"><Icon name="play" />{watchLabel}</a>
+          </div>
+        </>)}
 
         <section class="sec">
           <div class="sec-head"><h2>O zápase</h2></div>
           <dl class="facts">
-            <div><dt>Začátek</dt><dd>{hhmm(m.st)} · {shortDay(m.st)}</dd></div>
+            <div><dt>{over ? 'Hráno' : 'Začátek'}</dt><dd>{hhmm(m.st)} · {shortDay(m.st)}</dd></div>
             <div><dt>Sport</dt><dd><a href={sportPath(sport.slug)}>{sport.name}</a></dd></div>
             <div><dt>Soutěž</dt><dd><a href={leaguePathOf(m)}>{lgName}</a></dd></div>
-            <div><dt>Přenos</dt><dd>{m.stream ? 'Video · Tipsport' : 'Statistiky · Tipsport'}</dd></div>
+            <div><dt>{over ? 'Výsledek' : 'Přenos'}</dt><dd>{over ? (final && sc ? sc : statusLabel(r!.status)) : m.stream ? 'Video · Tipsport' : 'Statistiky · Tipsport'}</dd></div>
           </dl>
         </section>
 
-        <OddsBlock m={m} />
+        {over ? null : <OddsBlock m={m} />}
 
-        {same.length ? (<section class="sec"><div class="sec-head"><h2>Další zápasy · {lgName}</h2><a href={leaguePathOf(m)}>Vše ›</a></div><Rows items={same} now={now} placement="detail-same" groupByDay /></section>) : null}
-        {sameSport.length ? (<section class="sec"><div class="sec-head"><h2>Další {sport.genitive === 'fotbalu' ? 'fotbal' : sport.name.toLowerCase()} živě a dnes</h2><a href={sportPath(sport.slug)}>{sport.name} online ›</a></div><Rows items={sameSport} now={now} placement="detail-sport" /></section>) : null}
+        {h2h.length ? (<section class="sec"><div class="sec-head"><h2>Dostupné vzájemné zápasy</h2></div><div class="rows">{h2h.map((x) => <ResultRow r={x} now={now} staleMs={staleMs} showComp showDay />)}</div><p class="muted" style="font-size:.84rem;margin-top:6px">Jen zápasy, které máme v archivu (od spuštění výsledků) – nejde o kompletní historii.</p></section>) : null}
+        {otherResults.length ? (<section class="sec"><div class="sec-head"><h2>Další výsledky · {lgName}</h2><a href={`/vysledky/?soutez=${r!.comp}`}>Výsledky ›</a></div><div class="rows">{otherResults.map((x) => <ResultRow r={x} now={now} staleMs={staleMs} showDay />)}</div></section>) : null}
+        {same.length ? (<section class="sec"><div class="sec-head"><h2>Další zápasy · {lgName}</h2><a href={leaguePathOf(m)}>Vše ›</a></div><Rows items={same} now={now} placement={over ? 'detail-final-same' : 'detail-same'} groupByDay /></section>) : null}
+        {sameSport.length && !over ? (<section class="sec"><div class="sec-head"><h2>Další {sport.genitive === 'fotbalu' ? 'fotbal' : sport.name.toLowerCase()} živě a dnes</h2><a href={sportPath(sport.slug)}>{sport.name} online ›</a></div><Rows items={sameSport} now={now} placement="detail-sport" /></section>) : null}
 
         <section class="sec prose">
-          <h2>{title} – živý přenos</h2>
-          <p>{state === 'live' ? `Zápas ${title} právě běží` : `Zápas ${title} začíná ${longDay(m.st)} v ${hhmm(m.st)}`} v rámci soutěže {lgName} ({sport.name.toLowerCase()}). {m.stream ? 'Tipsport ho vysílá živě svým registrovaným zákazníkům – stačí se přihlásit a přenos spustit, sázet nemusíš.' : 'Video k němu Tipsport nevysílá, živě ale ukazuje statistiky, průběžné skóre a kurzy.'} Další zápasy najdeš v <a href={leaguePathOf(m)}>přehledu soutěže {lgName}</a> nebo v <a href="/program/">programu přenosů</a>.</p>
+          {over ? (<>
+            <h2>{title} – výsledek</h2>
+            <p>{resultSentence} Zápas se hrál {longDay(m.st)} v {hhmm(m.st)} v rámci soutěže {lgName}. Další výsledky najdeš v <a href="/vysledky/">přehledu výsledků</a>, nadcházející zápasy v <a href={leaguePathOf(m)}>přehledu soutěže {lgName}</a> a v <a href="/program/">programu přenosů</a>.</p>
+          </>) : (<>
+            <h2>{title} – živý přenos</h2>
+            <p>{state === 'live' ? `Zápas ${title} právě běží` : `Zápas ${title} začíná ${longDay(m.st)} v ${hhmm(m.st)}`} v rámci soutěže {lgName} ({sport.name.toLowerCase()}). {m.stream ? 'Tipsport ho vysílá živě svým registrovaným zákazníkům – stačí se přihlásit a přenos spustit, sázet nemusíš.' : 'Video k němu Tipsport nevysílá, živě ale ukazuje statistiky, průběžné skóre a kurzy.'} Další zápasy najdeš v <a href={leaguePathOf(m)}>přehledu soutěže {lgName}</a> nebo v <a href="/program/">programu přenosů</a>.</p>
+          </>)}
         </section>
         <section class="sec"><div class="sec-head"><h2>Časté otázky</h2></div><Faq items={faq} /></section>
       </div>
-      <Aside sports={sportCounts(v)} leagues={leagues(v, m.sp)} placement="detail-aside" sport={sport.slug} comp={competitionSlug(m.sp, m.lg)} />
+      <Aside sports={sportCounts(v)} leagues={leagues(v, m.sp)} placement={over ? 'detail-final-aside' : 'detail-aside'} sport={sport.slug} comp={competitionSlug(m.sp, m.lg)} />
     </div>
   </div>
-  <StickyCta m={m} live={state === 'live'} />
+  {over ? null : <StickyCta m={m} live={state === 'live'} label={watchLabel} />}
 </Base>
 ) : (
 <GonePage v={v} />

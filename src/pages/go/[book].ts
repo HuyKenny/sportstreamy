@@ -3,6 +3,8 @@ import { env } from 'cloudflare:workers';
 import type { Env } from '../../lib/types';
 import { deeplink, generic, type Book } from '../../lib/partner';
 import { view } from '../../lib/matches';
+import { resultsDb } from '../../lib/results/config';
+import { rowByExt } from '../../lib/results/store';
 
 export const prerender = false;
 
@@ -19,7 +21,9 @@ export const GET: APIRoute = async ({ params, url, request }) => {
   if ((book === 'tipsport' || book === 'chance') && id) {
     const v = await view(e);
     const m = [...v.live, ...v.recent, ...v.upcoming].find((x) => x.id === id);
-    if (m?.path) target = deeplink(e, book as Book, m.path);
+    // A finished match kept by the results pilot is no longer in the feeds: its stored Tipsport path still works.
+    const path = m?.path || (resultsDb(e) ? (await rowByExt(resultsDb(e)!, id))?.path : '');
+    if (path) target = deeplink(e, book as Book, path);
   }
   try {
     const ua = request.headers.get('user-agent') ?? '';

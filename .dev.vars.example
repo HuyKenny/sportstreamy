@@ -1,0 +1,10 @@
+# Local secrets for `wrangler dev` (copy to .dev.vars; values from ~/ai/credentials/.sportstreamy-credentials.env).
+TIPSPORT_CLIENT_ID=
+TIPSPORT_CLIENT_SECRET=
+CHANCE_API_USER=
+CHANCE_API_PASS=
+APISPORTS_KEY=
+# Results pilot, local only (production keeps the wrangler.jsonc defaults "off" until approved)
+RESULTS_ENABLED=on
+RESULTS_SYNC=on
+RESULTS_ADMIN_TOKEN=

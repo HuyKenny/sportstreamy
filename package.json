@@ -13,7 +13,8 @@
     "types": "wrangler types",
     "check": "astro check",
     "preview": "wrangler dev --local",
-    "deploy": "pnpm build && wrangler deploy"
+    "deploy": "pnpm build && wrangler deploy",
+    "test": "vitest run"
   },
   "dependencies": {
     "@astrojs/cloudflare": "14.4.1",
@@ -26,6 +27,7 @@
     "satori": "0.62.0",
     "sharp": "0.35.5",
     "typescript": "6.0.3",
+    "vitest": "^5.0.5",
     "wrangler": "4.151.0"
   }
 }

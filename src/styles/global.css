@@ -440,3 +440,24 @@ a, button, .btn, .chip, summary { touch-action: manipulation; }
 .cmp-table td.y { color: var(--good); font-weight: 700; } .cmp-table td.n { color: var(--ink-3); }
 .tablewrap { overflow-x: auto; border: var(--frame); border-radius: var(--r); background: var(--card); }
 .row .act .btn.nav { padding: 6px 12px; min-width: 0; }
+
+/* Results (pilot) */
+.res-group + .res-group { margin-top: 14px; }
+.res-group .dayhead a { color: inherit; text-decoration: none; }
+.res-group .dayhead a:hover { color: var(--cta); }
+.row.res { grid-template-columns: 74px minmax(0, 1fr) auto; }
+.row.res .when { font-size: .82rem; }
+.row.res .score.muted { color: var(--ink-3); }
+.res-date { display: inline-flex; gap: 6px; align-items: center; flex: none; }
+.res-date input { min-height: 40px; padding: 6px 10px; border: 1px solid var(--line-2); border-radius: 999px; background: var(--card); color: var(--ink); font: inherit; font-size: .88rem; color-scheme: dark; }
+.res-date button { cursor: pointer; font: inherit; font-weight: 700; font-size: .88rem; }
+.res-warn { margin: 10px 0 0; padding: 10px 14px; border: 1px solid #a8741a; border-radius: var(--r); background: rgba(255, 210, 63, .08); color: var(--ink); font-size: .9rem; }
+.chip:focus-visible, .res-date input:focus-visible { outline: 2px solid var(--cta); outline-offset: 2px; }
+.result-box { border: var(--frame); border-radius: var(--r); background: var(--card); box-shadow: var(--lift); padding: 16px; margin-bottom: 16px; }
+.result-box .rb-st { font-family: var(--mono); font-size: .78rem; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2); }
+.result-box .rb-main { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 12px; align-items: center; margin: 10px 0; }
+.result-box .rb-team { font-weight: 800; font-stretch: 92%; font-size: 1.1rem; overflow-wrap: anywhere; }
+.result-box .rb-team.b { text-align: right; }
+.result-box .rb-sc { font-weight: 900; font-stretch: 65%; font-size: 2.4rem; line-height: 1; text-align: center; }
+.result-box .rb-meta { color: var(--ink-2); font-size: .88rem; }
+.result-box .rb-meta + .rb-meta { margin-top: 4px; }

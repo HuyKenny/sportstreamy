@@ -32,7 +32,8 @@ export const siteLd = () => [
   { '@context': 'https://schema.org', '@type': 'Organization', '@id': `${SITE}/#org`, name: 'SportStreamy', url: `${SITE}/`, logo: `${SITE}/icon-512.png` },
 ];
 
-export function sportsEventLd(m: Match, state: 'live' | 'pre' | 'recent') {
+/** `status` (results pilot) marks postponed/cancelled events and turns the description into a result. */
+export function sportsEventLd(m: Match, state: 'live' | 'pre' | 'recent', status?: string, result?: string) {
   const s = sportOf(m);
   const comp = competitionOf(m.sp, m.lg);
   const url = abs(matchPath(m));
@@ -40,10 +41,10 @@ export function sportsEventLd(m: Match, state: 'live' | 'pre' | 'recent') {
     '@context': 'https://schema.org',
     '@type': 'SportsEvent',
     name: matchTitle(m),
-    description: `${matchTitle(m)} – ${s?.name ?? 'sport'}, ${comp?.name ?? m.lg}. Živý přenos a kurzy.`,
+    description: result ? `${matchTitle(m)} ${result} – ${s?.name ?? 'sport'}, ${comp?.name ?? m.lg}. Výsledek zápasu.` : `${matchTitle(m)} – ${s?.name ?? 'sport'}, ${comp?.name ?? m.lg}. Živý přenos a kurzy.`,
     url,
     startDate: new Date(m.st).toISOString(),
-    eventStatus: 'https://schema.org/EventScheduled',
+    eventStatus: `https://schema.org/${status === 'postponed' ? 'EventPostponed' : status === 'cancelled' ? 'EventCancelled' : 'EventScheduled'}`,
     eventAttendanceMode: 'https://schema.org/OnlineEventAttendanceMode',
     location: { '@type': 'VirtualLocation', url },
     image: [abs(`/img/sport/${s?.slug ?? 'stadion'}-1600.jpg`.replace('-1600.jpg', '-800.jpg'))],

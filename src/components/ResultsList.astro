@@ -1,0 +1,18 @@
+---
+import type { ResultRow as Row } from '../lib/results/store';
+import ResultRow from './ResultRow.astro';
+import { byComp, compName, compPath } from '../lib/results/view';
+/** Results grouped by competition (pilot order), each group headed by a link to the competition page. */
+interface Props { rows: Row[]; comps: string[]; now: number; staleMs: number; empty: string; showDay?: boolean }
+const { rows, comps, now, staleMs, empty, showDay = false } = Astro.props;
+const groups = byComp(rows, comps);
+---
+{groups.length ? groups.map((g) => (
+  <div class="res-group" data-c={g.comp}>
+    <div class="rows">
+      <div class="dayhead"><a href={compPath(g.comp)}>{compName(g.comp)}</a></div>
+      {g.rows.map((r) => <ResultRow r={r} now={now} staleMs={staleMs} showDay={showDay} />)}
+    </div>
+  </div>
+)) : <div class="rows"><p class="empty">{empty}</p></div>}
+<p class="empty res-none" hidden>Pro zvolený filtr tu nic není.</p>
