@@ -1,6 +1,7 @@
 import { env } from 'cloudflare:workers';
 import type { Env, Match } from './types';
-import { view, featured, rank, type View } from './matches';
+import { view, featured, rank, tier, mixSports, type View } from './matches';
+import { competitionOf, competitionSlug } from './competitions';
 import { SPORTS, SPORT_BY_ID } from './sports';
 import { slugify } from './text';
 
@@ -19,7 +20,7 @@ export function sportCounts(v: View): SportCount[] {
   return out;
 }
 
-export interface League { name: string; slug: string; sp: number; n: number; live: number }
+export interface League { name: string; slug: string; sp: number; n: number; live: number; top: boolean; short?: string; color?: string }
 
 /** Competitions ranked by how much is on (live counts double). */
 export function leagues(v: View, sp?: number): League[] {
@@ -27,15 +28,16 @@ export function leagues(v: View, sp?: number): League[] {
   const add = (m: Match, isLive: boolean) => {
     if (sp && m.sp !== sp) return;
     if (!SPORT_BY_ID.has(m.sp) || !m.lg) return;
-    const k = `${m.sp}|${m.lg}`;
-    const l = map.get(k) ?? { name: m.lg, slug: slugify(m.lg), sp: m.sp, n: 0, live: 0 };
+    const c = competitionOf(m.sp, m.lg);
+    const k = `${m.sp}|${competitionSlug(m.sp, m.lg)}`;
+    const l = map.get(k) ?? { name: c?.name ?? m.lg, slug: c?.slug ?? slugify(m.lg), sp: m.sp, n: 0, live: 0, top: !!c?.top, short: c?.short, color: c?.color };
     l.n++;
     if (isLive) l.live++;
     map.set(k, l);
   };
   v.live.forEach((m) => add(m, true));
   v.upcoming.forEach((m) => add(m, false));
-  return [...map.values()].sort((a, b) => b.live * 2 + b.n - (a.live * 2 + a.n));
+  return [...map.values()].sort((a, b) => Number(b.top) - Number(a.top) || b.live * 2 + b.n - (a.live * 2 + a.n));
 }
 
-export { view, featured, rank };
+export { view, featured, rank, tier, mixSports };

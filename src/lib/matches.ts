@@ -1,6 +1,7 @@
 import type { Env, Match, Snapshot } from './types';
 import { dayKey, addDays } from './text';
 import { SPORTS } from './sports';
+import { competitionOf } from './competitions';
 
 export interface View {
   /** In play now: start has passed and not finished. */
@@ -16,8 +17,11 @@ const ORDER = new Map(SPORTS.map((s, i) => [s.id, s.main ? i : 100 + i]));
 /** Lower = shown first: main sports in menu order, then the rest. */
 export const rank = (m: Match) => ORDER.get(m.sp) ?? 999;
 
-/** Main sports first (each by start time), so football/hockey/tennis are not buried under table tennis. */
-export const featured = (items: Match[]) => [...items].sort((a, b) => Number(rank(a) >= 100) - Number(rank(b) >= 100) || a.st - b.st || a.id - b.id);
+/** 0 = curated top competition, 1 = main sport, 2 = the rest (table tennis, lower leagues…). */
+export const tier = (m: Match) => (competitionOf(m.sp, m.lg)?.top ? 0 : rank(m) < 100 ? 1 : 2);
+
+/** Top competitions, then main sports, each by start time – so Chance Liga is not buried under table tennis. */
+export const featured = (items: Match[]) => [...items].sort((a, b) => tier(a) - tier(b) || a.st - b.st || a.id - b.id);
 
 let cache: { at: number; v: View } | undefined;
 
@@ -40,7 +44,7 @@ export async function view(env: Env, now = Date.now()): Promise<View> {
   const bySt = (a: Match, b: Match) => a.st - b.st || a.id - b.id;
   upcoming.sort(bySt);
   recent.sort((a, b) => b.st - a.st);
-  live.sort((a, b) => rank(a) - rank(b) || bySt(a, b));
+  live.sort((a, b) => tier(a) - tier(b) || rank(a) - rank(b) || bySt(a, b));
   const v = { live, upcoming, recent, at: Math.max(l?.at ?? 0, p?.at ?? 0) };
   cache = { at: now, v };
   return v;
@@ -48,3 +52,13 @@ export async function view(env: Env, now = Date.now()): Promise<View> {
 
 export const matchesOn = (v: View, key: string) => v.upcoming.filter((m) => dayKey(m.st) === key);
 export { dayKey, addDays };
+
+/** Round-robin across sports (in the given order), so a carousel is not five tennis matches in a row. */
+export function mixSports(items: Match[], n: number): Match[] {
+  const by = new Map<number, Match[]>();
+  for (const m of items) by.set(m.sp, [...(by.get(m.sp) ?? []), m]);
+  const queues = [...by.values()];
+  const out: Match[] = [];
+  while (out.length < n && queues.some((q) => q.length)) for (const q of queues) { const m = q.shift(); if (m && out.length < n) out.push(m); }
+  return out;
+}

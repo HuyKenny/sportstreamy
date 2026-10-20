@@ -32,10 +32,11 @@ type Raw = Record<string, any>;
 
 const iso = (ms: number) => new Date(ms).toISOString().slice(0, 19);
 
-export const liveMatches = (s: Session) => get<{ matches: Raw[] }>(s, '/rest/external/offer/v2/live/matches?stream=true').then((r) => r.matches ?? []);
+// No stream=true filter: top competitions without video (Chance Liga, Premier League…) are kept by keep() in refresh.ts.
+export const liveMatches = (s: Session) => get<{ matches: Raw[] }>(s, '/rest/external/offer/v2/live/matches').then((r) => r.matches ?? []);
 export const upcomingMatches = (s: Session, days = 7) => {
   const from = Date.now() - 3 * 3600_000;
-  return get<{ matches: Raw[] }>(s, `/rest/external/offer/v1/matches?stream=true&fromDate=${iso(from)}&toDate=${iso(from + days * 86_400_000)}`).then((r) => r.matches ?? []);
+  return get<{ matches: Raw[] }>(s, `/rest/external/offer/v1/matches?fromDate=${iso(from)}&toDate=${iso(from + days * 86_400_000)}`).then((r) => r.matches ?? []);
 };
 
 /** 1/x/2 odds from the main market, matched by opp type (array order is not 1,x,2). */
