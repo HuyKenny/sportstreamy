@@ -7,7 +7,7 @@ const { id = 'q', autofocus = false, value = '' } = Astro.props;
 <form class="search" action="/hledat/" method="get" role="search" data-search>
   <Icon name="search" />
   <label class="sr" for={id}>Hledat zápas, tým nebo soutěž</label>
-  <input id={id} name="q" type="search" value={value} placeholder="Hledat tým, ligu, turnaj, zápas…" autocomplete="off" autofocus={autofocus} aria-controls={`${id}-res`} aria-expanded="false" />
+  <input id={id} name="q" type="search" value={value} placeholder="Hledat tým, ligu, turnaj, zápas…" autocomplete="off" inputmode="search" enterkeyhint="search" autofocus={autofocus} role="combobox" aria-autocomplete="list" aria-controls={`${id}-res`} aria-expanded="false" />
   <div class="sres" id={`${id}-res`} role="listbox" data-hidden></div>
 </form>
 <script>

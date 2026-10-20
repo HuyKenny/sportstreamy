@@ -57,7 +57,7 @@ const pageTitle = !m ? 'Zápas skončil | SportStreamy' : base.length <= 46 ? `$
 const desc = m ? clip(`Kde sledovat ${title} (${lgName}) – ${state === 'live' ? 'právě běží' : `${dayLabel(m.st, now).toLowerCase()} v ${hhmm(m.st)}`}. ${m.stream ? 'Živý přenos zdarma po registraci u Tipsportu' : 'Živé statistiky a skóre u Tipsportu'}, kurzy a bonus ${BONUS.amount}.`, 158) : '';
 ---
 {m && sport ? (
-<Base title={pageTitle} description={desc} ld={[sportsEventLd(m, state), breadcrumbLd(crumbs), faqLd(faq)]} section={sport.slug} ttl={state === 'live' ? 30 : 60} lcp={sport.slug} dock={false}>
+<Base title={pageTitle} description={desc} ld={[sportsEventLd(m, state), breadcrumbLd(crumbs), faqLd(faq)]} section={sport.slug} ttl={state === 'live' ? 30 : 60} lcp={sport.slug} lcpSizes="(min-width: 1000px) 860px, 100vw" dock={false}>
   <div class="wrap">
     <Crumbs items={crumbs} />
     <section class="pagehead" style="padding-bottom:14px">
@@ -92,8 +92,8 @@ const desc = m ? clip(`Kde sledovat ${title} (${lgName}) – ${state === 'live' 
               <table class="odds-table">
                 <thead><tr><th>Kancelář</th><th>1</th>{o[1] !== null ? <th>X</th> : null}<th>2</th><th></th></tr></thead>
                 <tbody>
-                  <tr><td><b style="font-family:inherit">Tipsport</b></td>{o.map((x, i) => x === null ? null : <td class:list={[best(i) === 't' && 'best']}><b>{x.toFixed(2)}</b></td>)}<td><a class="btn sm" href={goPath(m, 'odds')} rel="sponsored nofollow noopener" target="_blank">Vsadit</a></td></tr>
-                  {c ? <tr><td><b style="font-family:inherit">Chance</b></td>{c.map((x, i) => x === null ? null : <td class:list={[best(i) === 'c' && 'best']}><b>{x.toFixed(2)}</b></td>)}<td><a class="btn sm ghost" href={goPath(m, 'odds', 'chance')} rel="sponsored nofollow noopener" target="_blank">Vsadit</a></td></tr> : null}
+                  <tr><th scope="row"><b style="font-family:inherit">Tipsport</b></th>{o.map((x, i) => x === null ? null : <td class:list={[best(i) === 't' && 'best']}><b>{x.toFixed(2)}</b></td>)}<td><a class="btn sm" href={goPath(m, 'odds')} rel="sponsored nofollow noopener" target="_blank">Vsadit</a></td></tr>
+                  {c ? <tr><th scope="row"><b style="font-family:inherit">Chance</b></th>{c.map((x, i) => x === null ? null : <td class:list={[best(i) === 'c' && 'best']}><b>{x.toFixed(2)}</b></td>)}<td><a class="btn sm ghost" href={goPath(m, 'odds', 'chance')} rel="sponsored nofollow noopener" target="_blank">Vsadit</a></td></tr> : null}
                 </tbody>
               </table>
             </div>

@@ -7,7 +7,7 @@ import type { Banner } from '../lib/banners';
 interface Props { banner: Banner; placement: string }
 const { banner, placement } = Astro.props;
 ---
-<div class:list={['bonus-slot', banner.kind === 'static' && 'is-static']}>
+<div class:list={['bonus-slot', banner.kind === 'static' && 'is-static']} data-banner={banner.kind === 'script' ? `https://${banner.host}/c/textA.php?pl=${banner.pl}` : undefined} data-label={banner.label}>
   <div class="tipad">
     <span class="tag-ad">Reklama · 18+</span>
     {banner.kind === 'script'
@@ -16,4 +16,28 @@ const { banner, placement } = Astro.props;
   </div>
   {banner.kind === 'script' ? <slot /> : null}
 </div>
-{banner.kind === 'script' ? <script is:inline async src={`https://${banner.host}/c/textA.php?pl=${banner.pl}`}></script> : null}
+<script>
+  // Partner scripts load only when their slot nears the viewport: on phones the sidebar sits below all matches,
+  // so the 57 kB banner and its script stay off the first load. Desktop sidebars are visible → loads at once.
+  const seen = new Set<string>();
+  const load = (el: HTMLElement) => {
+    const src = el.dataset.banner!;
+    if (seen.has(src)) return;
+    seen.add(src);
+    const s = document.createElement('script');
+    s.src = src;
+    s.async = true;
+    // Partner markup is <a><img alt=""></a>: give the link a name for screen readers once it is in.
+    s.onload = () => document.querySelectorAll<HTMLElement>(`[data-banner="${src}"] .tipad a`).forEach((a) => {
+      if (!a.textContent?.trim() && !a.getAttribute('aria-label')) a.setAttribute('aria-label', `${el.dataset.label ?? 'Reklama'} (reklama)`);
+    });
+    document.body.appendChild(s);
+  };
+  const slots = document.querySelectorAll<HTMLElement>('[data-banner]');
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) if (e.isIntersecting) { load(e.target as HTMLElement); io.unobserve(e.target); }
+    }, { rootMargin: '600px 0px' });
+    slots.forEach((s) => io.observe(s));
+  } else slots.forEach(load);
+</script>

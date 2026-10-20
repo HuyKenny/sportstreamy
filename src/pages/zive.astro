@@ -19,7 +19,7 @@ const slides = mixSports(featured(v.live.filter((m) => m.stream && tier(m) < 2))
 const next = featured(v.upcoming).slice(0, 10).sort((a, b) => a.st - b.st);
 const crumbs = [{ name: 'Domů', href: '/' }, { name: 'Živé přenosy' }];
 ---
-<Base title={`Živé přenosy právě teď (${v.live.length}) – sport online | SportStreamy`} description={`Právě běží ${v.live.length} ${plural(v.live.length, 'přenos', 'přenosy', 'přenosů')} v ${groups.length} ${plural(groups.length, 'sportu', 'sportech', 'sportech')}. Živé skóre a odkaz na přenos, aktualizováno ${hhmm(now)}.`} ld={[breadcrumbLd(crumbs), itemListLd(v.live, 'Živé přenosy právě teď')]} section="zive" ttl={45} lcp={slides[0] ? sportOf(slides[0])?.slug : undefined}>
+<Base title={`Živé přenosy právě teď (${v.live.length}) – sport online | SportStreamy`} description={`Právě běží ${v.live.length} ${plural(v.live.length, 'přenos', 'přenosy', 'přenosů')} v ${groups.length} ${plural(groups.length, 'sportu', 'sportech', 'sportech')}. Živé skóre a odkaz na přenos, aktualizováno ${hhmm(now)}.`} ld={[breadcrumbLd(crumbs), itemListLd(v.live, 'Živé přenosy právě teď')]} section="zive" ttl={45} lcp={slides[0] ? sportOf(slides[0])?.slug : undefined} lcpSizes="(min-width: 900px) 400px, 86vw">
   <div class="wrap">
     <Crumbs items={crumbs} />
     <section class="pagehead">

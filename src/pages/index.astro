@@ -35,7 +35,7 @@ const faq = [
 ];
 const ld = [...siteLd(), faqLd(faq), itemListLd([...v.live, ...today].slice(0, 20), 'Živé přenosy dnes')];
 ---
-<Base title="Živé přenosy zdarma – sport online dnes | SportStreamy" description={`Živé přenosy zdarma: právě běží ${v.live.length} zápasů, dnes dalších ${today.length}. Fotbal, hokej, tenis, NBA i Chance Liga – najdi zápas a sleduj ho online.`} ld={ld} section="home" lcp={slides[0] ? sportOf(slides[0])?.slug : undefined}>
+<Base title="Živé přenosy zdarma – sport online dnes | SportStreamy" description={`Živé přenosy zdarma: právě běží ${v.live.length} zápasů, dnes dalších ${today.length}. Fotbal, hokej, tenis, NBA i Chance Liga – najdi zápas a sleduj ho online.`} ld={ld} section="home" lcp={slides[0] ? sportOf(slides[0])?.slug : undefined} lcpSizes="(min-width: 900px) 400px, 86vw">
   <div class="wrap">
     <section class="pagehead">
       <div class="kicker"><span class="tag-live"><span class="dot"></span>{v.live.length} živě</span><span>· {today.length} dnes · aktualizováno {hhmm(v.at || now)}</span></div>
