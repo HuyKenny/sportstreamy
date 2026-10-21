@@ -43,7 +43,8 @@ const LEAGUE_COMP = new Map(Object.entries(AF_LEAGUE).map(([comp, id]) => [id, c
 /**
  * Pair one day's api-football fixtures with our Tipsport matches and apply their results.
  * Pairing never relies on names alone: same competition, kick-off within 15 min, and either known team links or
- * both names matching (one name is enough only when the slot holds a single fixture and a single match).
+ * both names matching (one exact + one half-matching name, or one name when the slot holds a single fixture and a
+ * single match). More than one candidate = not paired.
  */
 export async function pairAndApply(db: Db, fixtures: Raw[], comps: string[], at: number): Promise<{ applied: number; ambiguous: number }> {
   let applied = 0;
@@ -63,7 +64,8 @@ export async function pairAndApply(db: Db, fixtures: Raw[], comps: string[], at:
         if (lh || la) return (!lh || lh === String(fx.teams.home.id)) && (!la || la === String(fx.teams.away.id));
         const sh = nameScore(r.home, String(fx.teams.home.name));
         const sa = nameScore(r.away, String(fx.teams.away.name));
-        return (sh >= 0.75 && sa >= 0.75) || (rows.length === 1 && sameSlot === 1 && Math.max(sh, sa) >= 0.75);
+        // Both names, or one exact and the other half ("Sporting Lisboa" ~ "Sporting CP"); the single-candidate check below still applies.
+        return (sh >= 0.75 && sa >= 0.75) || (Math.max(sh, sa) === 1 && Math.min(sh, sa) >= 0.5) || (rows.length === 1 && sameSlot === 1 && Math.max(sh, sa) >= 0.75);
       });
       if (ok.length !== 1) {
         if (ok.length > 1 || rows.some((r) => !r.af_id)) ambiguous++;

@@ -323,6 +323,12 @@ describe('api-football as second source', () => {
     const links = (await db.prepare('SELECT tip_id, af_id FROM team_link ORDER BY tip_id').all()).results;
     expect(links).toEqual([{ tip_id: '11', af_id: '560' }, { tip_id: '12', af_id: '561' }]);
   });
+  it('one exact and one half-matching name pair in a busy slot (Sporting Lisboa ~ Sporting CP)', async () => {
+    const db = testDb();
+    await syncTipsportSchedule(db, [tip({ id: 1, nameCompetition: 'Liga mistrů', homeParticipant: 'Sporting Lisboa', visitingParticipant: 'LASK Linz', homeParticipantId: 51, visitingParticipantId: 52 }), tip({ id: 2, nameCompetition: 'Liga mistrů', homeParticipant: 'Real Madrid', visitingParticipant: 'RB Leipzig', homeParticipantId: 53, visitingParticipantId: 54 })], cfg, T0 - 86_400_000);
+    await pairAndApply(db, [afx({ id: 7, league: 2, home: [228, 'Sporting CP'], away: [1026, 'LASK'] }), afx({ id: 8, league: 2, home: [541, 'Real Madrid'], away: [173, 'RB Leipzig'] })], cfg.comps, T0);
+    expect((await rows(db)).map((r) => r.af_id)).toEqual(['7', '8']);
+  });
   it('ambiguous slot (two candidates, names do not decide) is not paired', async () => {
     const db = testDb();
     await syncTipsportSchedule(db, [tip({ id: 1, homeParticipant: 'Manchester United', visitingParticipant: 'Leeds', homeParticipantId: 21, visitingParticipantId: 22, nameCompetition: '1. anglická liga' }), tip({ id: 2, homeParticipant: 'Manchester City', visitingParticipant: 'Leeds', homeParticipantId: 23, visitingParticipantId: 22, nameCompetition: '1. anglická liga' })], cfg, T0 - 86_400_000);
