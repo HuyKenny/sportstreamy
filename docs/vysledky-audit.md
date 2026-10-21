@@ -66,3 +66,13 @@
 6. **Sekce je za přepínači** `RESULTS_ENABLED` a `RESULTS_SYNC`. V produkci jsou `off`, takže dokud se nezapnou, web se chová jako dřív.
 
 Provoz, nastavení a výpočet spotřeby jsou v [vysledky-provoz.md](vysledky-provoz.md).
+
+## Oprava a změna postupu (21. 10. ráno)
+- **api-football na Free aktuální data má.** Původní zjištění „aktuální data nejsou dostupná“ platilo jen pro dotazy se `season`.
+  - `/fixtures?date=` vrací aktuální zápasy (sezóna 2026), ale jen pro UTC včera až zítra.
+  - `/fixtures?id=` vrací góly, karty, statistiky a sestavy, `/fixtures/headtohead` funguje.
+  - Nefunguje `ids=` ani tabulky.
+- **Tipsport dal souhlas** za podmínky, že dodržíme jejich volání API.
+  - Minutový běh je zrušen, Tipsport se volá jako dřív.
+  - Mezery (zmeškané `ended`, poločasy, prodloužení, penalty, detaily, H2H) doplňuje api-football.
+- **Nové texty stavů** naměřené ve feedu: „Konec základní hrací doby“, „Ukončené prodloužení“, „Penalty (…)“, „Za okamžik“. Jsou zařazené do stavů.
