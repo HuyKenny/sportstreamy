@@ -14,6 +14,11 @@ export async function reserve(db: Db, provider: string, day: string, cap: number
   return !!r;
 }
 
+/** Give a reservation back: the provider rejected the request without counting it (per-minute limit). */
+export async function refund(db: Db, provider: string, day: string): Promise<void> {
+  await db.prepare('UPDATE api_usage SET used = MAX(used - 1, 0) WHERE provider = ? AND day = ?').bind(provider, day).run();
+}
+
 /** Store what the provider says is left today (rate-limit headers), the source of truth for a shared key. */
 export async function reportRemaining(db: Db, provider: string, day: string, remaining: number): Promise<void> {
   await db.prepare('UPDATE api_usage SET remaining_reported = ? WHERE provider = ? AND day = ?').bind(remaining, provider, day).run();

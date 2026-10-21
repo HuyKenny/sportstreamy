@@ -99,7 +99,9 @@ export function syncApiFootball(db: Db, cfg: ResultsConfig, o: AfOptions, at = D
     }
     if (cfg.stats) {
       // Optional data only while `keep` requests stay free for result checks later in the day.
-      const room = async () => (await spare(db, 'apifootball', at, o.cap, o.floor)) > cfg.keep;
+      // At most 4 optional requests per run: the provider's per-minute limit is tighter than documented.
+      let left = 4;
+      const room = async () => left-- > 0 && (await spare(db, 'apifootball', at, o.cap, o.floor)) > cfg.keep;
       try {
         for (const row of await needDetail(db, cfg.comps, cfg.priority, at, 6)) {
           if (!(await room())) break;

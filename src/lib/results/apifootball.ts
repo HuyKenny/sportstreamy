@@ -1,5 +1,5 @@
 import type { Db } from './db';
-import { reserve, reportRemaining } from './budget';
+import { reserve, reportRemaining, refund } from './budget';
 import { utcDay } from './time';
 
 /**
@@ -28,9 +28,14 @@ export interface AfOptions {
 
 const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
-/** The Free plan allows 10 requests per minute: keep calls of one isolate at least this far apart. */
-export const MIN_GAP_MS = 6_500;
+/**
+ * Per-minute limit. The plan says 10/min, but in production (21. 10.) it refused the 5th–6th request within about
+ * a minute even at 10 s spacing while still reporting 6 left. So: 10 s between requests, and a full minute's pause
+ * once the reported per-minute allowance drops to 5. Refused requests are not counted by the provider (refunded).
+ */
+export const MIN_GAP_MS = 10_000;
 let lastCall = 0;
+let minuteLeft: number | null = null;
 
 /** True when api-football reported errors inside a 200 response (`errors` is [] or {} when all is well). */
 export const hasErrors = (e: unknown) => (Array.isArray(e) ? e.length > 0 : !!e && typeof e === 'object' && Object.keys(e).length > 0);
@@ -46,8 +51,9 @@ export async function afGet(db: Db, path: '/status' | '/leagues' | '/fixtures' |
   for (let i = 0; i < attempts; i++) {
     const day = utcDay(now());
     if (!(await reserve(db, PROVIDER, day, o.cap, o.floor))) throw new QuotaError(`daily budget reached (${o.cap}) or provider quota at reserve`);
-    const gap = (o.gapMs ?? MIN_GAP_MS) - (Date.now() - lastCall);
-    if (gap > 0) await sleep(gap);
+    const pause = minuteLeft !== null && minuteLeft <= 5 ? 61_000 : (o.gapMs ?? MIN_GAP_MS) - (Date.now() - lastCall);
+    if (pause > 0 && o.gapMs !== 0) await sleep(pause);
+    if (pause > 0 && o.gapMs !== 0 && minuteLeft !== null && minuteLeft <= 5) minuteLeft = null;
     lastCall = Date.now();
     let res: Response;
     try {
@@ -57,6 +63,10 @@ export async function afGet(db: Db, path: '/status' | '/leagues' | '/fixtures' |
       if (i < attempts - 1) await sleep(2_000 * (i + 1));
       continue;
     }
+    // One line per request for the Workers log (no key, no query values beyond the path).
+    console.log('api-football', path, res.status, `minute-left=${res.headers.get('x-ratelimit-remaining')}`, `day-left=${res.headers.get('x-ratelimit-requests-remaining')}`);
+    const ml = res.headers.get('x-ratelimit-remaining');
+    minuteLeft = ml !== null && Number.isFinite(Number(ml)) ? Number(ml) : minuteLeft;
     const rem = Number(res.headers.get('x-ratelimit-requests-remaining'));
     if (res.headers.has('x-ratelimit-requests-remaining') && Number.isFinite(rem)) await reportRemaining(db, PROVIDER, day, rem);
     if (res.status === 429 || res.status >= 500) {
@@ -71,8 +81,12 @@ export async function afGet(db: Db, path: '/status' | '/leagues' | '/fixtures' |
     if (!j || typeof j !== 'object') throw new ProviderError('invalid JSON');
     if (hasErrors(j.errors)) {
       const text = JSON.stringify(j.errors).slice(0, 240);
-      // Per-minute limit hit anyway (another isolate, manual call): wait out the whole minute once.
-      if (/ratelimit|too many/i.test(text) && i < attempts - 1) { last = text; await sleep(61_000); continue; }
+      // Per-minute limit hit anyway: not counted by the provider, so not by us either; wait out the minute once.
+      if (/ratelimit|too many/i.test(text)) {
+        await refund(db, PROVIDER, day);
+        minuteLeft = null;
+        if (i < attempts - 1) { last = text; await sleep(61_000); continue; }
+      }
       throw new ProviderError(text);
     }
     return j;

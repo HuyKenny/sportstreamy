@@ -230,6 +230,12 @@ describe('api-football client', () => {
     const u = await db.prepare('SELECT used FROM api_usage').first<{ used: number }>();
     expect(u?.used).toBe(3);
   });
+  it('a per-minute refusal inside HTTP 200 is retried and not counted (provider does not count it)', async () => {
+    const db = testDb();
+    const f = fakeFetch(json({ errors: { rateLimit: 'Too many requests. You have exceeded the limit of requests per minute of your subscription.' }, response: [] }), json({ errors: [], response: [1] }));
+    expect((await afGet(db, '/status', {}, opts(f, 10))).response).toEqual([1]);
+    expect((await db.prepare('SELECT used FROM api_usage').first<{ used: number }>())?.used).toBe(1);
+  });
   it('gives up after repeated outages', async () => {
     const db = testDb();
     await expect(afGet(db, '/status', {}, opts(fakeFetch(new Error('a'), new Error('b'), new Error('c')), 10))).rejects.toBeInstanceOf(ProviderError);
