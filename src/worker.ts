@@ -66,7 +66,8 @@ export default {
     // "*/15" also fires on the same minute as "*/3": run the heavier job there and let it include a live pass.
     const heavy = ev.cron === '*/15 * * * *';
     ctx.waitUntil(
-      (heavy ? Promise.all([refreshLive(env), refreshUpcoming(env), refreshApiFootball(env)]) : refreshLive(env))
+      // api-football after the programme is written, so it can pair the matches that run just stored.
+      (heavy ? Promise.all([refreshLive(env), refreshUpcoming(env).finally(() => refreshApiFootball(env))]) : refreshLive(env))
         .catch((e) => console.error('refresh failed', String(e))),
       // IndexNow is sent from the Raspberry cron (bin/indexnow.py sportstreamy --sitemap): api.indexnow.org
       // throttles Cloudflare's shared egress IPs, so a ping from here gets 403/429.
