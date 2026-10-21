@@ -14,12 +14,10 @@
   ],
   "assets": { "directory": "./dist/client", "binding": "ASSETS", "html_handling": "force-trailing-slash", "not_found_handling": "none" },
   // Secrets (wrangler secret put): TIPSPORT_CLIENT_ID/SECRET, CHANCE_API_USER/PASS, APISPORTS_KEY, RESULTS_ADMIN_TOKEN.
-  // "* * * * *" = results pilot pass (does nothing while RESULTS_SYNC is off or no pilot match is on).
-  "triggers": { "crons": ["*/3 * * * *", "*/15 * * * *", "* * * * *"] },
+  "triggers": { "crons": ["*/3 * * * *", "*/15 * * * *"] },
   "kv_namespaces": [{ "binding": "DATA" }],
-  // Results pilot (docs/vysledky-provoz.md). database_id is a placeholder: create the database (wrangler d1 create
-  // sportstreamy-results) and put its id here before the first deploy of this feature. Migrations: ./migrations.
-  "d1_databases": [{ "binding": "RESULTS", "database_name": "sportstreamy-results", "database_id": "00000000-0000-0000-0000-000000000000", "migrations_dir": "migrations" }],
+  // Results (docs/vysledky-provoz.md). Migrations: ./migrations (wrangler d1 migrations apply sportstreamy-results --remote).
+  "d1_databases": [{ "binding": "RESULTS", "database_name": "sportstreamy-results", "database_id": "8cfeb3e9-5390-4b8d-9331-083ec169eadf", "migrations_dir": "migrations" }],
   "vars": {
     "TIPSPORT_URL": "https://www.tipsport.cz/PartnerRedirectAction.do?pid=14361&sid=46142&bid=5695&tid=3121&urlid=653",
     "TIPSPORT_REG_URL": "https://www.tipsport.cz/PartnerRedirectAction.do?pid=14361&sid=46142&bid=1421&tid=182&urlid=328",
@@ -28,15 +26,15 @@
     "SAZKA_MS_URL": "https://record.sazka.cz/_8u72YyI1anKL-LI3GTvm5OorI-QEr2uT/1/",
     "SAZKA_URL": "https://record.sazka.cz/_8u72YyI1anK2bnhOaaLAUmNd7ZgqdRLk/1/?payload=sportstreamy.cz",
     "MERKURXTIP_URL": "https://go.affilmaster.com/scripts/cdvy4d2?a_aid=TTE4W&a_bid=c708e3ae&data1=sportstreamy",
-    // Results pilot: pages and cron writes stay off in production until approved (local: .dev.vars).
-    "RESULTS_ENABLED": "off",
-    "RESULTS_SYNC": "off",
+    // Results (on since 21. 10. 2026, Kenny approved; Tipsport allowed it with its current call pattern).
+    "RESULTS_ENABLED": "on",
+    "RESULTS_SYNC": "on",
     "RESULTS_COMPETITIONS": "chance-liga,premier-league",
-    "RESULTS_APIFOOTBALL": "off",
+    "RESULTS_APIFOOTBALL": "on",
     "RESULTS_API_CAP": "80",
     "RESULTS_API_RESERVE": "20",
     "RESULTS_STALE_MIN": "10",
-    "RESULTS_STATS": "off"
+    "RESULTS_STATS": "on"
   },
   "analytics_engine_datasets": [{ "binding": "CLICKS", "dataset": "sportstreamy_clicks" }],
   "observability": { "enabled": true, "head_sampling_rate": 0.1 }

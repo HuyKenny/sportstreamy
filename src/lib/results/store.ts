@@ -33,6 +33,12 @@ export interface ResultRow {
   final_at: number | null;
   review: number;
   stats: string | null;
+  af_id?: string | null;
+  af_status?: string | null;
+  af_checked_at?: number | null;
+  result_src?: string | null;
+  mismatch?: number;
+  h2h?: string | null;
 }
 
 const COLS = ['provider', 'sport', 'ext_id', 'comp', 'lg', 'season', 'home', 'away', 'home_ext', 'away_ext', 'start_utc', 'status', 'status_raw', 'minute_raw', 'sh', 'sa', 'periods', 'pen_h', 'pen_a', 'stream', 'path', 'slug', 'src_at', 'checked_at', 'final_at', 'review'] as const;
@@ -139,15 +145,6 @@ export async function markUnconfirmed(db: Db, provider: string, now: number, gon
 const PUBLIC = `provider = 'tipsport' AND review = 0`;
 const inList = (n: number) => Array(n).fill('?').join(',');
 
-/** Is any pilot match about to start or in play? Gates the per-minute pass so it calls Tipsport only around matches. */
-export async function inMatchWindow(db: Db, now: number): Promise<boolean> {
-  const r = await db
-    .prepare(`SELECT 1 AS x FROM matches WHERE provider = 'tipsport' AND status IN ('scheduled', ${q([...IN_PLAY, 'unknown'])}) AND start_utc BETWEEN ? AND ? LIMIT 1`)
-    .bind(now - 3 * 3600_000, now + 10 * 60_000)
-    .first<{ x: number }>();
-  return !!r;
-}
-
 /** One query for a whole day / sport / set of competitions (index matches_sport_start). */
 export async function rowsBetween(db: Db, from: number, to: number, comps: string[], sport?: number): Promise<ResultRow[]> {
   if (!comps.length) return [];
@@ -196,6 +193,9 @@ export interface OpsStatus {
   review: number;
   staleLive: number;
   unconfirmed: number;
+  paired: number;
+  confirmedByApiFootball: number;
+  mismatch: number;
 }
 
 export async function opsStatus(db: Db, now: number, staleMs: number): Promise<OpsStatus> {
@@ -205,7 +205,10 @@ export async function opsStatus(db: Db, now: number, staleMs: number): Promise<O
     db.prepare('SELECT provider, day, used, cap, remaining_reported FROM api_usage ORDER BY day DESC LIMIT 6'),
     db.prepare(`SELECT COUNT(*) AS matches, SUM(review) AS review,
       SUM(CASE WHEN status IN (${q(IN_PLAY)}) AND checked_at < ? THEN 1 ELSE 0 END) AS staleLive,
-      SUM(CASE WHEN status = 'unconfirmed' THEN 1 ELSE 0 END) AS unconfirmed FROM matches`).bind(now - staleMs),
+      SUM(CASE WHEN status = 'unconfirmed' THEN 1 ELSE 0 END) AS unconfirmed,
+      SUM(CASE WHEN af_id IS NOT NULL THEN 1 ELSE 0 END) AS paired,
+      SUM(CASE WHEN result_src = 'apifootball' THEN 1 ELSE 0 END) AS confirmedByApiFootball,
+      SUM(mismatch) AS mismatch FROM matches`).bind(now - staleMs),
   ]) as { results: Record<string, unknown>[] }[];
   const c = counts.results[0] ?? {};
   return {
@@ -216,6 +219,9 @@ export async function opsStatus(db: Db, now: number, staleMs: number): Promise<O
     review: Number(c.review ?? 0),
     staleLive: Number(c.staleLive ?? 0),
     unconfirmed: Number(c.unconfirmed ?? 0),
+    paired: Number(c.paired ?? 0),
+    confirmedByApiFootball: Number(c.confirmedByApiFootball ?? 0),
+    mismatch: Number(c.mismatch ?? 0),
   };
 }
 

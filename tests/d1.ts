@@ -5,7 +5,7 @@ import type { Db, Stmt } from '../src/lib/results/db';
 /** In-memory SQLite with the D1 surface the results code uses, loaded with the real migration. */
 export function testDb(): Db & { raw: DatabaseSync } {
   const raw = new DatabaseSync(':memory:');
-  raw.exec(readFileSync(new URL('../migrations/0001_results.sql', import.meta.url), 'utf8'));
+  for (const f of ['0001_results.sql', '0002_apifootball.sql']) raw.exec(readFileSync(new URL(`../migrations/${f}`, import.meta.url), 'utf8'));
   const changes = () => Number((raw.prepare('SELECT changes() AS c').get() as { c: number }).c);
   const stmt = (sql: string, args: unknown[] = []): Stmt => {
     const a = () => args.map((v) => (typeof v === 'boolean' ? Number(v) : v === undefined ? null : v)) as never[];

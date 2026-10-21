@@ -2,7 +2,9 @@ import { describe, it, expect, vi } from 'vitest';
 import { testDb } from './d1';
 import { classify, fromTipsport, fromApiFootball, periodsOf, penaltiesOf, score, type Raw } from '../src/lib/results/normalize';
 import { upsertState, rowsBetween, rowByExt, markUnconfirmed, opsStatus, finalsSince, checkTeams } from '../src/lib/results/store';
-import { syncTipsportLive, syncTipsportSchedule, syncApiFootball } from '../src/lib/results/sync';
+import { syncTipsportLive, syncTipsportSchedule, syncApiFootball, pairAndApply } from '../src/lib/results/sync';
+import { dueDays, applyFixture } from '../src/lib/results/afstore';
+import { nameScore, detailFrom, meetingsFrom } from '../src/lib/results/afdata';
 import { afGet, QuotaError, ProviderError } from '../src/lib/results/apifootball';
 import { reserve, acquire, runJob } from '../src/lib/results/budget';
 import { pragueDay, pragueMidnight, isDayKey } from '../src/lib/results/time';
@@ -244,13 +246,13 @@ describe('api-football client', () => {
   });
   it('sync records the provider error and keeps stored data', async () => {
     const db = testDb();
-    await syncTipsportLive(db, [tip({ ended: true, home: '1', away: '0' })], cfg, T0);
-    const f = fakeFetch(json({ errors: [], response: [{ seasons: [{ year: 2026, current: true }] }] }), json({ errors: { plan: 'Free plans do not have access to this season' } }));
-    const r = await syncApiFootball(db, { ...cfg, comps: ['premier-league'] }, opts(f, 10), T0);
+    await syncTipsportSchedule(db, [tip({ dateStart: T0 - 3 * 3600_000 })], cfg, T0 - 4 * 3600_000);
+    const f = fakeFetch(json({ errors: { plan: 'Free plans do not have access to this date' } }));
+    const r = await syncApiFootball(db, { ...cfg, apiFootball: true }, opts(f, 10), T0);
     expect(r.error).toMatch(/Free plans/);
-    expect((await rows(db))).toHaveLength(1);
+    expect(await rows(db)).toHaveLength(1);
     const s = await opsStatus(db, T0, 600_000);
-    expect(s.usage[0].used).toBe(2);
+    expect(s.usage[0].used).toBe(1);
     expect(JSON.stringify(s)).not.toContain('SECRET-KEY-123');
   });
 });
@@ -281,13 +283,120 @@ describe('late kick-off and match window', () => {
     expect(classify({ dateStart: T0, statusOffer: '21:00' }, T0 + 60_000)).toBe('scheduled');
     expect(classify({ dateStart: T0, statusOffer: '2.pol. - 45+2.min (1:0, 0:0)' }, T0 + 1)).toBe('live');
     expect(classify({ dateStart: T0, statusOffer: 'Přestávka (1:0)' }, T0 + 1)).toBe('ht');
+    expect(classify({ dateStart: T0, statusOffer: 'Za okamžik' }, T0 + 1)).toBe('scheduled');
+    // real texts sampled from the feed 21. 10. 2026
+    expect(classify({ dateStart: T0, statusOffer: 'Konec základní hrací doby - 90.min (1:0, 0:1)' }, T0 + 1)).toBe('bt');
+    expect(classify({ dateStart: T0, statusOffer: 'Ukončené prodloužení - 120.min (1:0, 0:1, 0:0)' }, T0 + 1)).toBe('bt');
+    expect(classify({ dateStart: T0, statusOffer: 'Penalty (1:0, 0:1, 0:0)' }, T0 + 1)).toBe('pens');
+    expect(classify({ dateStart: T0, ended: true, statusOffer: '(1:0, 0:1)' }, T0 + 1)).toBe('ft');
   });
-  it('the per-minute pass only runs around pilot matches', async () => {
-    const { inMatchWindow } = await import('../src/lib/results/store');
+});
+
+/** api-football fixture as /fixtures?date= returns it. */
+const afx = (p: { id?: number; league?: number; ts?: number; home?: [number, string]; away?: [number, string]; short?: string; goals?: [number | null, number | null]; ht?: [number, number]; pen?: [number, number]; et?: [number, number] } = {}): Raw => ({
+  fixture: { id: p.id ?? 501, timestamp: (p.ts ?? T0) / 1000, status: { short: p.short ?? 'NS', long: '', elapsed: null } },
+  league: { id: p.league ?? 345, name: 'Czech Liga', season: 2026 },
+  teams: { home: { id: (p.home ?? [560, 'Slavia Praha'])[0], name: (p.home ?? [560, 'Slavia Praha'])[1] }, away: { id: (p.away ?? [561, 'Sparta Praha'])[0], name: (p.away ?? [561, 'Sparta Praha'])[1] } },
+  goals: { home: p.goals?.[0] ?? null, away: p.goals?.[1] ?? null },
+  score: { halftime: { home: p.ht?.[0] ?? null, away: p.ht?.[1] ?? null }, fulltime: { home: p.goals?.[0] ?? null, away: p.goals?.[1] ?? null }, extratime: { home: p.et?.[0] ?? null, away: p.et?.[1] ?? null }, penalty: { home: p.pen?.[0] ?? null, away: p.pen?.[1] ?? null } },
+});
+
+describe('api-football as second source', () => {
+  it('name similarity', () => {
+    expect(nameScore('Viktoria Plzeň', 'Plzen')).toBe(1);
+    expect(nameScore('Nottingham', 'Nottingham Forest')).toBe(1);
+    expect(nameScore('Hull', 'Hull City')).toBe(1);
+    expect(nameScore('Manchester United', 'Manchester City')).toBe(0.5);
+    expect(nameScore('Bohemians 1905', 'Bohemians 1905')).toBe(1);
+  });
+  it('pairs by competition + kick-off + both names, learns team links, confirms a missed final', async () => {
     const db = testDb();
-    expect(await inMatchWindow(db, T0)).toBe(false);
-    await syncTipsportSchedule(db, [tip({ dateStart: T0 + 5 * 60_000 })], cfg, T0);
-    expect(await inMatchWindow(db, T0)).toBe(true);
-    expect(await inMatchWindow(db, T0 - 3600_000)).toBe(false);
+    await syncTipsportSchedule(db, [tip()], cfg, T0 - 86_400_000);
+    // Tipsport saw the match live, then lost it: unconfirmed with last known score
+    await syncTipsportLive(db, [tip({ statusOffer: '2.pol. - 88.min (1:0, 0:0)', home: '1', away: '0' })], cfg, T0 + 6e6);
+    await markUnconfirmed(db, 'tipsport', T0 + 8e6);
+    const r = await pairAndApply(db, [afx({ short: 'FT', goals: [1, 1], ht: [1, 0] })], cfg.comps, T0 + 9e6);
+    expect(r.applied).toBe(1);
+    const row = (await rows(db))[0];
+    expect(row).toMatchObject({ status: 'ft', sh: 1, sa: 1, result_src: 'apifootball', af_id: '501', af_status: 'FT' });
+    expect(JSON.parse(String(row.periods))).toEqual([[1, 0], [0, 1]]);
+    const links = (await db.prepare('SELECT tip_id, af_id FROM team_link ORDER BY tip_id').all()).results;
+    expect(links).toEqual([{ tip_id: '11', af_id: '560' }, { tip_id: '12', af_id: '561' }]);
+  });
+  it('ambiguous slot (two candidates, names do not decide) is not paired', async () => {
+    const db = testDb();
+    await syncTipsportSchedule(db, [tip({ id: 1, homeParticipant: 'Manchester United', visitingParticipant: 'Leeds', homeParticipantId: 21, visitingParticipantId: 22, nameCompetition: '1. anglická liga' }), tip({ id: 2, homeParticipant: 'Manchester City', visitingParticipant: 'Leeds', homeParticipantId: 23, visitingParticipantId: 22, nameCompetition: '1. anglická liga' })], cfg, T0 - 86_400_000);
+    const r = await pairAndApply(db, [afx({ league: 39, home: [33, 'Manchester'], away: [63, 'Leeds'] })], cfg.comps, T0);
+    expect(r.ambiguous).toBe(1);
+    expect((await rows(db)).every((x) => x.af_id === null)).toBe(true);
+  });
+  it('a stored team link that contradicts the fixture blocks the pairing', async () => {
+    const db = testDb();
+    await syncTipsportSchedule(db, [tip()], cfg, T0 - 86_400_000);
+    await db.prepare('INSERT INTO team_link VALUES (?, ?, ?, ?, ?)').bind('11', '999', 'Slavia Praha', 'Slavia B', T0).run();
+    await pairAndApply(db, [afx()], cfg.comps, T0);
+    expect((await rows(db))[0].af_id).toBeNull();
+  });
+  it('a different final score is flagged, Tipsport result kept; AET upgrades our "ft"', async () => {
+    const db = testDb();
+    await syncTipsportLive(db, [tip({ ended: true, home: '2', away: '0' })], cfg, T0 + 6e6);
+    const row = (await rowsBetween(db, 0, Infinity, cfg.comps))[0];
+    await applyFixture(db, row, afx({ short: 'FT', goals: [2, 1] }), T0 + 7e6);
+    let r = (await rows(db))[0];
+    expect(r).toMatchObject({ sh: 2, sa: 0, mismatch: 1, result_src: null });
+    await applyFixture(db, { ...row, sh: 2, sa: 0 }, afx({ short: 'AET', goals: [2, 0], ht: [0, 0], et: [2, 0] }), T0 + 8e6);
+    r = (await rows(db))[0];
+    expect(r).toMatchObject({ status: 'aet', mismatch: 0 });
+  });
+  it('postponed at api-football marks our scheduled match postponed; live states are ignored', async () => {
+    const db = testDb();
+    await syncTipsportSchedule(db, [tip({ dateStart: T0 + 3600_000 })], cfg, T0);
+    const row = (await rowsBetween(db, 0, Infinity, cfg.comps))[0];
+    await applyFixture(db, row, afx({ short: '1H', goals: [1, 0] }), T0);
+    expect((await rows(db))[0]).toMatchObject({ status: 'scheduled', sh: null });
+    await applyFixture(db, row, afx({ short: 'PST' }), T0);
+    expect((await rows(db))[0].status).toBe('postponed');
+  });
+  it('due days: pairing once per 6 h, results after ~100 min, only inside the Free date window', async () => {
+    const db = testDb();
+    await syncTipsportSchedule(db, [tip({ dateStart: T0 + 3600_000 }), tip({ id: 2, dateStart: T0 + 5 * 86_400_000 })], cfg, T0);
+    expect(await dueDays(db, cfg.comps, T0)).toEqual(['2026-10-24']);
+    await db.prepare("INSERT INTO af_fetch VALUES ('2026-10-24', ?)").bind(T0).run();
+    expect(await dueDays(db, cfg.comps, T0 + 3600_000)).toEqual([]);
+    await db.prepare("UPDATE matches SET af_id = '1'").run();
+    expect(await dueDays(db, cfg.comps, T0 + 3600_000 + 101 * 60_000)).toEqual(['2026-10-24']);
+  });
+  it('full run: day list, details and H2H within budget; details are stored compactly', async () => {
+    const db = testDb();
+    await syncTipsportSchedule(db, [tip()], cfg, T0 - 86_400_000);
+    await db.prepare('UPDATE matches SET start_utc = ?').bind(T0 - 4 * 3600_000).run();
+    const detail = { ...afx({ id: 501, short: 'FT', goals: [2, 1], ht: [1, 1], ts: T0 - 4 * 3600_000 }), events: [{ time: { elapsed: 45, extra: 2 }, team: { id: 560 }, player: { name: 'Chorý' }, assist: { name: null }, type: 'Goal', detail: 'Normal Goal' }, { time: { elapsed: 60 }, team: { id: 561 }, player: { name: 'Haraslín' }, type: 'Card', detail: 'Red Card' }, { time: { elapsed: 70 }, team: { id: 561 }, player: { name: 'X' }, type: 'subst', detail: 'Substitution 1' }], statistics: [{ team: { id: 560 }, statistics: [{ type: 'Ball Possession', value: '55%' }, { type: 'Total Shots', value: 12 }] }, { team: { id: 561 }, statistics: [{ type: 'Ball Possession', value: '45%' }, { type: 'Total Shots', value: null }] }], lineups: [{ team: { id: 560 }, formation: '3-4-3', coach: { name: 'Trpišovský' }, startXI: [{ player: { name: 'Staněk' } }] }] };
+    const f = fakeFetch(
+      json({ errors: [], response: [afx({ id: 501, short: 'FT', goals: [2, 1], ht: [1, 1], ts: T0 - 4 * 3600_000 })] }),
+      json({ errors: [], response: [detail] }),
+    );
+    const r = await syncApiFootball(db, { ...cfg, apiFootball: true, stats: true }, opts(f, 80), T0);
+    expect(r.error).toBeUndefined();
+    const row = (await rows(db))[0];
+    expect(row).toMatchObject({ status: 'ft', sh: 2, sa: 1 });
+    const st = JSON.parse(String(row.stats));
+    expect(st.events).toEqual([{ min: "45+2'", side: 'h', kind: 'goal', player: 'Chorý', assist: null }, { min: "60'", side: 'a', kind: 'red', player: 'Haraslín', assist: null }]);
+    expect(st.stats).toEqual([{ key: 'Ball Possession', h: '55%', a: '45%' }, { key: 'Total Shots', h: '12', a: null }]);
+    expect(st.lineups[0]).toMatchObject({ side: 'h', formation: '3-4-3', xi: ['Staněk'] });
+    expect(f.mock.calls).toHaveLength(2); // H2H not due: the match is in the past
+  });
+  it('optional data stops when the budget runs low, results still come first', async () => {
+    const db = testDb();
+    await syncTipsportSchedule(db, [tip()], cfg, T0 - 86_400_000);
+    await db.prepare('UPDATE matches SET start_utc = ?').bind(T0 - 3 * 3600_000).run();
+    const f = fakeFetch(json({ errors: [], response: [afx({ id: 501, short: 'FT', goals: [0, 0], ts: T0 - 3 * 3600_000 })] }, 200, { 'x-ratelimit-requests-remaining': '30' }));
+    await syncApiFootball(db, { ...cfg, apiFootball: true, stats: true }, opts(f, 80), T0);
+    expect((await rows(db))[0]).toMatchObject({ status: 'ft', sh: 0, sa: 0, stats: null });
+    expect(f.mock.calls).toHaveLength(1);
+  });
+  it('detail without data stays null-safe and meetings keep only finished games', () => {
+    expect(detailFrom({ teams: { home: { id: 1 } }, events: [], statistics: [], lineups: [] }, T0)).toBeNull();
+    const m = meetingsFrom([{ fixture: { timestamp: 1, status: { short: 'FT' } }, goals: { home: 1, away: 0 }, teams: { home: { name: 'A' }, away: { name: 'B' } }, league: { name: 'L' } }, { fixture: { timestamp: 2, status: { short: 'NS' } }, goals: { home: null, away: null }, teams: {}, league: {} }]);
+    expect(m).toHaveLength(1);
   });
 });

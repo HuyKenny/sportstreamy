@@ -30,7 +30,7 @@ const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 export const hasErrors = (e: unknown) => (Array.isArray(e) ? e.length > 0 : !!e && typeof e === 'object' && Object.keys(e).length > 0);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function afGet(db: Db, path: '/status' | '/leagues' | '/fixtures' | '/standings', params: Record<string, string>, o: AfOptions): Promise<any> {
+export async function afGet(db: Db, path: '/status' | '/leagues' | '/fixtures' | '/fixtures/headtohead', params: Record<string, string>, o: AfOptions): Promise<any> {
   const f = o.fetch ?? fetch;
   const sleep = o.sleep ?? wait;
   const now = o.now ?? Date.now;
@@ -70,18 +70,25 @@ export async function afGet(db: Db, path: '/status' | '/leagues' | '/fixtures' |
   throw new ProviderError(`gave up after ${attempts} attempts: ${last}`);
 }
 
-/** Our competition slug → api-football league id (checked against /leagues). */
+/** Our competition slug → api-football league id (verified 21. 10. 2026: 345 "Czech Liga", 39 "Premier League"). */
 export const AF_LEAGUE: Record<string, number> = { 'chance-liga': 345, 'premier-league': 39 };
 
-/** The current season as the provider defines it — not guessed from the calendar year. */
-export async function currentSeason(db: Db, league: number, o: AfOptions): Promise<number | null> {
-  const j = await afGet(db, '/leagues', { id: String(league), current: 'true' }, o);
-  const seasons: { year: number; current: boolean }[] = j.response?.[0]?.seasons ?? [];
-  return seasons.find((s) => s.current)?.year ?? null;
+/**
+ * All fixtures of one Prague day in one request (no league/season filter — on the Free plan the season filter
+ * is limited to 2022–2024, the date query is not, but only for yesterday…tomorrow).
+ */
+export async function fixturesOnDate(db: Db, date: string, o: AfOptions) {
+  const j = await afGet(db, '/fixtures', { date, timezone: 'Europe/Prague' }, o);
+  return (j.response ?? []) as Record<string, unknown>[];
 }
 
-/** All fixtures of one league on one Prague day: one request covers the whole round (no per-match calls). */
-export async function fixturesOn(db: Db, league: number, season: number, date: string, o: AfOptions) {
-  const j = await afGet(db, '/fixtures', { league: String(league), season: String(season), date, timezone: 'Europe/Prague' }, o);
+/** One fixture with events, lineups, statistics and players (one request per match; `ids` is not on Free). */
+export async function fixtureDetail(db: Db, id: string, o: AfOptions) {
+  const j = await afGet(db, '/fixtures', { id }, o);
+  return ((j.response ?? []) as Record<string, unknown>[])[0] ?? null;
+}
+
+export async function headToHead(db: Db, a: string, b: string, o: AfOptions) {
+  const j = await afGet(db, '/fixtures/headtohead', { h2h: `${a}-${b}` }, o);
   return (j.response ?? []) as Record<string, unknown>[];
 }

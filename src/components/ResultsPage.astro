@@ -39,7 +39,7 @@ const ld = [breadcrumbLd(crumbs), { '@context': 'https://schema.org', '@type': '
     <section class="pagehead">
       <div class="kicker"><span>{longDay(noon(d.key))}</span>{live ? <span class="tag-live"><span class="dot"></span>Probíhá</span> : null}<span>· {d.updated ? `aktualizováno ${hhmm(d.updated)}${dayKey(d.updated) !== d.today ? ` (${longDay(d.updated)})` : ''}` : 'zatím bez dat'}</span></div>
       <h1>{h1[0].toUpperCase()}{h1.slice(1)}</h1>
-      <p class="lead">Průběžně aktualizované výsledky soutěží {comps}: skóre, stav zápasu a odkaz na detail. Data přebíráme z partnerského rozhraní Tipsportu zhruba každé 3 minuty – nejde o okamžitý livescore.</p>
+      <p class="lead">Průběžně aktualizované výsledky soutěží {comps}: skóre, stav zápasu a odkaz na detail. Průběžné skóre přebíráme z partnerského rozhraní Tipsportu zhruba každé 3 minuty (nejde o okamžitý livescore), konečné výsledky, statistiky a sestavy doplňujeme z API-Football.</p>
     </section>
     <nav class="chips" aria-label="Den">
       {days.map(([k, l]) => <a class="chip" href={href({ den: k })} aria-current={k === d.key ? 'page' : undefined}>{l}</a>)}
@@ -64,7 +64,7 @@ const ld = [breadcrumbLd(crumbs), { '@context': 'https://schema.org', '@type': '
     </section>
     <section class="sec prose">
       <h2>Jak výsledky čteme</h2>
-      <p>U budoucích zápasů ukazujeme čas výkopu, skóre až po začátku. „Konec“ píšeme jen u zápasu, který zdroj označil jako ukončený; když zápas z nabídky zmizí bez potvrzení, uvidíš „Výsledek nepotvrzen“ s posledním známým skóre. Program dalších dnů najdeš v <a href="/program/">programu přenosů</a>, zápasy jednotlivých soutěží na stránkách {d.comps.map((c, i) => <>{i ? ' a ' : ''}<a href={compPath(c)}>{compName(c)}</a></>)}.</p>
+      <p>U budoucích zápasů ukazujeme čas výkopu, skóre až po začátku. „Konec“ píšeme jen u zápasu, který zdroj označil jako ukončený; když zápas z nabídky zmizí bez potvrzení, ověříme výsledek přes API-Football; do té doby uvidíš „Výsledek nepotvrzen“ s posledním známým skóre. Program dalších dnů najdeš v <a href="/program/">programu přenosů</a>, zápasy jednotlivých soutěží na stránkách {d.comps.map((c, i) => <>{i ? ' a ' : ''}<a href={compPath(c)}>{compName(c)}</a></>)}.</p>
     </section>
   </div>
 </Base>

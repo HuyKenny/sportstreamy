@@ -1,6 +1,6 @@
 import { handle } from '@astrojs/cloudflare/handler';
 import type { Env as AppEnv } from './lib/types';
-import { refreshLive, refreshUpcoming, refreshResults } from './lib/refresh';
+import { refreshLive, refreshUpcoming, refreshApiFootball } from './lib/refresh';
 import { SECURITY_HEADERS } from './lib/security';
 
 /** Paths that are never cached: tracked redirects, live score feed, Cloudflare internals. */
@@ -65,13 +65,8 @@ export default {
     const env = rawEnv as AppEnv;
     // "*/15" also fires on the same minute as "*/3": run the heavier job there and let it include a live pass.
     const heavy = ev.cron === '*/15 * * * *';
-    // Results pilot: per-minute pass, a no-op unless results sync is on and a pilot match is in its window.
-    if (ev.cron === '* * * * *') {
-      ctx.waitUntil(refreshResults(env, new Date(ev.scheduledTime)).catch((e) => console.error('results refresh failed', String(e))));
-      return;
-    }
     ctx.waitUntil(
-      (heavy ? Promise.all([refreshLive(env), refreshUpcoming(env)]) : refreshLive(env))
+      (heavy ? Promise.all([refreshLive(env), refreshUpcoming(env), refreshApiFootball(env)]) : refreshLive(env))
         .catch((e) => console.error('refresh failed', String(e))),
       // IndexNow is sent from the Raspberry cron (bin/indexnow.py sportstreamy --sitemap): api.indexnow.org
       // throttles Cloudflare's shared egress IPs, so a ping from here gets 403/429.

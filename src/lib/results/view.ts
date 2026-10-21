@@ -3,6 +3,7 @@ import type { ResultRow } from './store';
 import { isFinal, isInPlay } from './status';
 import { competitionBySlug } from '../competitions';
 import { SPORT_BY_ID } from '../sports';
+import type { Detail, Meeting } from './afdata';
 
 export const resultPath = (r: Pick<ResultRow, 'slug'>) => `/zapas/${r.slug}/`;
 
@@ -56,3 +57,31 @@ export function byComp(rows: ResultRow[], comps: string[]): { comp: string; rows
 
 /** The existing competition page (/fotbal-online/chance-liga/) — results live there, not on a second copy. */
 export const compPath = (slug: string) => `/${SPORT_BY_ID.get(competitionBySlug(slug)?.sp ?? 16)?.slug ?? 'fotbal'}-online/${slug}/`;
+
+export const STAT_LABELS: Record<string, string> = {
+  'Ball Possession': 'Držení míče', 'Total Shots': 'Střely', 'Shots on Goal': 'Střely na branku', 'Corner Kicks': 'Rohy',
+  Fouls: 'Fauly', Offsides: 'Ofsajdy', 'Yellow Cards': 'Žluté karty', 'Red Cards': 'Červené karty',
+  'Goalkeeper Saves': 'Zákroky brankáře', expected_goals: 'Očekávané góly (xG)',
+};
+export const EVENT_LABELS: Record<Detail['events'][number]['kind'], string> = {
+  goal: 'Gól', own: 'Vlastní gól', pen: 'Gól z penalty', missed: 'Neproměněná penalta', red: 'Červená karta', yellow: 'Žlutá karta',
+};
+
+/** Stored api-football details, or null when there are none (never an empty shell). */
+export function detailOf(r: Pick<ResultRow, 'stats'>): Detail | null {
+  try {
+    const d = JSON.parse(r.stats ?? 'null');
+    return d && !d.none && (d.events?.length || d.stats?.length || d.lineups?.length) ? (d as Detail) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function meetingsOf(r: { h2h?: string | null }): Meeting[] {
+  try {
+    const m = JSON.parse(r.h2h ?? 'null');
+    return Array.isArray(m) ? m : [];
+  } catch {
+    return [];
+  }
+}

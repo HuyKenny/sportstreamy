@@ -10,6 +10,7 @@ import OddsBlock from '../../components/OddsBlock.astro';
 import Icon from '../../components/Icon.astro';
 import GonePage from '../../components/GonePage.astro';
 import ResultRow from '../../components/ResultRow.astro';
+import MatchFacts from '../../components/MatchFacts.astro';
 import { getEnv, view, sportCounts, leagues } from '../../lib/page';
 import { hhmm, longDay, dayLabel, shortDay } from '../../lib/text';
 import { matchTitle, matchPath, sportOf, goPath, sportPath, leaguePathOf } from '../../lib/url';
@@ -19,7 +20,7 @@ import { previewFor, previewPath } from '../../lib/nahledy';
 import { breadcrumbLd, faqLd, sportsEventLd, clip } from '../../lib/seo';
 import { resultsConfig, resultsDb } from '../../lib/results/config';
 import { rowByExt, recentOfComp, meetings } from '../../lib/results/store';
-import { asMatch, resultPath, scoreText, detailText, isStale } from '../../lib/results/view';
+import { asMatch, resultPath, scoreText, detailText, isStale, meetingsOf } from '../../lib/results/view';
 import { isFinal, isInPlay, statusLabel } from '../../lib/results/status';
 
 export const prerender = false;
@@ -107,7 +108,7 @@ const ttl = over ? 3600 : state === 'live' ? 30 : 60;
             {detail ? <p class="rb-meta">{detail[0].toUpperCase()}{detail.slice(1)}</p> : null}
             {r.status === 'unconfirmed' ? <p class="rb-meta">Zápas zmizel z nabídky zdroje bez potvrzeného konce. {sc ? 'Skóre je poslední známé, ne nutně konečné.' : ''}</p> : null}
             {r.status === 'postponed' ? <p class="rb-meta">Zápas je odložený. Nový termín doplníme, jakmile ho zdroj zveřejní.</p> : null}
-            <p class="rb-meta">{final ? 'Výsledek potvrzen' : 'Poslední aktualizace'} {hhmm(final && r.final_at ? r.final_at : r.checked_at)} · zdroj Tipsport{stale ? ' · data mohou být zastaralá' : ''}</p>
+            <p class="rb-meta">{final ? 'Výsledek potvrzen' : 'Poslední aktualizace'} {hhmm(final && r.final_at ? r.final_at : r.checked_at)} · zdroj {r.result_src === 'apifootball' ? 'API-Football' : 'Tipsport'}{stale ? ' · data mohou být zastaralá' : ''}</p>
           </section>
         ) : null}
         {over ? (
@@ -135,7 +136,8 @@ const ttl = over ? 3600 : state === 'live' ? 30 : 60;
 
         {over ? null : <OddsBlock m={m} />}
 
-        {h2h.length ? (<section class="sec"><div class="sec-head"><h2>Dostupné vzájemné zápasy</h2></div><div class="rows">{h2h.map((x) => <ResultRow r={x} now={now} staleMs={staleMs} showComp showDay />)}</div><p class="muted" style="font-size:.84rem;margin-top:6px">Jen zápasy, které máme v archivu (od spuštění výsledků) – nejde o kompletní historii.</p></section>) : null}
+        {r ? <MatchFacts r={r} /> : null}
+        {h2h.length && !(r && meetingsOf(r).length) ? (<section class="sec"><div class="sec-head"><h2>Dostupné vzájemné zápasy</h2></div><div class="rows">{h2h.map((x) => <ResultRow r={x} now={now} staleMs={staleMs} showComp showDay />)}</div><p class="muted" style="font-size:.84rem;margin-top:6px">Jen zápasy, které máme v archivu (od spuštění výsledků) – nejde o kompletní historii.</p></section>) : null}
         {otherResults.length ? (<section class="sec"><div class="sec-head"><h2>Další výsledky · {lgName}</h2><a href={`/vysledky/?soutez=${r!.comp}`}>Výsledky ›</a></div><div class="rows">{otherResults.map((x) => <ResultRow r={x} now={now} staleMs={staleMs} showDay />)}</div></section>) : null}
         {same.length ? (<section class="sec"><div class="sec-head"><h2>Další zápasy · {lgName}</h2><a href={leaguePathOf(m)}>Vše ›</a></div><Rows items={same} now={now} placement={over ? 'detail-final-same' : 'detail-same'} groupByDay /></section>) : null}
         {sameSport.length && !over ? (<section class="sec"><div class="sec-head"><h2>Další {sport.genitive === 'fotbalu' ? 'fotbal' : sport.name.toLowerCase()} živě a dnes</h2><a href={sportPath(sport.slug)}>{sport.name} online ›</a></div><Rows items={sameSport} now={now} placement="detail-sport" /></section>) : null}

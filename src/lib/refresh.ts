@@ -3,8 +3,7 @@ import { liveMatches, login, toMatch, upcomingMatches, odds } from './tipsport';
 import { competitionOf } from './competitions';
 import { SPORT_BY_ID } from './sports';
 import { resultsConfig, resultsSyncDb } from './results/config';
-import { syncTipsportLive, syncTipsportSchedule } from './results/sync';
-import { inMatchWindow } from './results/store';
+import { syncTipsportLive, syncTipsportSchedule, syncApiFootball } from './results/sync';
 
 /** Season-long markets ("Chance Liga 2026/2027 – celkově", "po 30. kole", top scorer…) are not matches. */
 const OUTRIGHT = /celkov|dlouhodob|vítěz skupiny|vítěz soutěže|po \d+\.\s?kol|nejlepší střel|sestup|postup/i;
@@ -52,13 +51,14 @@ export async function refreshUpcoming(env: Env): Promise<number> {
 
 
 /**
- * Every minute, results pilot only: Tipsport keeps an ended match in the live feed for ~1 minute (measured 21. 10.:
- * median 60 s, max 4 min), so the 3-minute pass alone would miss many final whistles. This pass runs only while a pilot
- * match is about to start or in play (one D1 read otherwise) and on minutes the 3-minute job does not cover.
+ * Every 15 min, results pilot: api-football fills what the Tipsport feed does not give (confirmed final results when
+ * the short-lived `ended` flag was missed, half-time/extra-time/penalties, statistics, lineups, head-to-head).
+ * Tipsport calls stay exactly as before (Tipsport's condition for using its data).
  */
-export async function refreshResults(env: Env, now = new Date()): Promise<void> {
+export async function refreshApiFootball(env: Env): Promise<void> {
   const db = resultsSyncDb(env);
-  if (!db || now.getUTCMinutes() % 3 === 0 || !(await inMatchWindow(db, now.getTime()))) return;
-  const s = await login('partners.tipsport.cz', env.TIPSPORT_CLIENT_ID, env.TIPSPORT_CLIENT_SECRET);
-  await syncTipsportLive(db, await liveMatches(s), resultsConfig(env));
+  const cfg = resultsConfig(env);
+  if (!db || !cfg.apiFootball || !env.APISPORTS_KEY) return;
+  const r = await syncApiFootball(db, cfg, { key: env.APISPORTS_KEY, cap: cfg.cap, floor: cfg.reserve });
+  if (r.error) console.warn('api-football sync', r.error);
 }

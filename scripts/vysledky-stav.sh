@@ -11,7 +11,7 @@ SELECT job, datetime(MAX(finished)/1000,'unixepoch') AS last_ok_utc FROM sync_ru
 SELECT job, datetime(started/1000,'unixepoch') AS at_utc, error FROM sync_runs WHERE ok = 0 ORDER BY started DESC LIMIT 3;
 SELECT provider, day, used, cap, remaining_reported FROM api_usage ORDER BY day DESC LIMIT 4;
 SELECT COUNT(*) AS matches, SUM(review) AS review,
-  SUM(CASE WHEN status IN ('live','ht','et','pens') AND checked_at < $((now_ms - stale_ms)) THEN 1 ELSE 0 END) AS stale_live,
+  SUM(CASE WHEN status IN ('live','ht','bt','et','pens') AND checked_at < $((now_ms - stale_ms)) THEN 1 ELSE 0 END) AS stale_live,
   SUM(CASE WHEN status = 'unconfirmed' THEN 1 ELSE 0 END) AS unconfirmed,
   SUM(CASE WHEN status IN ('ft','aet','pen') THEN 1 ELSE 0 END) AS final FROM matches;
 SELECT ext_id, home, away, comp, datetime(start_utc/1000,'unixepoch') AS start_utc FROM matches WHERE review = 1 ORDER BY start_utc DESC LIMIT 10;"

@@ -1,12 +1,12 @@
 /** Our match states. The provider's own wording is kept in status_raw; anything we cannot classify is 'unknown'. */
 export type Status =
-  | 'scheduled' | 'live' | 'ht' | 'et' | 'pens'
+  | 'scheduled' | 'live' | 'ht' | 'bt' | 'et' | 'pens'
   | 'ft' | 'aet' | 'pen'
   | 'postponed' | 'interrupted' | 'cancelled'
   | 'unknown' | 'unconfirmed';
 
 export const FINAL: Status[] = ['ft', 'aet', 'pen'];
-export const IN_PLAY: Status[] = ['live', 'ht', 'et', 'pens'];
+export const IN_PLAY: Status[] = ['live', 'ht', 'bt', 'et', 'pens'];
 
 export const isFinal = (s: string) => (FINAL as string[]).includes(s);
 export const isInPlay = (s: string) => (IN_PLAY as string[]).includes(s);
@@ -26,6 +26,7 @@ export function statusLabel(s: string, raw?: string | null): string {
     case 'scheduled': return 'Nezačalo';
     case 'live': return 'Probíhá';
     case 'ht': return 'Poločas';
+    case 'bt': return 'Přestávka před prodloužením / penaltami';
     case 'et': return 'Prodloužení';
     case 'pens': return 'Penalty';
     case 'ft': return 'Konec';
@@ -44,6 +45,7 @@ export function statusShort(s: string): string {
   switch (s) {
     case 'live': return 'Živě';
     case 'ht': return 'Poločas';
+    case 'bt': return 'Přest.';
     case 'et': return 'Prodl.';
     case 'pens': return 'Penalty';
     case 'ft': return 'Konec';

@@ -77,13 +77,15 @@ export function classify(raw: { ended?: boolean; statusOffer?: string | null; ti
   if (/přeruš|abandon/i.test(t)) return 'interrupted';
   if (raw.ended) return PEN.test(t) ? 'pen' : ET.test(t) ? 'aet' : 'ft';
   if (raw.dateStart > now) return 'scheduled';
+  // Seen 21. 10.: "Konec základní hrací doby - 90.min (…)", "Ukončené prodloužení - 120.min (…)".
+  if (/konec základní|ukončené prodl/i.test(t)) return 'bt';
   if (/poločas|přestávk/i.test(t)) return 'ht';
   if (PEN.test(t)) return 'pens';
   if (ET.test(t)) return 'et';
   if (/\d\.\s?pol\.|\d+\.\s?min/i.test(t) || /^\d{1,3}'(\+\d+)?$/.test(String(raw.time ?? ''))) return 'live';
   // Past kick-off time but Tipsport still counts down ("Za 5 minut"): a late start, not a result.
   // Same for a bare kick-off time ("21:00").
-  if (/^za\s+\d+/i.test(t) || /^\d{1,2}:\d{2}$/.test(t)) return 'scheduled';
+  if (/^za\s+(\d+|okamžik)/i.test(t) || /^\d{1,2}:\d{2}$/.test(t)) return 'scheduled';
   return 'unknown';
 }
 
@@ -132,10 +134,10 @@ export function fromTipsport(raw: Raw, at: number, comps: string[]): Obs | null 
 }
 
 /** api-football fixture status codes (documentation v3, "Fixtures → status"). */
-const AF_STATUS: Record<string, Status> = {
+export const AF_STATUS: Record<string, Status> = {
   TBD: 'scheduled', NS: 'scheduled',
   '1H': 'live', '2H': 'live', LIVE: 'live',
-  HT: 'ht', BT: 'ht',
+  HT: 'ht', BT: 'bt',
   ET: 'et', P: 'pens',
   FT: 'ft', AET: 'aet', PEN: 'pen',
   PST: 'postponed', SUSP: 'interrupted', INT: 'interrupted',

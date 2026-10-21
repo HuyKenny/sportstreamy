@@ -1,0 +1,42 @@
+---
+import type { ResultRow } from '../lib/results/store';
+import { detailOf, meetingsOf, STAT_LABELS, EVENT_LABELS } from '../lib/results/view';
+import { shortDay } from '../lib/text';
+/** api-football details of one match: only the parts that have data are rendered. */
+interface Props { r: ResultRow }
+const { r } = Astro.props;
+const d = detailOf(r);
+const meet = meetingsOf(r);
+const team = (side: 'h' | 'a') => (side === 'h' ? r.home : r.away);
+const year = (ms: number) => new Date(ms).getUTCFullYear();
+const anything = !!(d || meet.length);
+---
+{d?.events.length ? (
+  <section class="sec"><div class="sec-head"><h2>Góly a karty</h2></div>
+    <ol class="rows evs">
+      {d.events.map((e) => <li class:list={['ev', e.side === 'a' && 'b']}><span class="ev-m">{e.min}</span><span class="ev-k">{EVENT_LABELS[e.kind]}</span><span class="ev-p">{e.player}{e.assist ? <small> (asistence {e.assist})</small> : null}<small class="ev-t"> · {team(e.side)}</small></span></li>)}
+    </ol>
+  </section>
+) : null}
+{d?.stats.length ? (
+  <section class="sec"><div class="sec-head"><h2>Statistiky zápasu</h2></div>
+    <table class="mstats">
+      <thead><tr><th scope="col">{r.home}</th><th scope="col"><span class="sr">Statistika</span></th><th scope="col">{r.away}</th></tr></thead>
+      <tbody>{d.stats.map((s) => <tr><td>{s.h ?? '–'}</td><th scope="row">{STAT_LABELS[s.key] ?? s.key}</th><td>{s.a ?? '–'}</td></tr>)}</tbody>
+    </table>
+  </section>
+) : null}
+{d?.lineups.length ? (
+  <section class="sec"><div class="sec-head"><h2>Základní sestavy</h2></div>
+    <div class="lineups">
+      {d.lineups.map((l) => <div class="lu"><h3>{team(l.side)}{l.formation ? <small> · {l.formation}</small> : null}</h3><ol>{l.xi.map((p) => <li>{p}</li>)}</ol>{l.coach ? <p class="muted">Trenér: {l.coach}</p> : null}</div>)}
+    </div>
+  </section>
+) : null}
+{meet.length ? (
+  <section class="sec"><div class="sec-head"><h2>Vzájemné zápasy</h2></div>
+    <div class="rows">{meet.map((x) => <div class="row h2h"><div class="when">{year(x.date)}<small>{shortDay(x.date)}</small></div><div style="min-width:0"><div class="meta"><span class="lg">{x.league}</span></div><span class="tm">{x.home} – {x.away}</span></div><div class="act"><div class="score">{x.sh}:{x.sa}</div></div></div>)}</div>
+    <p class="muted" style="font-size:.84rem;margin-top:6px">Posledních {meet.length} odehraných vzájemných zápasů, které eviduje API-Football (názvy týmů podle zdroje).</p>
+  </section>
+) : null}
+{anything ? <p class="muted" style="font-size:.8rem">Góly, statistiky, sestavy a vzájemné zápasy: API-Football{d ? ` · načteno ${new Date(d.at).toLocaleString('cs-CZ', { timeZone: 'Europe/Prague', day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })}` : ''}.</p> : null}
