@@ -205,7 +205,7 @@ const fakeFetch = (...answers: (Response | Error)[]) => {
   return f as unknown as typeof fetch & { mock: { calls: unknown[][] } };
 };
 const json = (body: unknown, status = 200, headers: Record<string, string> = {}) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', ...headers } });
-const opts = (f: typeof fetch, cap = 5) => ({ key: 'SECRET-KEY-123', cap, floor: 20, fetch: f, sleep: async () => {}, now: () => T0 });
+const opts = (f: typeof fetch, cap = 5) => ({ key: 'SECRET-KEY-123', cap, floor: 20, fetch: f, sleep: async () => {}, now: () => T0, gapMs: 0 });
 
 describe('api-football client', () => {
   it('stops at the daily budget before calling the provider', async () => {

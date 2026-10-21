@@ -101,7 +101,7 @@ export function syncApiFootball(db: Db, cfg: ResultsConfig, o: AfOptions, at = D
       // Optional data only while `keep` requests stay free for result checks later in the day.
       const room = async () => (await spare(db, 'apifootball', at, o.cap, o.floor)) > cfg.keep;
       try {
-        for (const row of await needDetail(db, cfg.comps, cfg.priority, at, 8)) {
+        for (const row of await needDetail(db, cfg.comps, cfg.priority, at, 6)) {
           if (!(await room())) break;
           const fx = await fixtureDetail(db, row.af_id!, o);
           if (!fx) { await saveStats(db, row.id, JSON.stringify({ none: true, at })); continue; }
@@ -111,12 +111,13 @@ export function syncApiFootball(db: Db, cfg: ResultsConfig, o: AfOptions, at = D
           // Stored even when empty, so a match without published details is not asked for again; unfinished → retry.
           if (done) await saveStats(db, row.id, JSON.stringify(detailFrom(fx, at) ?? { none: true, at }));
         }
-        for (const row of await needH2h(db, cfg.comps, cfg.priority, at, 8)) {
+        for (const row of await needH2h(db, cfg.comps, cfg.priority, at, 6)) {
           if (!(await room())) break;
           await saveH2h(db, row.id, JSON.stringify(meetingsFrom(await headToHead(db, row.af_h, row.af_a, o))));
         }
       } catch (e) {
-        if (!(e instanceof QuotaError)) throw e; // optional data stops quietly at the budget
+        // Optional data stops quietly at the budget or a persistent rate limit; results are already stored.
+        if (!(e instanceof QuotaError) && !/ratelimit|too many/i.test(String(e))) throw e;
       }
     }
     return { seen, written, review };

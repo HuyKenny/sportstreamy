@@ -91,12 +91,13 @@ Ligy api-football jsem ověřil přes `/leagues?id=` 21. 10., všechny mají akt
 **api-football** v `*/15`:
 - `RESULTS_API_CAP=95` za UTC den, `RESULTS_API_RESERVE=3` (pod tolik hlášených zbývajících nejdeme).
 - `RESULTS_API_KEEP=25` dotazů zůstává pro kontrolu výsledků, nepovinná data se nad touto hranicí zastaví.
+- **Limit 10 dotazů za minutu:** dotazy jdou nejméně 6,5 s po sobě, jeden běh trvá nejvýš ~1,5 min. Když limit přesto narazí, počká se celou minutu a nepovinná data se odloží do dalšího běhu.
 
 | Úloha | Kdy | Dotazy |
 |---|---|---|
 | seznam zápasů dne (`?date=`) | spárování: den s nespárovaným zápasem, max. 1× za 8 h; výsledky: zápas 100+ min po výkopu, který u nás není konečný, max. 1× za 30 min | 1 na den, pokryje všechny ligy |
-| detail (`?id=`) | ukončený spárovaný zápas 2–72 h po výkopu, nejvýš 8 za běh; priority první | 1 na zápas, zároveň potvrdí výsledek |
-| H2H | zápas od −3 h do +7 dní, když jsou oba týmy spárované (stačí ID týmů, dá se tedy rozložit do klidných dnů), nejvýš 8 za běh; priority první | 1 na zápas |
+| detail (`?id=`) | ukončený spárovaný zápas 2–72 h po výkopu, nejvýš 6 za běh; priority první | 1 na zápas, zároveň potvrdí výsledek |
+| H2H | zápas od −3 h do +7 dní, když jsou oba týmy spárované (stačí ID týmů, dá se tedy rozložit do klidných dnů), nejvýš 6 za běh; priority první | 1 na zápas |
 
 - **Objem:** ~130 zápasů týdně (týden 21.–27. 10.: st 10, čt 36, pá 11, so 42, ne 28, po 1, út 3), tedy ~130 detailů a ~130 H2H týdně plus seznamy dnů.
 - **Nejvytíženější den** (sobota, 42 zápasů):
