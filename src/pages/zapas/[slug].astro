@@ -20,6 +20,7 @@ import { previewFor, previewPath } from '../../lib/nahledy';
 import { breadcrumbLd, faqLd, sportsEventLd, clip } from '../../lib/seo';
 import { resultsConfig, resultsDb } from '../../lib/results/config';
 import { rowByExt, recentOfComp, meetings } from '../../lib/results/store';
+import { teamIds } from '../../lib/results/afstore';
 import { asMatch, resultPath, scoreText, detailText, isStale, meetingsOf } from '../../lib/results/view';
 import { isFinal, isInPlay, statusLabel } from '../../lib/results/status';
 
@@ -57,6 +58,9 @@ const same = m ? pool.filter((x) => x.sp === m.sp && competitionSlug(x.sp, x.lg)
 const sameSport = m ? pool.filter((x) => x.sp === m.sp && !same.includes(x)).slice(0, 8 - Math.min(same.length, 4)) : [];
 const otherResults = r && rdb ? (await recentOfComp(rdb, r.comp, now, 7)).filter((x) => x.ext_id !== r.ext_id).slice(0, 6) : [];
 const h2h = r && rdb ? await meetings(rdb, r.home_ext, r.away_ext, r.ext_id) : [];
+// Team logos from API-Football's CDN (identification use, allowed by its terms), only for linked teams.
+const logo = r && rdb ? await teamIds(rdb, r) : {};
+const logoSrc = (id?: string) => (id ? `https://media.api-sports.io/football/teams/${id}.png` : '');
 const o = over ? undefined : m?.o?.t;
 const title = m ? matchTitle(m) : '';
 const lgName = comp?.name ?? m?.lg ?? '';
@@ -101,9 +105,9 @@ const ttl = over ? 3600 : state === 'live' ? 30 : 60;
           <section class="result-box" aria-label="Výsledek a stav zápasu" data-rid={r.ext_id}>
             <div class="rb-st">{statusLabel(r.status, r.status_raw)}{isInPlay(r.status) && r.minute_raw ? ` · ${r.minute_raw}` : ''}</div>
             <div class="rb-main">
-              <span class="rb-team">{r.home}</span>
+              <span class="rb-team">{logo.h ? <img class="rb-logo" src={logoSrc(logo.h)} width="36" height="36" alt="" loading="lazy" decoding="async" /> : null}{r.home}</span>
               <span class="rb-sc" aria-label={sc ? `Skóre ${sc}` : 'Skóre není k dispozici'}>{sc ?? '–'}</span>
-              <span class="rb-team b">{r.away}</span>
+              <span class="rb-team b">{logo.a ? <img class="rb-logo" src={logoSrc(logo.a)} width="36" height="36" alt="" loading="lazy" decoding="async" /> : null}{r.away}</span>
             </div>
             {detail ? <p class="rb-meta">{detail[0].toUpperCase()}{detail.slice(1)}</p> : null}
             {r.status === 'unconfirmed' ? <p class="rb-meta">Zápas zmizel z nabídky zdroje bez potvrzeného konce. {sc ? 'Skóre je poslední známé, ne nutně konečné.' : ''}</p> : null}

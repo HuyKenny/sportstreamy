@@ -4,7 +4,7 @@ import { fromTipsport, type Raw, type Obs } from './normalize';
 import { checkTeams, upsertState, upsertSchedule, markUnconfirmed } from './store';
 import { runJob, type RunResult } from './budget';
 import { AF_LEAGUE, fixturesOnDate, fixtureDetail, headToHead, QuotaError, type AfOptions } from './apifootball';
-import { dueDays, markFetched, slotRows, linksFor, pair, applyFixture, needDetail, needH2h, saveStats, saveH2h, spare } from './afstore';
+import { AF_DONE, dueDays, markFetched, slotRows, linksFor, pair, applyFixture, needDetail, needH2h, saveStats, saveH2h, spare } from './afstore';
 import { nameScore, detailFrom, meetingsFrom } from './afdata';
 
 const LEASE = 150_000; // shorter than the */3 cron interval
@@ -39,8 +39,6 @@ export function syncTipsportSchedule(db: Db, raw: Raw[], cfg: ResultsConfig, at 
 }
 
 const LEAGUE_COMP = new Map(Object.entries(AF_LEAGUE).map(([comp, id]) => [id, comp]));
-/** Optional requests (details, H2H) only while this many stay spare after our cap and the provider floor. */
-const OPTIONAL_SPARE = 15;
 
 /**
  * Pair one day's api-football fixtures with our Tipsport matches and apply their results.
@@ -81,8 +79,8 @@ export async function pairAndApply(db: Db, fixtures: Raw[], comps: string[], at:
 
 /**
  * api-football as the second source, run from the 15-minute cron: fixture lists of the days that need them
- * (pairing, confirming results Tipsport may have missed), then — while the budget allows — details of finished
- * matches and head-to-head of upcoming ones. Results first, optional data last; every request is reserved.
+ * (pairing, confirming results Tipsport may have missed), then — while `keep` requests stay free — details of
+ * finished matches (which also confirm the result) and head-to-head of upcoming ones. Results first, optional data last; every request is reserved.
  */
 export function syncApiFootball(db: Db, cfg: ResultsConfig, o: AfOptions, at = Date.now()): Promise<RunResult> {
   return runJob(db, 'apifootball', at, 10 * 60_000, async () => {
@@ -98,21 +96,22 @@ export function syncApiFootball(db: Db, cfg: ResultsConfig, o: AfOptions, at = D
       review += r.ambiguous;
     }
     if (cfg.stats) {
+      // Optional data only while `keep` requests stay free for result checks later in the day.
+      const room = async () => (await spare(db, 'apifootball', at, o.cap, o.floor)) > cfg.keep;
       try {
-        for (const row of await needDetail(db, cfg.comps, at, 6)) {
-          if ((await spare(db, 'apifootball', at, o.cap, o.floor)) < OPTIONAL_SPARE) break;
+        for (const row of await needDetail(db, cfg.comps, cfg.priority, at, 8)) {
+          if (!(await room())) break;
           const fx = await fixtureDetail(db, row.af_id!, o);
-          // Stored even when empty, so a match without published details is not asked for again and again.
-          await saveStats(db, row.id, JSON.stringify(detailFrom(fx ?? {}, at) ?? { none: true, at }));
+          if (!fx) { await saveStats(db, row.id, JSON.stringify({ none: true, at })); continue; }
+          // The same response confirms or corrects the result.
+          if (await applyFixture(db, row, fx, at)) written++;
+          const done = AF_DONE.includes(String((fx as Raw).fixture?.status?.short ?? ''));
+          // Stored even when empty, so a match without published details is not asked for again; unfinished → retry.
+          if (done) await saveStats(db, row.id, JSON.stringify(detailFrom(fx, at) ?? { none: true, at }));
         }
-        const links = new Map<string, string>();
-        for (const row of await needH2h(db, cfg.comps, at, 6)) {
-          if ((await spare(db, 'apifootball', at, o.cap, o.floor)) < OPTIONAL_SPARE) break;
-          for (const [k, v] of await linksFor(db, [row.home_ext, row.away_ext])) links.set(k, v);
-          const a = row.home_ext ? links.get(row.home_ext) : undefined;
-          const b = row.away_ext ? links.get(row.away_ext) : undefined;
-          if (!a || !b) continue;
-          await saveH2h(db, row.id, JSON.stringify(meetingsFrom(await headToHead(db, a, b, o))));
+        for (const row of await needH2h(db, cfg.comps, cfg.priority, at, 8)) {
+          if (!(await room())) break;
+          await saveH2h(db, row.id, JSON.stringify(meetingsFrom(await headToHead(db, row.af_h, row.af_a, o))));
         }
       } catch (e) {
         if (!(e instanceof QuotaError)) throw e; // optional data stops quietly at the budget

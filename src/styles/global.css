@@ -479,3 +479,5 @@ a, button, .btn, .chip, summary { touch-action: manipulation; }
 .lu ol { margin: 0; padding-left: 1.3em; } .lu li { overflow-wrap: anywhere; }
 @media (max-width: 520px) { .lineups { grid-template-columns: 1fr; } }
 .row.h2h .tm::after { content: none; }
+.result-box .rb-logo { display: block; width: 36px; height: 36px; object-fit: contain; margin-bottom: 6px; }
+.result-box .rb-team.b .rb-logo { margin-left: auto; }

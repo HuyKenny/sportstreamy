@@ -389,7 +389,7 @@ describe('api-football as second source', () => {
     const db = testDb();
     await syncTipsportSchedule(db, [tip()], cfg, T0 - 86_400_000);
     await db.prepare('UPDATE matches SET start_utc = ?').bind(T0 - 3 * 3600_000).run();
-    const f = fakeFetch(json({ errors: [], response: [afx({ id: 501, short: 'FT', goals: [0, 0], ts: T0 - 3 * 3600_000 })] }, 200, { 'x-ratelimit-requests-remaining': '30' }));
+    const f = fakeFetch(json({ errors: [], response: [afx({ id: 501, short: 'FT', goals: [0, 0], ts: T0 - 3 * 3600_000 })] }, 200, { 'x-ratelimit-requests-remaining': '20' }));
     await syncApiFootball(db, { ...cfg, apiFootball: true, stats: true }, opts(f, 80), T0);
     expect((await rows(db))[0]).toMatchObject({ status: 'ft', sh: 0, sa: 0, stats: null });
     expect(f.mock.calls).toHaveLength(1);
@@ -398,5 +398,17 @@ describe('api-football as second source', () => {
     expect(detailFrom({ teams: { home: { id: 1 } }, events: [], statistics: [], lineups: [] }, T0)).toBeNull();
     const m = meetingsFrom([{ fixture: { timestamp: 1, status: { short: 'FT' } }, goals: { home: 1, away: 0 }, teams: { home: { name: 'A' }, away: { name: 'B' } }, league: { name: 'L' } }, { fixture: { timestamp: 2, status: { short: 'NS' } }, goals: { home: null, away: null }, teams: {}, league: {} }]);
     expect(m).toHaveLength(1);
+  });
+  it('H2H uses linked team ids up to 7 days ahead, priority competitions first', async () => {
+    const db = testDb();
+    await syncTipsportSchedule(db, [
+      tip({ id: 1, nameCompetition: '1. španělská liga', homeParticipantId: 31, visitingParticipantId: 32, homeParticipant: 'Real Madrid', visitingParticipant: 'Barcelona', dateStart: T0 + 2 * 86_400_000 }),
+      tip({ id: 2, dateStart: T0 + 5 * 86_400_000 }),
+      tip({ id: 3, homeParticipantId: 41, visitingParticipantId: 42, homeParticipant: 'Teplice', visitingParticipant: 'Zlín', dateStart: T0 + 9 * 86_400_000 }),
+    ], cfg, T0);
+    for (const [t, a] of [['11', '560'], ['12', '561'], ['31', '541'], ['32', '529'], ['41', '1'], ['42', '2']]) await db.prepare('INSERT INTO team_link VALUES (?, ?, ?, ?, ?)').bind(t, a, 'x', 'y', T0).run();
+    const { needH2h } = await import('../src/lib/results/afstore');
+    const list = await needH2h(db, cfg.comps, cfg.priority, T0, 8);
+    expect(list.map((r) => [r.ext_id, r.af_h, r.af_a])).toEqual([['2', '560', '561'], ['1', '541', '529']]); // Chance Liga first, 9 days ahead left out
   });
 });

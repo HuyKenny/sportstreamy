@@ -13,8 +13,9 @@ const PILOT = (comps: string[]) => `provider = 'tipsport' AND review = 0 AND com
 
 /**
  * Prague days whose fixture list must be fetched now (one request per day):
- * - pairing: unpaired pilot matches, at most every 6 h per day;
- * - results: matches past ~100 min from kick-off without a final api-football state, at most every 10 min.
+ * - pairing: unpaired matches, at most every 8 h per day;
+ * - results: matches past ~100 min from kick-off that are still not final here (Tipsport missed the end),
+ *   at most every 30 min per day — one request settles all of them.
  * Only days inside the Free plan's window (UTC yesterday…tomorrow).
  */
 export async function dueDays(db: Db, comps: string[], now: number): Promise<string[]> {
@@ -32,8 +33,8 @@ export async function dueDays(db: Db, comps: string[], now: number): Promise<str
     const day = dayKey(m.start_utc);
     if (!allowed.has(day)) continue;
     const last = fetched.get(day) ?? 0;
-    const needPair = !m.af_id && now - last > 6 * 3600_000;
-    const needResult = m.start_utc <= now - 100 * 60_000 && !AF_DONE.includes(m.af_status ?? '') && now - last > 10 * 60_000;
+    const needPair = !m.af_id && now - last > 8 * 3600_000;
+    const needResult = m.start_utc <= now - 100 * 60_000 && !isFinal(m.status) && !AF_DONE.includes(m.af_status ?? '') && now - last > 30 * 60_000;
     if (needPair || needResult) days.add(day);
   }
   return [...days].sort();
@@ -116,22 +117,35 @@ export async function applyFixture(db: Db, row: ResultRow, fx: Raw, at: number):
   return false;
 }
 
-/** Finished, paired matches still without details (newest first). */
-export async function needDetail(db: Db, comps: string[], now: number, limit: number): Promise<ResultRow[]> {
+const prio = (list: string[], col = 'comp') => (list.length ? `CASE WHEN ${col} IN (${q(list)}) THEN 0 ELSE 1 END` : '0');
+
+/** Finished (here), paired matches without details from the last 3 days: priority competitions first, newest first. */
+export async function needDetail(db: Db, comps: string[], priority: string[], now: number, limit: number): Promise<ResultRow[]> {
   const r = await db
-    .prepare(`SELECT * FROM matches WHERE ${PILOT(comps)} AND af_id IS NOT NULL AND af_status IN ('FT','AET','PEN') AND stats IS NULL AND start_utc >= ? ORDER BY start_utc DESC LIMIT ?`)
-    .bind(now - 48 * 3600_000, limit)
+    .prepare(`SELECT * FROM matches WHERE ${PILOT(comps)} AND af_id IS NOT NULL AND status IN (${q(FINAL)}) AND stats IS NULL AND start_utc BETWEEN ? AND ? ORDER BY ${prio(priority)}, start_utc DESC LIMIT ?`)
+    .bind(now - 72 * 3600_000, now - 2 * 3600_000, limit)
     .all<ResultRow>();
   return r.results;
 }
 
-/** Paired matches from 3 h ago to 36 h ahead without head-to-head, soonest first. */
-export async function needH2h(db: Db, comps: string[], now: number, limit: number): Promise<ResultRow[]> {
+/**
+ * Matches from 3 h ago to 7 days ahead without head-to-head whose both teams are already linked to api-football
+ * (the H2H endpoint needs team ids only, so it can be spread over quiet days). Priority competitions, soonest first.
+ */
+export async function needH2h(db: Db, comps: string[], priority: string[], now: number, limit: number): Promise<(ResultRow & { af_h: string; af_a: string })[]> {
   const r = await db
-    .prepare(`SELECT * FROM matches WHERE ${PILOT(comps)} AND af_id IS NOT NULL AND h2h IS NULL AND start_utc BETWEEN ? AND ? ORDER BY start_utc LIMIT ?`)
-    .bind(now - 3 * 3600_000, now + 36 * 3600_000, limit)
-    .all<ResultRow>();
+    .prepare(`SELECT m.*, th.af_id AS af_h, ta.af_id AS af_a FROM matches m JOIN team_link th ON th.tip_id = m.home_ext JOIN team_link ta ON ta.tip_id = m.away_ext
+      WHERE m.provider = 'tipsport' AND m.review = 0 AND m.comp IN (${q(comps)}) AND m.h2h IS NULL AND m.start_utc BETWEEN ? AND ?
+      ORDER BY ${prio(priority, 'm.comp')}, m.start_utc LIMIT ?`)
+    .bind(now - 3 * 3600_000, now + 7 * 86_400_000, limit)
+    .all<ResultRow & { af_h: string; af_a: string }>();
   return r.results;
+}
+
+/** api-football team ids of a match's two teams (for logos), when linked. */
+export async function teamIds(db: Db, row: Pick<ResultRow, 'home_ext' | 'away_ext'>): Promise<{ h?: string; a?: string }> {
+  const l = await linksFor(db, [row.home_ext, row.away_ext]);
+  return { h: row.home_ext ? l.get(row.home_ext) : undefined, a: row.away_ext ? l.get(row.away_ext) : undefined };
 }
 
 export const saveStats = (db: Db, id: number, json: string) => db.prepare('UPDATE matches SET stats = ? WHERE id = ?').bind(json, id).run();

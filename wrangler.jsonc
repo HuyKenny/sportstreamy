@@ -29,10 +29,12 @@
     // Results (on since 21. 10. 2026, Kenny approved; Tipsport allowed it with its current call pattern).
     "RESULTS_ENABLED": "on",
     "RESULTS_SYNC": "on",
-    "RESULTS_COMPETITIONS": "chance-liga,premier-league",
+    "RESULTS_COMPETITIONS": "chance-liga,liga-mistru,evropska-liga,konferencni-liga,premier-league,chance-narodni-liga,nike-liga,la-liga,bundesliga,serie-a,ligue-1,championship",
+    "RESULTS_PRIORITY": "chance-liga,premier-league,liga-mistru,evropska-liga,konferencni-liga",
     "RESULTS_APIFOOTBALL": "on",
-    "RESULTS_API_CAP": "80",
-    "RESULTS_API_RESERVE": "20",
+    "RESULTS_API_CAP": "95",
+    "RESULTS_API_RESERVE": "3",
+    "RESULTS_API_KEEP": "25",
     "RESULTS_STALE_MIN": "10",
     "RESULTS_STATS": "on"
   },

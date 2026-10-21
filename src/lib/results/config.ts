@@ -9,6 +9,8 @@ export interface ResultsEnv {
   RESULTS_APIFOOTBALL?: string;
   RESULTS_API_CAP?: string; // our daily ceiling on the shared api-football quota
   RESULTS_API_RESERVE?: string; // never go below this many requests left at the provider (other users of the key)
+  RESULTS_API_KEEP?: string; // requests kept for result checks: optional data (details, H2H) stops above this
+  RESULTS_PRIORITY?: string; // competitions that get details and H2H first
   RESULTS_STALE_MIN?: string;
   RESULTS_STATS?: string;
   RESULTS_ADMIN_TOKEN?: string;
@@ -22,6 +24,8 @@ export interface ResultsConfig {
   apiFootball: boolean;
   cap: number;
   reserve: number;
+  keep: number;
+  priority: string[];
   staleMs: number;
   stats: boolean;
 }
@@ -33,10 +37,12 @@ export function resultsConfig(env: ResultsEnv): ResultsConfig {
   return {
     enabled: on(env.RESULTS_ENABLED) && !!env.RESULTS,
     sync: on(env.RESULTS_SYNC) && !!env.RESULTS,
-    comps: (env.RESULTS_COMPETITIONS ?? 'chance-liga,premier-league').split(',').map((s) => s.trim()).filter(Boolean),
+    comps: (env.RESULTS_COMPETITIONS ?? 'chance-liga,liga-mistru,evropska-liga,konferencni-liga,premier-league,chance-narodni-liga,nike-liga,la-liga,bundesliga,serie-a,ligue-1,championship').split(',').map((s) => s.trim()).filter(Boolean),
     apiFootball: on(env.RESULTS_APIFOOTBALL) && !!env.APISPORTS_KEY,
     cap: num(env.RESULTS_API_CAP, 80),
     reserve: num(env.RESULTS_API_RESERVE, 20),
+    keep: num(env.RESULTS_API_KEEP, 25),
+    priority: (env.RESULTS_PRIORITY ?? 'chance-liga,premier-league,liga-mistru,evropska-liga,konferencni-liga').split(',').map((s) => s.trim()).filter(Boolean),
     staleMs: num(env.RESULTS_STALE_MIN, 10) * 60_000,
     stats: on(env.RESULTS_STATS),
   };

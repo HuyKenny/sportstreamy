@@ -1,7 +1,9 @@
-# Výsledky: provoz (pilot fotbal: Chance Liga + Premier League)
+# Výsledky: provoz (fotbal, 12 sledovaných soutěží)
 
 Stav k 21. 10. 2026:
 - **Živě od 21. 10. 2026 8:27.** Kenny schválil, Tipsport souhlasí za podmínky, že dodržíme jejich volání API.
+- **Od 21. 10. 10:02** všech 12 kurátorovaných fotbalových soutěží: Chance Liga, Chance Národní liga, Liga mistrů, Evropská liga, Konferenční liga, Premier League, Championship, La Liga, Bundesliga, Serie A, Ligue 1 a Niké liga.
+- **Licence api-football:** Kenny potvrdil, že Free plán smíme využívat v plném rozsahu. Klíč používá jen sportstreamy, takže strop je 95 dotazů za den.
 - Kód je v `main`. D1 `sportstreamy-results` (id `8cfeb3e9-5390-4b8d-9331-083ec169eadf`) má migrace 0001 a 0002.
 
 ## Architektura a zdroje
@@ -65,41 +67,50 @@ cron */15 → api-football (jen když je co doplnit) ─────────
 Lokálně: `.dev.vars` (vzor `.dev.vars.example`, bez skutečných hodnot). Hodnoty jsou v `~/ai/credentials/.sportstreamy-credentials.env`.
 
 ## Soutěže a sezóny
-| Soutěž | Tipsport (ověřeno 21. 10.) | api-football (ověřeno 21. 10.) |
-|---|---|---|
-| Chance Liga | „Česká Chance Liga“, ročník `266198` | liga 345 „Czech Liga“, aktuální sezóna 2026 |
-| Premier League | „1. anglická liga“, ročník `265573` (+ WSL v review) | liga 39 „Premier League“, aktuální sezóna 2026 |
+Ligy api-football jsem ověřil přes `/leagues?id=` 21. 10., všechny mají aktuální sezónu 2026:
+
+| Soutěž (slug) | Tipsport | api-football | Priorita |
+|---|---|---|---|
+| chance-liga | Česká Chance Liga | 345 Czech Liga | ano |
+| premier-league | 1. anglická liga (+ WSL v review) | 39 | ano |
+| liga-mistru | Liga mistrů | 2 | ano |
+| evropska-liga | Evropská liga | 3 | ano |
+| konferencni-liga | Konferenční liga | 848 | ano |
+| chance-narodni-liga | Česká Chance Národní Liga | 346 FNL | |
+| nike-liga | 1. slovenská liga | 332 Super Liga | |
+| la-liga, bundesliga, serie-a, ligue-1, championship | 1. španělská / německá / italská / francouzská, 2. anglická | 140 / 78 / 135 / 61 / 40 | |
 
 **Plán Free u api-football (ověřeno dotazy):**
-- `/fixtures?date=` vrací aktuální zápasy, ale **jen pro UTC včera až zítra**.
-- `/fixtures?id=` vrátí góly, karty, statistiky, sestavy i hráče.
-- `/fixtures/headtohead` funguje.
-- **Nefunguje:** `/fixtures?ids=` a sezónní dotazy (`season=2026`, tabulky a střelci jdou jen pro 2022–2024).
-- **Tabulky proto web nezobrazuje.**
+- Funguje: `/fixtures?date=` (aktuální data, jen UTC včera až zítra), `/fixtures?id=` (góly, karty, statistiky, sestavy, hráči) a `/fixtures/headtohead`.
+- Nefunguje: `ids=`, `season=2026` a tabulky.
+- Loga týmů jsou na CDN `media.api-sports.io` a nepočítají se do kvóty.
 
 ## Spotřeba a frekvence
-**Tipsport:** přesně jako před výsledky. Live feed `*/3` = 480 dotazů za den, prematch `*/15` = 96 za den. Výsledky jen čtou tytéž odpovědi.
+**Tipsport:** přesně jako před výsledky (live `*/3` = 480 dotazů za den, prematch `*/15` = 96 za den). Výsledky jen čtou tytéž odpovědi.
 
-**api-football:** běží v `*/15`, strop 80 za den, a nikdy nejde pod 20 zbývajících dotazů hlášených poskytovatelem. Kvóta se resetuje ve 00:00 UTC.
+**api-football** v `*/15`:
+- `RESULTS_API_CAP=95` za UTC den, `RESULTS_API_RESERVE=3` (pod tolik hlášených zbývajících nejdeme).
+- `RESULTS_API_KEEP=25` dotazů zůstává pro kontrolu výsledků, nepovinná data se nad touto hranicí zastaví.
 
 | Úloha | Kdy | Dotazy |
 |---|---|---|
-| seznam zápasů dne (`/fixtures?date=`) | spárování: den s nespárovaným pilotním zápasem, max. 1× za 6 h; výsledky: zápas 100+ min po výkopu bez konečného stavu u api-football, max. 1× za 10 min (v praxi 15) | 1 dotaz pokryje celý den |
-| detail ukončeného zápasu (`/fixtures?id=`) | 1× po skončení, nejvýš 6 za běh, jen při rezervě ≥ 15 | 1 na zápas |
-| vzájemné zápasy (`/fixtures/headtohead`) | 1× pro spárovaný zápas od 3 h před do 36 h po aktuálním čase, nejvýš 6 za běh, jen při rezervě ≥ 15 | 1 na zápas |
+| seznam zápasů dne (`?date=`) | spárování: den s nespárovaným zápasem, max. 1× za 8 h; výsledky: zápas 100+ min po výkopu, který u nás není konečný, max. 1× za 30 min | 1 na den, pokryje všechny ligy |
+| detail (`?id=`) | ukončený spárovaný zápas 2–72 h po výkopu, nejvýš 8 za běh; priority první | 1 na zápas, zároveň potvrdí výsledek |
+| H2H | zápas od −3 h do +7 dní, když jsou oba týmy spárované (stačí ID týmů, dá se tedy rozložit do klidných dnů), nejvýš 8 za běh; priority první | 1 na zápas |
 
-- **Den bez pilotního zápasu:** 0 dotazů.
-- **Běžné kolo:** pátek až pondělí ~18 zápasů, takže 18 detailů a 18 H2H za týden plus ~2–4 seznamy na hrací den.
-- **Nejvytíženější den** (sobota, ~13 zápasů v 5 časových blocích): 2 spárování (dnes a zítra) + ~10 kontrol výsledků + 13 detailů + ~8 H2H nedělních zápasů ≈ **35**. Strop 80 nebude třeba.
-- Při ubývající kvótě jdou nepovinná data (detaily, H2H) pryč první, výsledky zůstanou.
-- **Skutečná frekvence:**
+- **Objem:** ~130 zápasů týdně (týden 21.–27. 10.: st 10, čt 36, pá 11, so 42, ne 28, po 1, út 3), tedy ~130 detailů a ~130 H2H týdně plus seznamy dnů.
+- **Nejvytíženější den** (sobota, 42 zápasů):
+  - ~3 spárování a ~15–20 kontrol výsledků;
+  - zbytek do 95 − 25 = 70 dostanou detaily a H2H, priority první;
+  - co se nestihne, dorovná pondělí a úterý (detaily do 72 h, H2H 7 dní dopředu).
+- **Den bez zápasu:** jen dohánění detailů a H2H, pokud zbývají.
+- **Frekvence:**
   - Živé skóre co 3 min (Tipsport).
-  - Potvrzení konce do ~15 min od posledního hvizdu, nejpozději v běhu 100+ min po výkopu.
-  - Stránka dnešních výsledků si data znovu načte každých 60 s ve viditelné záložce.
-  - HTML cache: přehled 60 s, živý detail 30 s, ukončený detail 3 600 s.
+  - Potvrzení konce do ~15–30 min (api-football), detaily do několika hodin, u nepriorit podle rozpočtu i další den.
 
 ## Omezení bezplatného režimu
 - Tabulky a forma týmů nejsou (Free plán bez sezónních dotazů).
+- Detaily a H2H nepriorit se o víkendu můžou opozdit, kvóta 100 za den nestačí na 42 zápasů najednou.
 - Detaily a H2H jen u spárovaných zápasů. Nespárovaný zápas (neobvyklé jméno ve sdíleném časovém slotu) zůstane bez nich.
 - api-football vrací zápasy jen v okně včera až zítra. Zápas starší než ~1 den, který se nepodařilo potvrdit, zůstane „Výsledek nepotvrzen“.
 - „Vzájemné zápasy“ jsou podle api-football, s anglickými názvy týmů.
@@ -128,6 +139,6 @@ Lokálně: `.dev.vars` (vzor `.dev.vars.example`, bez skutečných hodnot). Hodn
 
 ## Podmínky zveřejnění dat
 1. **Tipsport:** souhlas Kennymu dán (21. 10.) za podmínky, že dodržíme jejich volání API. Proto se počet dotazů na Tipsport nezvýšil, minutový běh se zrušil.
-2. **api-football:** podmínky nedávají licenci ke zveřejnění dat („must be requested by the user from the competent authorities“). Kenny rozhodl, že ho použijeme jako doplněk. Uvádíme zdroj „API-Football“, loga ani fotky z API nepoužíváme.
+2. **api-football:** Kenny potvrdil (21. 10.) povolení využívat Free plán v plném rozsahu. Uvádíme zdroj „API-Football“. Loga týmů na detailu jsou z jejich CDN (podle podmínek „pro identifikaci“), fotky hráčů nepoužíváme.
 3. **Práva lig:** na faktické výsledky se obecně nevztahují. Systematický archiv s detailními statistikami ale může podléhat právům organizátorů. Riziko zůstává na straně provozovatele.
 4. **Strukturovaná data:** `SportsEvent` jen s ověřenými vlastnostmi. Speciální zobrazení v Googlu neslibujeme.

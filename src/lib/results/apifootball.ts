@@ -70,8 +70,21 @@ export async function afGet(db: Db, path: '/status' | '/leagues' | '/fixtures' |
   throw new ProviderError(`gave up after ${attempts} attempts: ${last}`);
 }
 
-/** Our competition slug → api-football league id (verified 21. 10. 2026: 345 "Czech Liga", 39 "Premier League"). */
-export const AF_LEAGUE: Record<string, number> = { 'chance-liga': 345, 'premier-league': 39 };
+/** Our competition slug → api-football league id (each verified with /leagues?id= on 21. 10. 2026, season 2026 current). */
+export const AF_LEAGUE: Record<string, number> = {
+  'chance-liga': 345, // Czech Liga
+  'chance-narodni-liga': 346, // FNL
+  'liga-mistru': 2, // UEFA Champions League
+  'evropska-liga': 3, // UEFA Europa League
+  'konferencni-liga': 848, // UEFA Europa Conference League
+  'premier-league': 39,
+  championship: 40,
+  'la-liga': 140,
+  bundesliga: 78,
+  'serie-a': 135,
+  'ligue-1': 61,
+  'nike-liga': 332, // Slovakia Super Liga
+};
 
 /**
  * All fixtures of one Prague day in one request (no league/season filter — on the Free plan the season filter
