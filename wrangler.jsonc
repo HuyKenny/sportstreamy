@@ -31,7 +31,8 @@
     "RESULTS_SYNC": "on",
     "RESULTS_COMPETITIONS": "chance-liga,liga-mistru,evropska-liga,konferencni-liga,premier-league,chance-narodni-liga,nike-liga,la-liga,bundesliga,serie-a,ligue-1,championship",
     "RESULTS_PRIORITY": "chance-liga,premier-league,liga-mistru,evropska-liga,konferencni-liga",
-    "RESULTS_APIFOOTBALL": "on",
+    // api-football runs from the Raspberry (bin/sportstreamy-af.sh → scripts/af-sync.ts): CF egress IPs hit its rate limit.
+    "RESULTS_APIFOOTBALL": "off",
     "RESULTS_API_CAP": "95",
     "RESULTS_API_RESERVE": "3",
     "RESULTS_API_KEEP": "25",

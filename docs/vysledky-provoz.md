@@ -10,7 +10,7 @@ Stav k 21. 10. 2026:
 ```
 cron */3  → Tipsport live feed (beze změny proti dřívějšku) ─┐
 cron */15 → Tipsport prematch (beze změny) ──────────────────┼→ normalizace → D1 → SSR stránky + /api/vysledky.json
-cron */15 → api-football (jen když je co doplnit) ───────────┘
+Malina cron 5-59/15 → api-football (jen když je co doplnit) ─┘   bin/sportstreamy-af.sh → scripts/af-sync.ts (D1 přes REST)
 ```
 | Zdroj | Co dodává |
 |---|---|
@@ -56,7 +56,7 @@ cron */15 → api-football (jen když je co doplnit) ─────────
 | `RESULTS_ENABLED` | `on` | stránky `/vysledky/`, bloky na homepage a v soutěžích, archiv detailů, sitemap, položka v menu |
 | `RESULTS_SYNC` | `on` | zápisy z cronu do D1 |
 | `RESULTS_COMPETITIONS` | `chance-liga,premier-league` | slugy z `competitions.ts` |
-| `RESULTS_APIFOOTBALL` | `on` | api-football jako doplněk (jen s `APISPORTS_KEY`) |
+| `RESULTS_APIFOOTBALL` | `off` | ve Workeru vypnuto; api-football běží z Maliny (`scripts/af-sync.ts` si ho zapne) |
 | `RESULTS_API_CAP` | `80` | náš denní strop na sdílené kvótě api-football |
 | `RESULTS_API_RESERVE` | `20` | pod tolik zbývajících dotazů u poskytovatele nejdeme (klíč může používat i jiný projekt) |
 | `RESULTS_STALE_MIN` | `10` | po kolika minutách bez potvrzení se u probíhajícího zápasu ukáže varování |
@@ -88,9 +88,10 @@ Ligy api-football jsem ověřil přes `/leagues?id=` 21. 10., všechny mají akt
 ## Spotřeba a frekvence
 **Tipsport:** přesně jako před výsledky (live `*/3` = 480 dotazů za den, prematch `*/15` = 96 za den). Výsledky jen čtou tytéž odpovědi.
 
-**api-football** v `*/15`:
+**api-football** z Maliny (`bin/sportstreamy-af.sh`, cron `5-59/15`, log `tmp/sportstreamy-af.log`):
 - `RESULTS_API_CAP=95` za UTC den, `RESULTS_API_RESERVE=3` (pod tolik hlášených zbývajících nejdeme).
 - `RESULTS_API_KEEP=25` dotazů zůstává pro kontrolu výsledků, nepovinná data se nad touto hranicí zastaví.
+- **Proč z Maliny:** z Workeru (sdílené IP Cloudflare) api-football po prvním dotazu odmítal další („rate limit“) i po minutové pauze. Z Maliny jdou dotazy normálně (21. 10., stejný problém jako u IndexNow). Kód je stejný (`syncApiFootball`), D1 se volá přes REST API. Ve Workeru je `RESULTS_APIFOOTBALL=off`, skript si ho zapíná sám.
 - **Limit za minutu:** plán uvádí 10 za minutu, ale v produkci api-football odmítl už 5.–6. dotaz během minuty i při rozestupu 10 s. Proto platí: dotazy 10 s po sobě, minutová pauza, když hlášený zbytek klesne na 5, a nejvýš 4 nepovinné dotazy na běh. Odmítnuté dotazy poskytovatel nepočítá, vrací se proto i do naší evidence.
 
 | Úloha | Kdy | Dotazy |
