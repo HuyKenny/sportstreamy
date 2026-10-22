@@ -34,8 +34,8 @@ const o = m.o?.t;
         <span class="odd"><i>2</i>{o[2].toFixed(2)}</span>
       </div>
     ) : null}
-    <a class="btn sm" href={goPath(m, placement)} rel="sponsored nofollow noopener" target="_blank" aria-label={`Sledovat ${matchTitle(m)} u Tipsportu`}>
-      <Icon name="play" /><span class="lbl">Sledovat</span>
+    <a class:list={['btn sm', m.stream ? 'v' : 'nv']} href={goPath(m, placement)} rel="sponsored nofollow noopener" target="_blank" aria-label={m.stream ? `Sledovat ${matchTitle(m)} u Tipsportu` : `Živé statistiky ${matchTitle(m)} u Tipsportu`}>
+      <Icon name={m.stream ? 'play' : 'spark'} /><span class="lbl">{m.stream ? 'Sledovat' : 'Statistiky'}</span>
     </a>
   </div>
 </div>

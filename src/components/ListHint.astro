@@ -1,0 +1,11 @@
+---
+import { BONUS } from '../lib/bonus';
+/** One line above match lists: where the streams run and why the link asks for a login. */
+interface Props { placement: string }
+const { placement } = Astro.props;
+---
+<p class="listhint">
+  <span>▶ Přenosy běží u Tipsportu, po přihlášení zdarma.</span>
+  <a href={`/go/registrace/?p=hint-${placement}`} rel="sponsored nofollow noopener" target="_blank">Nemáš účet? Bonus {BONUS.amount} za registraci ›</a>
+  <small>Reklama · 18+</small>
+</p>

@@ -2,6 +2,7 @@
 import Base from '../../layouts/Base.astro';
 import Faq from '../../components/Faq.astro';
 import Crumbs from '../../components/Crumbs.astro';
+import Bonus from '../../components/Bonus.astro';
 import { getCollection, getEntry, render } from 'astro:content';
 import { breadcrumbLd, faqLd } from '../../lib/seo';
 export const prerender = false;
@@ -9,6 +10,9 @@ const entry = await getEntry('clanky', Astro.params.slug!);
 if (!entry) return Astro.rewrite('/404');
 const { Content } = await render(entry);
 const { title, description, date, updated, faq, related } = entry.data;
+// Bonus card after the second section: readers of betting guides get the offer where they are, not only in the header.
+const html = entry.rendered?.html ?? '';
+const cut = html ? html.indexOf('<h2', html.indexOf('<h2') + 1) : -1;
 const fmt = new Intl.DateTimeFormat('cs-CZ', { day: 'numeric', month: 'long', year: 'numeric' });
 const others = (await getCollection('clanky')).filter((a) => a.id !== entry.id);
 const rel = [...(related ?? []).map((s) => others.find((a) => a.id === s)).filter((a) => !!a), ...others.sort((a, b) => b.data.date.getTime() - a.data.date.getTime())]
@@ -28,9 +32,13 @@ const ld = [
     <article class="sec prose">
       <h1 style="margin-bottom:.3em">{title}</h1>
       <p class="muted" style="font-size:.85rem;margin-top:0">Redakce SportStreamy · {updated ? `aktualizováno ${fmt.format(updated)}` : fmt.format(date)}</p>
-      <Content />
+      {cut > 0 ? (<>
+        <Fragment set:html={html.slice(0, cut)} />
+        <div class="art-bonus"><Bonus placement={`clanek-${entry.id}`} /></div>
+        <Fragment set:html={html.slice(cut)} />
+      </>) : <Content />}
       {faq?.length ? <><h2>Časté otázky</h2><Faq items={faq} /></> : null}
-      <p><a class="btn" href="/zive/">Co běží živě</a></p>
+      <p><a class="btn" href="/zive/">Co běží živě</a> <a class="btn ghost" href="/sazkove-kancelare/">Srovnání kanceláří</a></p>
     </article>
     {rel.length ? <section class="sec"><div class="sec-head"><h2>Další články</h2><a href="/clanky/">Všechny ›</a></div><div class="cards">{rel.map((a) => <a class="card" href={`/clanky/${a.id}/`}><div><h3>{a.data.title}</h3><p>{a.data.description}</p></div></a>)}</div></section> : null}
   </div>

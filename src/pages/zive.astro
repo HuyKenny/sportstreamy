@@ -1,5 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
+import ListHint from '../components/ListHint.astro';
 import Rows from '../components/Rows.astro';
 import Aside from '../components/Aside.astro';
 import Carousel from '../components/Carousel.astro';
@@ -33,6 +34,7 @@ const crumbs = [{ name: 'Domů', href: '/' }, { name: 'Živé přenosy' }];
     {slides.length ? <div class="band"><section class="sec"><Carousel items={slides} placement="zive-carousel" eagerFirst /></section></div> : null}
     <div class="cols">
       <div>
+        <ListHint placement="zive" />
         {groups.map((g) => (
           <section class="sec" id={g.slug}>
             <div class="sec-head"><h2>{g.name} živě <span class="cnt live">{g.live}</span></h2><a href={`/${g.slug}-online/`}>{g.name} online ›</a></div>

@@ -1,5 +1,6 @@
 ---
 import Base from '../../layouts/Base.astro';
+import ListHint from '../../components/ListHint.astro';
 import Rows from '../../components/Rows.astro';
 import Aside from '../../components/Aside.astro';
 import Faq from '../../components/Faq.astro';
@@ -61,6 +62,7 @@ const shown = next.length > LIMIT ? featured(next).slice(0, LIMIT).sort((a, b) =
     {others.length ? <div class="chips" aria-label="Další soutěže" style="margin-top:14px">{others.map((l) => <a class="chip" href={`/${sport.slug}-online/${l.slug}/`}>{l.name}<em>{l.n}</em></a>)}</div> : null}
     <div class="cols">
       <div>
+        <ListHint placement={`sport-${sport.slug}`} />
         {live.length ? (<section class="sec zone live"><div class="sec-head"><h2>{sport.name} živě <span class="cnt live">{live.length}</span></h2></div><Rows items={live} now={now} placement="sport-live" live /></section>) : null}
         {curated.length ? <section class="sec zone"><div class="sec-head"><h2>Soutěže</h2></div><CompetitionTiles items={curated} /></section> : null}
         {resultsSport ? <p class="more" style="margin:0 0 12px"><a href={`/vysledky/${resultsSport.slug}/`}>Výsledky {resultsSport.genitive} dnes a včera ›</a></p> : null}

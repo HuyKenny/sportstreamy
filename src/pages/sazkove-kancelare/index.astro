@@ -9,7 +9,7 @@ import { BANNERS } from '../../lib/banners';
 import { breadcrumbLd, faqLd } from '../../lib/seo';
 export const prerender = false;
 const faq = [
-  { q: 'Kterou sázkovou kancelář vybrat pro sledování přenosů?', a: 'Nejvíc živých přenosů má Tipsport – z jeho nabídky je i program SportStreamy. Chance má stejné zápasy a jiné kurzy, takže se hodí na porovnání.' },
+  { q: 'Kterou sázkovou kancelář vybrat pro sledování přenosů?', a: 'Nejvíc živých přenosů má Tipsport, sledování je po registraci zdarma. Chance má podobnou nabídku zápasů a jiné kurzy, takže se hodí na porovnání.' },
   { q: 'Musím vsadit, abych viděl přenos?', a: 'Ne. Ke sledování stačí ověřený účet a přihlášení. Sázení je dobrovolné a pouze pro osoby od 18 let.' },
   { q: 'Jaké bonusy dostanu za registraci?', a: `Přes naše odkazy: Tipsport ${BONUS.amount}, Allwyn 500 Kč, MerkurXtip 500 Kč a Chance 200 Kč pro nové hráče po registraci a ověření účtu. Podmínky stanoví provozovatel.` },
   { q: 'Proč u některých kanceláří není bonus přes vás?', a: 'S Fortunou, Betanem a Synot Tipem nemáme partnerskou smlouvu. Jejich stránky jsou informativní a odkazy na ně nejsou affiliate.' },
@@ -34,10 +34,10 @@ const yes = (v: boolean) => (v ? 'ano' : '—');
             {BOOKS.map((b) => (
               <tr>
                 <td><a href={`/sazkove-kancelare/${b.slug}/`}><b>{b.name}</b></a><br /><span class="muted" style="font-size:.8rem">{b.full}</span></td>
-                <td class={b.streams ? 'y' : 'n'}>{yes(b.streams)}</td>
-                <td class={b.branches ? 'y' : 'n'}>{b.branches ? <a href={`/pobocky/${b.slug}/`}>ano</a> : '—'}</td>
-                <td class={b.bonus ? 'y' : 'n'}>{b.bonus ?? '—'}</td>
-                <td>{b.partner ? <a class="btn sm" href={`${ctaFor(b)}?p=books-table-${b.slug}`} rel="sponsored nofollow noopener" target="_blank">{b.bonus ? `Chci ${b.bonus}` : 'Přejít'}</a> : <a class="btn sm ghost" href={`/sazkove-kancelare/${b.slug}/`}>Více</a>}</td>
+                <td class={b.streams ? 'y' : 'n'} data-l="Přenosy">{yes(b.streams)}</td>
+                <td class={b.branches ? 'y' : 'n'} data-l="Pobočky">{b.branches ? <a href={`/pobocky/${b.slug}/`}>ano</a> : '—'}</td>
+                <td class={b.bonus ? 'y' : 'n'} data-l="Bonus">{b.bonus ?? '—'}</td>
+                <td class="cta">{b.partner ? <a class="btn sm" href={`${ctaFor(b)}?p=books-table-${b.slug}`} rel="sponsored nofollow noopener" target="_blank">{b.bonus ? `Chci ${b.bonus}` : 'Přejít'}</a> : <a class="btn sm ghost" href={`/sazkove-kancelare/${b.slug}/`}>Více</a>}</td>
               </tr>
             ))}
           </tbody>

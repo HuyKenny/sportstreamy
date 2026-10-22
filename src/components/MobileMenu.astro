@@ -1,0 +1,55 @@
+---
+import Icon from './Icon.astro';
+import Search from './Search.astro';
+import { SPORTS } from '../lib/sports';
+import { BONUS } from '../lib/bonus';
+/** Phone menu (the top navigation is hidden under 900 px): a modal sheet opened from the header or the dock. */
+interface Props { results: boolean; section?: string }
+const { results, section = '' } = Astro.props;
+const main = [
+  { href: '/zive/', label: 'Živé přenosy', icon: 'live', k: 'zive' },
+  { href: '/program/', label: 'Program', icon: 'calendar', k: 'program' },
+  ...(results ? [{ href: '/vysledky/', label: 'Výsledky', icon: 'trophy', k: 'vysledky' }] : []),
+  { href: '/jak-sledovat/', label: 'Velké zápasy', icon: 'tv', k: 'nahledy' },
+  { href: '/sazkove-kancelare/', label: 'Sázkové kanceláře', icon: 'gift', k: 'bonusy' },
+  { href: '/clanky/', label: 'Články a návody', icon: 'arrow', k: 'clanky' },
+];
+---
+<dialog class="mmenu" id="mmenu" aria-label="Menu">
+  <div class="mm-head">
+    <b>Menu</b>
+    <button type="button" class="mm-close" data-mm-close aria-label="Zavřít menu">✕</button>
+  </div>
+  <div class="mm-search"><Search id="mmq" /></div>
+  <a class="btn lg mm-cta" href="/go/registrace/?p=menu" rel="sponsored nofollow noopener" target="_blank"><Icon name="gift" />Bonus {BONUS.amount} za registraci</a>
+  <small class="mm-ad">Reklama · Tipsport · 18+</small>
+  <nav aria-label="Sekce">
+    <ul class="mm-list">
+      {main.map((n) => <li><a href={n.href} aria-current={section === n.k ? 'page' : undefined}><Icon name={n.icon} />{n.label}</a></li>)}
+    </ul>
+    <p class="mm-k">Sporty</p>
+    <ul class="mm-sports">
+      {SPORTS.filter((s) => s.main || ['hazena', 'florbal', 'stolni-tenis', 'esporty', 'sipky', 'bojove-sporty'].includes(s.slug)).map((s) => <li><a href={`/${s.slug}-online/`}><Icon name={s.slug} />{s.name}</a></li>)}
+    </ul>
+    <p class="mm-k">Oblíbené soutěže</p>
+    <ul class="mm-sports">
+      <li><a href="/fotbal-online/chance-liga/">Chance Liga</a></li>
+      <li><a href="/fotbal-online/liga-mistru/">Liga mistrů</a></li>
+      <li><a href="/hokej-online/tipsport-extraliga/">Tipsport extraliga</a></li>
+      <li><a href="/hokej-online/nhl/">NHL</a></li>
+    </ul>
+  </nav>
+</dialog>
+<script>
+  // Native modal dialog: focus stays inside, Esc closes; a tap on the backdrop closes too.
+  const dlg = document.getElementById('mmenu') as HTMLDialogElement | null;
+  if (dlg) {
+    document.querySelectorAll<HTMLElement>('[data-mm-open]').forEach((b) => b.addEventListener('click', () => {
+      dlg.showModal();
+      b.setAttribute('aria-expanded', 'true');
+    }));
+    dlg.addEventListener('close', () => document.querySelectorAll('[data-mm-open]').forEach((b) => b.setAttribute('aria-expanded', 'false')));
+    dlg.querySelector('[data-mm-close]')?.addEventListener('click', () => dlg.close());
+    dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
+  }
+</script>

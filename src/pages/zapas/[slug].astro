@@ -10,6 +10,7 @@ import OddsBlock from '../../components/OddsBlock.astro';
 import Icon from '../../components/Icon.astro';
 import GonePage from '../../components/GonePage.astro';
 import ResultRow from '../../components/ResultRow.astro';
+import Bonus from '../../components/Bonus.astro';
 import MatchFacts from '../../components/MatchFacts.astro';
 import { getEnv, view, sportCounts, leagues } from '../../lib/page';
 import { hhmm, longDay, dayLabel, shortDay } from '../../lib/text';
@@ -99,7 +100,7 @@ const ttl = over ? 3600 : state === 'live' ? 30 : 60;
         {over ? <span>{statusLabel(r!.status, null, r!.sport)}</span> : state === 'live' ? <span class="tag-live"><span class="dot"></span>Živě</span> : state === 'pre' ? <span style="color:var(--cta)">{m.stream ? 'Bude se vysílat' : 'Program'}</span> : <span>Záznam</span>}
         <span>· {hhmm(m.st)} · {over ? longDay(m.st) : dayLabel(m.st, now)} · {sport.name}</span>
       </div>
-      <h1>{final && sc ? `${title} ${sc}` : over ? `${title} – výsledek` : `${title} živě`}</h1>
+      <h1>{final && sc ? `${title} ${sc}` : over ? `${title} – výsledek` : m.stream ? `${title} živě` : `${title}: živé skóre a statistiky`}</h1>
       {pv ? <p style="margin:.5em 0 0"><a href={previewPath(pv)}>Náhled zápasu: kde sledovat v TV, forma a kurzy ›</a></p> : null}
     </section>
     <div class="cols">
@@ -137,10 +138,11 @@ const ttl = over ? 3600 : state === 'live' ? 30 : 60;
           <Stage m={m} state={state} now={now} />
           <div class="watchbar">
             <p>{m.stream ? BONUS.watch : 'Živé statistiky a skóre u Tipsportu'}<small>Reklama · registrace a přihlášení u provozovatele · 18+</small></p>
-            <a class="btn lg" href={goPath(m, 'watchbar')} rel="sponsored nofollow noopener" target="_blank"><Icon name="play" />{watchLabel}</a>
+            <a class="btn lg" href={goPath(m, 'watchbar')} rel="sponsored nofollow noopener" target="_blank"><Icon name={m.stream ? 'play' : 'spark'} />{watchLabel}</a>
           </div>
         </>)}
 
+        {over ? <div class="art-bonus" style="margin-top:18px"><Bonus placement="detail-final-bonus" /></div> : null}
         <section class="sec">
           <div class="sec-head"><h2>O zápase</h2></div>
           <dl class="facts">

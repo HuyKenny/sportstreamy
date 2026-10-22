@@ -523,3 +523,73 @@ a, button, .btn, .chip, summary { touch-action: manipulation; }
 .row.res .when .ico { width: 13px; height: 13px; vertical-align: -2px; margin-right: 3px; }
 .row.res.is-final .when { color: #3fcf74; }
 @media (prefers-reduced-motion: reduce) { .mst-bar i, .result-box .rb-sc { transition: none; animation: none; } }
+
+/* UX audit 22. 10.: hidden always wins over display rules; phones get cards instead of wide tables */
+[hidden] { display: none !important; }
+@media (max-width: 700px) {
+  .tablewrap:has(.cmp-table) { overflow: visible; }
+  .cmp-table thead { display: none; }
+  .cmp-table, .cmp-table tbody { display: block; }
+  .cmp-table tr { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 10px; padding: 14px; border-top: 1px solid var(--line); }
+  .cmp-table tr:first-child { border-top: 0; }
+  .cmp-table td { display: block; padding: 0; border: 0; }
+  .cmp-table td:first-child, .cmp-table td.cta { grid-column: 1 / -1; }
+  .cmp-table td[data-l]::before { content: attr(data-l); display: block; font-family: var(--mono); font-size: .62rem; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 400; }
+  .cmp-table td.cta .btn { width: 100%; margin-top: 4px; }
+}
+@media (max-width: 520px) {
+  .odds-table th, .odds-table td { padding: 9px 5px; }
+  .odds-table td b { font-size: .92rem; }
+  .odds-table .btn.sm { padding: 6px 9px; font-size: .74rem; min-height: 40px; }
+}
+/* Phone menu */
+.mm-btn { display: inline-grid; place-items: center; width: 44px; height: 44px; margin-left: 8px; background: transparent; color: var(--ink); border: 1px solid var(--line-2); border-radius: var(--r); cursor: pointer; }
+.mm-btn .ico { width: 22px; height: 22px; }
+.dock button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 60px; background: none; border: 0; font: inherit; font-size: .68rem; font-weight: 700; font-stretch: 90%; color: var(--ink-2); cursor: pointer; }
+.dock button svg { width: 22px; height: 22px; }
+@media (min-width: 900px) { .mm-btn { display: none; } }
+.mmenu { width: 100%; max-width: 520px; max-height: 92dvh; margin: auto auto 0; padding: 0 16px calc(18px + env(safe-area-inset-bottom)); border: 2px solid #000; border-bottom: 0; border-radius: 14px 14px 0 0; background: var(--bg); color: var(--ink); overflow-y: auto; }
+.mmenu::backdrop { background: rgba(0, 0, 0, .6); }
+.mmenu[open] { animation: mm-up .18s ease-out; }
+@keyframes mm-up { from { transform: translateY(30px); opacity: .4; } }
+.mm-head { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; padding: 14px 0 10px; background: var(--bg); }
+.mm-head b { font-family: var(--mono); font-size: .78rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-2); }
+.mm-close { width: 44px; height: 44px; background: var(--card); color: var(--ink); border: 1px solid var(--line-2); border-radius: var(--r); font-size: 1.1rem; cursor: pointer; }
+.mm-search { margin-bottom: 12px; }
+.mm-cta { width: 100%; }
+.mm-ad { display: block; text-align: center; margin: 6px 0 14px; font-family: var(--mono); font-size: .62rem; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+.mm-list, .mm-sports { list-style: none; margin: 0; padding: 0; }
+.mm-list a { display: flex; align-items: center; gap: 12px; min-height: 50px; padding: 0 4px; border-top: 1px solid var(--line); color: var(--ink); text-decoration: none; font-weight: 750; font-stretch: 92%; font-size: 1.02rem; }
+.mm-list a[aria-current] { color: var(--cta); }
+.mm-list .ico { width: 20px; height: 20px; color: var(--ink-3); }
+.mm-k { margin: 16px 0 8px; font-family: var(--mono); font-size: .66rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); }
+.mm-sports { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.mm-sports a { display: flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 12px; border: 1px solid var(--line-2); border-radius: var(--r); background: var(--card); color: var(--ink); text-decoration: none; font-weight: 700; font-size: .92rem; }
+.mm-sports .ico { width: 18px; height: 18px; color: var(--ink-2); }
+
+/* Matches without video: no fake player */
+.stage.novideo .nv-chip { display: inline-block; padding: 6px 12px; border: 1px solid rgba(255,255,255,.35); border-radius: 999px; background: rgba(0,0,0,.55); font-family: var(--mono); font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: #fff; }
+.stage .ft.nv { gap: 8px; font-size: .78rem; }
+.stage .ft.nv .ico { flex: none; }
+
+/* Row buttons: video = solid play, no video = outlined stats icon (phones show icons only) */
+@media (max-width: 520px) {
+  .row .btn.v { background: var(--cta); color: var(--cta-ink); border-color: #000; }
+  .row .btn.nv { color: var(--ink-2); border-color: var(--line-2); }
+}
+
+.listhint { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 0 0 10px; padding: 9px 12px; border: 1px dashed rgba(255, 210, 63, .5); border-radius: var(--r); font-size: .86rem; color: var(--ink-2); }
+.listhint a { color: var(--cta); font-weight: 750; text-decoration: none; }
+.listhint a:hover { text-decoration: underline; }
+.listhint small { margin-left: auto; font-family: var(--mono); font-size: .6rem; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+
+.art-bonus { max-width: 440px; margin: 1.6em auto; }
+.prose .ticket a.btn { color: var(--cta); text-decoration: none; }
+.prose .ticket p { margin: 6px 0 14px; }
+/* Touch targets on phones: footer links, section "Vše ›" links and the promo strip at least ~44 px tall */
+@media (max-width: 899px) {
+  footer .grid a { display: flex; align-items: center; min-height: 40px; }
+  .sec-head a { display: inline-flex; align-items: center; min-height: 40px; padding: 0 2px; }
+  .more a { display: inline-flex; align-items: center; min-height: 40px; }
+  .promo { min-height: 40px; }
+}

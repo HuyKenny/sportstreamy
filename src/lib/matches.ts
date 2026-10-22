@@ -17,8 +17,14 @@ const ORDER = new Map(SPORTS.map((s, i) => [s.id, s.main ? i : 100 + i]));
 /** Lower = shown first: main sports in menu order, then the rest. */
 export const rank = (m: Match) => ORDER.get(m.sp) ?? 999;
 
-/** 0 = curated top competition, 1 = main sport, 2 = the rest (table tennis, lower leagues…). */
-export const tier = (m: Match) => (competitionOf(m.sp, m.lg)?.top ? 0 : rank(m) < 100 ? 1 : 2);
+/** Low-interest feeds that would otherwise fill the live lists: ITF/UTR/Challenger tennis, Setka-style leagues, virtual sports. */
+const LOW = /\bITF\b|\bUTR\b|Challenger|Setka|eSports|e-sport|Cyber|Battle|Liga Pro|Virtu|simul|\(\d+x\d+ min\)/i;
+
+/**
+ * 0 = curated top competition or a Czech competition, 1 = main sport, 2 = the rest (table tennis, lower leagues,
+ * ITF/UTR tennis, virtual leagues…). Lists sort by tier first, so Czech fans see football and hockey before ITF.
+ */
+export const tier = (m: Match) => (competitionOf(m.sp, m.lg)?.top || /^Česk/.test(m.lg) ? 0 : LOW.test(m.lg) ? 2 : rank(m) < 100 ? 1 : 2);
 
 /** Top competitions, then main sports, each by start time – so Chance Liga is not buried under table tennis. */
 export const featured = (items: Match[]) => [...items].sort((a, b) => tier(a) - tier(b) || a.st - b.st || a.id - b.id);
@@ -44,7 +50,8 @@ export async function view(env: Env, now = Date.now()): Promise<View> {
   const bySt = (a: Match, b: Match) => a.st - b.st || a.id - b.id;
   upcoming.sort(bySt);
   recent.sort((a, b) => b.st - a.st);
-  live.sort((a, b) => tier(a) - tier(b) || rank(a) - rank(b) || bySt(a, b));
+  // Within a tier: matches with video first (that is what people come for), then sport order and start.
+  live.sort((a, b) => tier(a) - tier(b) || Number(b.stream) - Number(a.stream) || rank(a) - rank(b) || bySt(a, b));
   const v = { live, upcoming, recent, at: Math.max(l?.at ?? 0, p?.at ?? 0) };
   cache = { at: now, v };
   return v;

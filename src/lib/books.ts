@@ -33,7 +33,7 @@ export interface BookInfo {
 export const BOOKS: BookInfo[] = [
   {
     slug: 'tipsport', name: 'Tipsport', short: 'Tipsport', gen: 'Tipsportu', full: 'Tipsport a.s.', partner: true, go: 'registrace', site: 'https://www.tipsport.cz', bonus: '1000 Kč', color: '#0b4ea2',
-    blurb: 'Největší česká sázková kancelář a největší nabídka živých přenosů. Právě z jejího programu čerpá SportStreamy.',
+    blurb: 'Největší česká sázková kancelář a největší nabídka živých přenosů. Přenosy jsou po registraci zdarma.',
     pros: ['Nejvíc zápasů s videem (Tipsport TV) – fotbal, hokej, tenis, basketbal, e-sporty', 'Bonus 1000 Kč pro nové hráče', 'Mobilní aplikace a hustá síť poboček', 'Česká licence'],
     cons: ['Video jen po registraci a ověření totožnosti', 'U části zápasů (Chance Liga, NHL) jen statistiky, ne video'],
     watch: 'Přenosy (Tipsport TV) se pouští po přihlášení do účtu. Registrace je bezplatná a trvá několik minut včetně ověření totožnosti.',

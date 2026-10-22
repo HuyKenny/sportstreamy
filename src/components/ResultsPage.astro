@@ -10,6 +10,7 @@ import { pragueMidnight } from '../lib/results/time';
 import { hhmm, longDay, addDays, dayKey, plural } from '../lib/text';
 import { breadcrumbLd, SITE } from '../lib/seo';
 import Icon from './Icon.astro';
+import Bonus from './Bonus.astro';
 interface Props { d: ResultsPageData }
 const { d } = Astro.props;
 const now = Date.now();
@@ -41,7 +42,7 @@ const ld = [breadcrumbLd(crumbs), { '@context': 'https://schema.org', '@type': '
     <section class="pagehead">
       <div class="kicker"><span>{longDay(noon(d.key))}</span>{live ? <span class="tag-live"><span class="dot"></span>Probíhá</span> : null}<span>· {d.updated ? `aktualizováno ${hhmm(d.updated)}${dayKey(d.updated) !== d.today ? ` (${longDay(d.updated)})` : ''}` : 'zatím bez dat'}</span></div>
       <h1>{h1[0].toUpperCase()}{h1.slice(1)}</h1>
-      <p class="lead">Průběžně aktualizované výsledky soutěží {d.comps.map(compName).join(', ')}: skóre, stav zápasu a odkaz na detail. U odehraných zápasů najdeš průběh, statistiky a sestavy.</p>
+      <p class="lead">{hub ? 'Fotbal, hokej, basketbal, volejbal a házená na jednom místě' : `${d.comps.slice(0, 3).map(compName).join(', ')}${d.comps.length > 3 ? ' a další soutěže' : ''}`}: skóre, stav zápasu a u odehraných zápasů průběh a statistiky.</p>
     </section>
     <nav class="chips" aria-label="Den">
       {days.map(([k, l]) => <a class="chip" href={href({ den: k })} aria-current={k === d.key ? 'page' : undefined}>{l}</a>)}
@@ -67,6 +68,7 @@ const ld = [breadcrumbLd(crumbs), { '@context': 'https://schema.org', '@type': '
     <section class="sec" id="vysledky" data-day={d.key} data-live={isToday && live ? '1' : undefined}>
       <ResultsList rows={d.rows} comps={d.comps} now={now} staleMs={d.staleMs} empty={d.all.length ? 'Pro zvolený filtr tu nic není.' : `Pro ${isToday ? 'dnešek' : 'tento den'} nemáme v soutěžích ${comps} žádné zápasy.`} />
     </section>
+    <div class="art-bonus"><Bonus placement="vysledky-bonus" /></div>
     <section class="sec prose">
       <h2>Jak výsledky čteme</h2>
       <p>U budoucích zápasů ukazujeme čas výkopu, skóre až po začátku. „Konec“ píšeme jen u zápasu, jehož konec máme potvrzený; než ho potvrdíme, uvidíš „Výsledek nepotvrzen“ s posledním známým skóre. Program dalších dnů najdeš v <a href="/program/">programu přenosů</a>, zápasy jednotlivých soutěží na stránkách {d.comps.map((c, i) => <>{i ? (i === d.comps.length - 1 ? ' a ' : ', ') : ''}<a href={compPath(c)}>{compName(c)}</a></>)}.</p>

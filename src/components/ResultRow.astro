@@ -1,7 +1,8 @@
 ---
 import type { ResultRow } from '../lib/results/store';
 import { group, statusLabel, statusShort } from '../lib/results/status';
-import { resultPath, scoreText, isStale, compName, detailOf, scorers } from '../lib/results/view';
+import { resultPath, scoreText, isStale, compName, detailOf, scorers, asMatch } from '../lib/results/view';
+import { goPath } from '../lib/url';
 import Icon from './Icon.astro';
 import EventIcon from './EventIcon.astro';
 import { hhmm, shortDay, dayKey } from '../lib/text';
@@ -30,6 +31,7 @@ const red = scorers(detailOf(r));
     <a class="tm" href={resultPath(r)}>{r.home}{red.redH ? <span class="reds" title={`Červené karty: ${red.redH}`}>{Array.from({ length: red.redH }, () => <EventIcon kind="red" label="Červená karta" />)}</span> : null} – {r.away}{red.redA ? <span class="reds" title={`Červené karty: ${red.redA}`}>{Array.from({ length: red.redA }, () => <EventIcon kind="red" label="Červená karta" />)}</span> : null}</a>
   </div>
   <div class="act">
+    {r.stream && (g === 'upcoming' || g === 'live') ? <a class="btn sm v" href={goPath(asMatch(r), 'vysledky')} rel="sponsored nofollow noopener" target="_blank" aria-label={`Sledovat ${r.home} – ${r.away} u Tipsportu`}><Icon name="play" /><span class="lbl">Sledovat</span></a> : null}
     {sc ? <div class="score" data-s aria-label={`Skóre ${sc}`}>{sc}</div> : r.status !== 'scheduled' ? <div class="score muted" data-s aria-label="Skóre není k dispozici">–</div> : null}
   </div>
 </div>

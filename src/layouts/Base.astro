@@ -3,6 +3,7 @@ import '../styles/global.css';
 import Icon from '../components/Icon.astro';
 import Search from '../components/Search.astro';
 import IconSprite from '../components/IconSprite.astro';
+import MobileMenu from '../components/MobileMenu.astro';
 import { SPORTS } from '../lib/sports';
 import { COMPETITIONS } from '../lib/competitions';
 import { SPORT_BY_ID } from '../lib/sports';
@@ -92,6 +93,7 @@ const footComps = COMPETITIONS.filter((c) => c.top);
       </a>
       <div class="search"><Search id="hq" /></div>
       <a class="btn sm bonus-btn" href="/go/registrace/?p=header" rel="sponsored nofollow noopener" target="_blank"><Icon name="gift" />{BONUS.amount}</a>
+      <button type="button" class="mm-btn" data-mm-open aria-controls="mmenu" aria-expanded="false" aria-label="Otevřít menu"><Icon name="menu" /></button>
     </div>
   </header>
   <nav class="nav" aria-label="Hlavní navigace">
@@ -119,10 +121,11 @@ const footComps = COMPETITIONS.filter((c) => c.top);
       <a href="/" aria-current={section === 'home' ? 'page' : undefined}><Icon name="home" />Domů</a>
       <a href="/zive/" aria-current={section === 'zive' ? 'page' : undefined}><Icon name="live" />Živě</a>
       <a href="/program/" class="main" aria-current={section === 'program' ? 'page' : undefined}><span class="ic"><Icon name="calendar" /></span>Program</a>
-      <a href="/hledat/" aria-current={section === 'hledat' ? 'page' : undefined}><Icon name="search" />Hledat</a>
-      <a href="/go/registrace/?p=dock" rel="sponsored nofollow noopener" target="_blank"><Icon name="gift" />{BONUS.amount}</a>
+      {results ? <a href="/vysledky/" aria-current={section === 'vysledky' ? 'page' : undefined}><Icon name="trophy" />Výsledky</a> : <a href="/hledat/" aria-current={section === 'hledat' ? 'page' : undefined}><Icon name="search" />Hledat</a>}
+      <button type="button" data-mm-open aria-controls="mmenu" aria-expanded="false"><Icon name="menu" />Menu</button>
     </nav>
   ) : null}
+  <MobileMenu results={results} section={section} />
   <script>
     // Phones: hide the sticky header while scrolling down, show it again on the way up (transform only, no layout).
     const bar = document.querySelector<HTMLElement>('.bar');

@@ -10,7 +10,7 @@ interface Props { m: Match; state: 'live' | 'pre' | 'recent'; now: number }
 const { m, state, now } = Astro.props;
 const s = sportOf(m);
 ---
-<a class="stage" href={goPath(m, 'player')} rel="sponsored nofollow noopener" target="_blank" data-id={m.id}>
+<a class:list={['stage', !m.stream && 'novideo']} href={goPath(m, 'player')} rel="sponsored nofollow noopener" target="_blank" data-id={m.id}>
   <Photo sport={s?.slug} eager sizes="(min-width: 1000px) 860px, 100vw" />
   <div class="in">
     <div class="hd">
@@ -20,17 +20,21 @@ const s = sportOf(m);
     <div class="mid">
       <span class="side">{m.h}</span>
       <div>
-        <span class="play"><Icon name="play" /><span class="sr">Spustit přenos u Tipsportu</span></span>
+        {m.stream ? <span class="play"><Icon name="play" /><span class="sr">Spustit přenos u Tipsportu</span></span> : <span class="nv-chip">Bez videa · živé statistiky</span>}
         {state === 'live' && m.sc ? <div class="score" data-s>{m.sc}</div> : null}
         {state === 'pre' ? <div class="cd" data-cd={m.st}>Začíná v {hhmm(m.st)}</div> : null}
       </div>
       <span class="side b">{m.a}</span>
     </div>
-    <div class="ft">
-      <Icon name="play" />
-      <span class="bar-fake"><i></i></span>
-      <span>{m.stream ? 'HD přenos' : 'Živé statistiky'} · Tipsport</span>
-    </div>
+    {m.stream ? (
+      <div class="ft">
+        <Icon name="play" />
+        <span class="bar-fake"><i></i></span>
+        <span>HD přenos · Tipsport</span>
+      </div>
+    ) : (
+      <div class="ft nv"><Icon name="spark" /><span>Tipsport k zápasu nevysílá video – ukazuje živé skóre, statistiky a kurzy</span></div>
+    )}
   </div>
 </a>
 <script>

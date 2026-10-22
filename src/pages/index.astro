@@ -13,6 +13,7 @@ import { sportPath, sportOf } from '../lib/url';
 import { faqLd, itemListLd, siteLd } from '../lib/seo';
 import { previews, previewPath } from '../lib/nahledy';
 import ResultsList from '../components/ResultsList.astro';
+import ListHint from '../components/ListHint.astro';
 import { resultsConfig, resultsDb } from '../lib/results/config';
 import { rowsBetween } from '../lib/results/store';
 import { pragueDay } from '../lib/results/time';
@@ -72,6 +73,7 @@ const resultsToday = rdb ? (await rowsBetween(rdb, ...pragueDay(todayKey), rcfg.
       <div>
         <section class="sec zone live">
           <div class="sec-head"><h2>Živě právě teď <span class="cnt live">{v.live.length}</span></h2><a href="/zive/">Vše ›</a></div>
+          <ListHint placement="home" />
           <Rows items={liveTop.length ? v.live : []} now={now} placement="home-live" live limit={12} more={{ href: '/zive/', label: 'Všechny živé přenosy' }} empty="Právě teď neběží žádný přenos – nejbližší začátky jsou níže." />
         </section>
 

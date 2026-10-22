@@ -1,5 +1,6 @@
 ---
 import Base from '../../layouts/Base.astro';
+import ListHint from '../../components/ListHint.astro';
 import Rows from '../../components/Rows.astro';
 import Aside from '../../components/Aside.astro';
 import Crumbs from '../../components/Crumbs.astro';
@@ -63,6 +64,7 @@ const crumbs = [{ name: 'Domů', href: '/' }, { name: 'Program', href: '/program
     </div>
     <div class="cols">
       <div>
+        <ListHint placement="program" />
         {liveShown.length ? <section class="sec zone live"><div class="sec-head"><h2>Živě <span class="cnt live">{liveShown.length}</span></h2></div><Rows items={liveShown} now={now} placement="program-live" live /></section> : null}
         <section class="sec">
           {liveShown.length ? <div class="sec-head"><h2>Začne</h2><span class="n">{nextShown.length}</span></div> : null}
