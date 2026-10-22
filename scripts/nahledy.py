@@ -334,6 +334,7 @@ def preview(m, comp, match_url):
     c3 = 0.0
     for attempt in range(2):  # writing is cheap (no web): one retry with the validator's complaints
         p, c = ask(prompt, WRITE_SCHEMA, WRITE_MODEL, 'low', web=False)
+        p = tidy(p, m)
         c3 += c
         p.update(tv=tv, tvSource=tv_src, tvLine=tv_line, sources=list(dict.fromkeys(([tv_src] if tv_src else []) + [f['source'] for f in checked['facts']])))
         errs = validate(p, m)
@@ -348,6 +349,30 @@ def expand_channels(line):
     """'Nova Sport 3, 4, 5 a 6' → 'Nova Sport 3, Nova Sport 4, Nova Sport 5, Nova Sport 6' (validator compares names one by one)."""
     return re.sub(r'(Nova Sport|Sport|Eurosport) (\d)((?:, \d)*)(?: a (\d))?',
                   lambda m: ', '.join(f'{m.group(1)} {d}' for d in [m.group(2)] + re.findall(r'\d', m.group(3)) + ([m.group(4)] if m.group(4) else [])), line)
+
+
+def tidy(p, m):
+    """Fix what does not need a model: title/description length (built from the match itself) and the "our data"
+    phrasing the writer keeps using for the facts we hand it. Everything else is left to the validator."""
+    h, a = m['h'], m['a']
+    if len(p['title']) > 80:
+        p['title'] = next(t for t in (f'{h} – {a}: kde sledovat živě, TV a kurzy', f'{h} – {a}: kde sledovat živě', f'{h} – {a}') if len(t) <= 80 or t == f'{h} – {a}')
+    if not 120 <= len(p['description']) <= 170:
+        st = datetime.fromtimestamp(m['st'] / 1000, TZ)
+        day = ['pondělí', 'úterý', 'středa', 'čtvrtek', 'pátek', 'sobota', 'neděle'][st.weekday()]
+        d = f'Kde sledovat {h} – {a} ({m["lg"]}), {day} {st.day}. {st.month}. v {st:%H:%M}: TV vysílání, živý přenos online, kurzy a forma obou týmů.'
+        if len(d) > 170:
+            d = d.replace(' a forma obou týmů', '').replace(f' ({m["lg"]})', '')
+        if len(d) < 120:
+            d += ' Přehled před zápasem.'
+        p['description'] = d[:170]
+    def fix(t):
+        t = re.sub(r'\b([Pp]odle|[Dd]le|[Zz]|[Vv]e?)\s+(našich|interních)\s+dat\b', lambda x: f'{x.group(1)} dostupných údajů', t)
+        return re.sub(r'\b([Nn])aše data\b', lambda x: ('D' if x.group(1) == 'N' else 'd') + 'ostupné údaje', t)
+    p['body'] = fix(p['body'])
+    p['description'] = fix(p['description'])
+    p['faq'] = [{'q': q['q'], 'a': fix(q['a'])} for q in p['faq']]
+    return p
 
 
 def validate(p, m):
