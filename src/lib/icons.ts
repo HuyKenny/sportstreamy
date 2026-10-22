@@ -27,4 +27,14 @@ export const P: Record<string, string> = {
   live: '<circle cx="12" cy="12" r="2"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M5 5a10 10 0 0 0 0 14M19 5a10 10 0 0 1 0 14"/>',
   clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
+  // Match statistics
+  flag: '<path d="M6 21V4M6 4.5h11l-2.5 3.5L17 11.5H6"/>',
+  target: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r=".8" fill="currentColor"/>',
+  pie: '<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5V12l7.4 4.2"/>',
+  whistle: '<path d="M3 10.5a4.5 4.5 0 1 0 8.4 2.3L20.5 9V6.5H9.2A4.5 4.5 0 0 0 3 10.5z"/><circle cx="7.5" cy="12" r="1.3"/>',
+  glove: '<path d="M7 21v-4.5L4.5 13a1.8 1.8 0 0 1 2.8-2.2L9 12.5V5a1.5 1.5 0 0 1 3 0v5.5V3.8a1.5 1.5 0 0 1 3 0v6.7V5a1.5 1.5 0 0 1 3 0v8.5a7.5 7.5 0 0 1-2 5.1V21z"/>',
+  spark: '<path d="M3 17l5-6 4 3 5-8 4 4"/><path d="M3 21h18"/>',
+  shirt: '<path d="M8 3l-5 3 2 4 2.5-1V21h9V9l2.5 1 2-4-5-3a4 4 0 0 1-8 0z"/>',
+  swap: '<path d="M7 20V5M3.5 8.5L7 5l3.5 3.5M17 4v15M13.5 15.5L17 19l3.5-3.5"/>',
+  check: '<path d="M4 12.5l5 5L20 6.5"/>',
 };

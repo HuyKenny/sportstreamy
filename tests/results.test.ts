@@ -392,7 +392,7 @@ describe('api-football as second source', () => {
     const row = (await rows(db))[0];
     expect(row).toMatchObject({ status: 'ft', sh: 2, sa: 1 });
     const st = JSON.parse(String(row.stats));
-    expect(st.events).toEqual([{ min: "45+2'", side: 'h', kind: 'goal', player: 'Chorý', assist: null }, { min: "60'", side: 'a', kind: 'red', player: 'Haraslín', assist: null }]);
+    expect(st.events).toEqual([{ min: "45+2'", side: 'h', kind: 'goal', player: 'Chorý', assist: null }, { min: "60'", side: 'a', kind: 'red', player: 'Haraslín', assist: null }, { min: "70'", side: 'a', kind: 'sub', player: 'X', assist: null }]);
     expect(st.stats).toEqual([{ key: 'Ball Possession', h: '55%', a: '45%' }, { key: 'Total Shots', h: '12', a: null }]);
     expect(st.lineups[0]).toMatchObject({ side: 'h', formation: '3-4-3', xi: ['Staněk'] });
     expect(f.mock.calls).toHaveLength(2); // H2H not due: the match is in the past
@@ -422,5 +422,17 @@ describe('api-football as second source', () => {
     const { needH2h } = await import('../src/lib/results/afstore');
     const list = await needH2h(db, cfg.comps, cfg.priority, T0, 8);
     expect(list.map((r) => [r.ext_id, r.af_h, r.af_a])).toEqual([['2', '560', '561'], ['1', '541', '529']]); // Chance Liga first, 9 days ahead left out
+  });
+});
+
+describe('match events', () => {
+  it('substitution (player off / assist on), second yellow and VAR are kept', () => {
+    const d = detailFrom({ teams: { home: { id: 1 } }, events: [
+      { time: { elapsed: 63 }, team: { id: 1 }, player: { name: 'Off' }, assist: { name: 'On' }, type: 'subst', detail: 'Substitution 1' },
+      { time: { elapsed: 70 }, team: { id: 2 }, player: { name: 'Y' }, type: 'Card', detail: 'Second Yellow card' },
+      { time: { elapsed: 80 }, team: { id: 2 }, player: { name: 'Z' }, type: 'Var', detail: 'Goal cancelled' },
+    ] }, T0)!;
+    expect(d.events.map((e) => [e.kind, e.player, e.assist])).toEqual([['sub', 'Off', 'On'], ['yellowred', 'Y', null], ['var', 'Z', null]]);
+    expect(d.events[2].note).toBe('Goal cancelled');
   });
 });

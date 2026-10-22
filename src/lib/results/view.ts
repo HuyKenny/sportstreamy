@@ -64,7 +64,7 @@ export const STAT_LABELS: Record<string, string> = {
   'Goalkeeper Saves': 'Zákroky brankáře', expected_goals: 'Očekávané góly (xG)',
 };
 export const EVENT_LABELS: Record<Detail['events'][number]['kind'], string> = {
-  goal: 'Gól', own: 'Vlastní gól', pen: 'Gól z penalty', missed: 'Neproměněná penalta', red: 'Červená karta', yellow: 'Žlutá karta',
+  goal: 'Gól', own: 'Vlastní gól', pen: 'Gól z penalty', missed: 'Neproměněná penalta', red: 'Červená karta', yellowred: 'Druhá žlutá a červená', yellow: 'Žlutá karta', sub: 'Střídání', var: 'VAR',
 };
 
 /** Stored api-football details, or null when there are none (never an empty shell). */
@@ -84,4 +84,26 @@ export function meetingsOf(r: { h2h?: string | null }): Meeting[] {
   } catch {
     return [];
   }
+}
+
+/** VAR decisions as api-football words them → Czech. */
+export const VAR_LABELS: Record<string, string> = {
+  'Goal cancelled': 'gól neuznán', 'Goal Disallowed - offside': 'gól neuznán – ofsajd', 'Penalty confirmed': 'penalta potvrzena',
+  'Penalty cancelled': 'penalta zrušena', 'Card upgrade': 'karta zpřísněna', 'Goal confirmed': 'gól potvrzen',
+};
+
+/** Numeric value of a statistic ("49%" → 49, "1.15" → 1.15), null when missing. */
+export const statNum = (v: string | null) => (v == null ? null : Number.parseFloat(v.replace('%', '')) || 0);
+
+/** Goals per side for the scoreboard (own goals count for the other side). */
+export function scorers(d: Detail | null): { h: Detail['events']; a: Detail['events']; redH: number; redA: number } {
+  const ev = d?.events ?? [];
+  const goal = (e: Detail['events'][number]) => e.kind === 'goal' || e.kind === 'pen' || e.kind === 'own';
+  const red = (e: Detail['events'][number]) => e.kind === 'red' || e.kind === 'yellowred';
+  return {
+    h: ev.filter((e) => goal(e) && e.side === 'h'),
+    a: ev.filter((e) => goal(e) && e.side === 'a'),
+    redH: ev.filter((e) => red(e) && e.side === 'h').length,
+    redA: ev.filter((e) => red(e) && e.side === 'a').length,
+  };
 }

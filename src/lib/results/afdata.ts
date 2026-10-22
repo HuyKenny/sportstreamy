@@ -32,7 +32,8 @@ export function nameScore(a: string, b: string): number {
 }
 
 export interface Detail {
-  events: { min: string; side: 'h' | 'a'; kind: 'goal' | 'own' | 'pen' | 'missed' | 'red' | 'yellow'; player: string; assist: string | null }[];
+  /** For 'sub': player = going off, assist = coming on (checked against real data: scorers appear as `player` when replaced). */
+  events: { min: string; side: 'h' | 'a'; kind: 'goal' | 'own' | 'pen' | 'missed' | 'red' | 'yellowred' | 'yellow' | 'sub' | 'var'; player: string; assist: string | null; note?: string }[];
   stats: { key: string; h: string | null; a: string | null }[];
   lineups: { side: 'h' | 'a'; formation: string | null; coach: string | null; xi: string[] }[];
   at: number;
@@ -40,7 +41,9 @@ export interface Detail {
 
 const KIND = (type: string, detail: string): Detail['events'][number]['kind'] | null => {
   if (type === 'Goal') return /own/i.test(detail) ? 'own' : /missed/i.test(detail) ? 'missed' : /penalty/i.test(detail) ? 'pen' : 'goal';
-  if (type === 'Card') return /red|second yellow/i.test(detail) ? 'red' : 'yellow';
+  if (type === 'Card') return /second yellow/i.test(detail) ? 'yellowred' : /red/i.test(detail) ? 'red' : 'yellow';
+  if (type === 'subst') return 'sub';
+  if (type === 'Var') return 'var';
   return null;
 };
 
@@ -57,7 +60,7 @@ export function detailFrom(fx: Raw, at: number): Detail | null {
     const kind = KIND(String(e.type ?? ''), String(e.detail ?? ''));
     if (!kind || !e.player?.name) return [];
     const min = e.time?.elapsed != null ? `${e.time.elapsed}${e.time.extra ? `+${e.time.extra}` : ''}'` : '';
-    return [{ min, side: side(e.team?.id), kind, player: String(e.player.name), assist: e.assist?.name ? String(e.assist.name) : null }];
+    return [{ min, side: side(e.team?.id), kind, player: String(e.player.name), assist: e.assist?.name ? String(e.assist.name) : null, ...(kind === 'var' && e.detail ? { note: String(e.detail) } : {}) }];
   });
   const byTeam = new Map(((fx.statistics ?? []) as Raw[]).map((s) => [side(s.team?.id), new Map(((s.statistics ?? []) as Raw[]).map((x) => [String(x.type), val(x.value)]))]));
   const stats = byTeam.size === 2
