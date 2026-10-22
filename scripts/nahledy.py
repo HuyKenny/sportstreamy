@@ -7,8 +7,10 @@
     python3 scripts/nahledy.py --id 123     # force one Tipsport match id (still validated)
     NAHLEDY_WRITE_MODEL=… NAHLEDY_OPENAI_MODEL=… NAHLEDY_CHECK_MODEL=…   # switch models
 
-Which matches: football Liga mistrů / Evropská liga / Konferenční liga with a Czech club, Liga mistrů between two
-big clubs, Chance Liga games between the top Czech clubs, Czech national teams (football, hockey).
+Which matches (score ≥ 60, best MAX per run): Czech clubs in Europe, national teams, every Slavia/Sparta/Plzeň/Baník
+league game, big games of the top five leagues, Tipsport extraliga top games, Czech tennis players on the main tour;
+plus a +35 boost when Google Trends (CZ "trending now" RSS) or its headlines name a team or player — that is how NHL,
+basketball, darts or a smaller Chance Liga game get in.
 Pipeline (OpenAI Responses API, key in credentials/.openai-credentials.env; ~$0.1–0.2 per preview, switched from
 claude -p on 20. 10. 2026 to cut cost):
   1. TV: parsed from telly.cz competition pages (no model) — match line, else the competition's channels, else "not verified".
@@ -29,14 +31,14 @@ APP = Path(__file__).resolve().parent.parent
 OUT = APP / 'src' / 'content' / 'nahledy'
 KV_ID = 'ad0a4a01c23a4ed7b01a4690449014f1'
 TZ = ZoneInfo('Europe/Prague')
-MAX = int(os.environ.get('NAHLEDY_MAX', '4'))
+MAX = int(os.environ.get('NAHLEDY_MAX', '3'))  # ~$0.30 each → about $1/day at most
 MODEL = os.environ.get('NAHLEDY_OPENAI_MODEL', 'gpt-5-mini')  # research (web search)
 CHECK_MODEL = os.environ.get('NAHLEDY_CHECK_MODEL', MODEL)  # fact check (web search)
 WRITE_MODEL = os.environ.get('NAHLEDY_WRITE_MODEL', 'gpt-5.4-mini')  # writing, no web — better Czech than gpt-5-mini
 # USD per 1M tokens (input, cached input, output) and per web search call — for the cost line in the log
 PRICES = {'gpt-5-mini': (0.25, 0.025, 2.0), 'gpt-5-nano': (0.05, 0.005, 0.40), 'gpt-5.4-mini': (0.75, 0.075, 4.5), 'gpt-5.4-nano': (0.20, 0.02, 1.25)}
 SEARCH_CALL = 0.01
-FOOTBALL, HOCKEY = 16, 23
+FOOTBALL, HOCKEY, TENNIS, BASKET, DARTS = 16, 23, 43, 7, 42
 
 CZ_CLUBS = re.compile(r'\b(Slavia Praha|Sparta Praha|Plzeň|Viktoria Plzeň|Baník Ostrava|Jablonec|Mladá Boleslav|Sigma Olomouc|Olomouc|Slovan Liberec|Liberec|'
                       r'Teplice|Hradec Králové|Pardubice|Bohemians|Slovácko|Zlín|Karviná|Dukla Praha|Brno|Zbrojovka)\b')
@@ -44,6 +46,17 @@ TOP_CZ = re.compile(r'^(Slavia Praha|Sparta Praha|Plzeň|Viktoria Plzeň|Baník 
 BIG = re.compile(r'^(Real Madrid|FC Barcelona|Barcelona|Atlético Madrid|Bayern München|B Dortmund|Dortmund|Paris SG|Manchester City|Manchester United|'
                  r'Liverpool|Arsenal|Chelsea|Tottenham|Juventus Torino|Inter Milano|AC Milán|AC Milan|Napoli|AS Roma|Bayer Leverkusen|Leverkusen|Benfica|FC Porto)$')
 EURO = {'Liga mistrů', 'Evropská liga', 'Konferenční liga'}
+TOP_LEAGUES = {'1. anglická liga': 'premier-league', '1. španělská liga': 'la-liga', '1. německá liga': 'bundesliga', '1. italská liga': 'serie-a', '1. francouzská liga': 'ligue-1'}
+BIG6 = re.compile(r'^(Manchester City|Manchester United|Liverpool|Arsenal|Chelsea|Tottenham|Newcastle|Aston Villa)$')
+CZ_HOCKEY_TOP = re.compile(r'^(Sparta Praha|Pardubice|Třinec|Oceláři Třinec|Kometa Brno|Brno|Vítkovice|Plzeň|Liberec|Karlovy Vary|Mladá Boleslav|Litvínov|Hradec Králové|Olomouc|Kladno|České Budějovice|Zlín|Kladno)$')
+# Czech tennis players as Tipsport writes them ("Lehečka Jiří"); main tour only (ITF/UTR/Challenger are excluded below).
+CZ_TENNIS = re.compile(r'\b(Lehečka|Menšík|Macháč|Bělík|Kopřiva|Muchová|Krejčíková|Vondroušová|Nosková|Bouzková|Siniaková|Kvitová|Fruhvirtová|Valentová|Bejlek|Plíšková|Pliskova)\b')
+LOW_TOUR = re.compile(r'ITF|UTR|Challenger|Setka|Exhibice|kvalifikace', re.I)
+GRAND_SLAM = re.compile(r'Australian Open|Roland|French Open|Wimbledon|US Open')
+COMP_PATH = {'Liga mistrů': '/fotbal-online/liga-mistru/', 'Evropská liga': '/fotbal-online/evropska-liga/', 'Konferenční liga': '/fotbal-online/konferencni-liga/',
+             'Česká Chance Liga': '/fotbal-online/chance-liga/', 'NHL': '/hokej-online/nhl/', 'Česká Tipsport extraliga': '/hokej-online/tipsport-extraliga/',
+             **{k: f'/fotbal-online/{v}/' for k, v in TOP_LEAGUES.items()}}
+SPORT_SLUGS = {FOOTBALL: 'fotbal', HOCKEY: 'hokej', TENNIS: 'tenis', BASKET: 'basketbal', DARTS: 'sipky'}
 TV_NAMES = re.compile(r'\b(Nova Sport \d?|Nova Action|Voyo|O2 TV Sport|O2 TV|Oneplay|ČT ?sport|ČT ?Sport|Sport ?1|Sport ?2|Canal\+|Premier Sport|Eurosport|Max|Skylink|DAZN|Prima)\b')
 BANNED = re.compile(r'jistá výhra|tutovka|garantovan|sázka jistoty|100\s*% jist|nelze prohrát|zaručen|našich dat|interních dat|naše data|\(Pozn|\(Nap|Vykop|audio', re.I)
 
@@ -59,7 +72,7 @@ def kv(key):
 
 
 def score(m):
-    """0 = not a preview; higher = more interest from Czech searchers."""
+    """Base interest of a match for Czech searchers (0 = not a preview on its own; trends can still lift it)."""
     h, a, lg, sp = m['h'], m.get('a') or '', m['lg'], m['sp']
     if not a or re.search(r'U\d\d|žen|\(ž\)|IPH|para|sledge|inline|futsal|beach|plážov', lg + h + a, re.I):
         return 0  # youth, women's, para and variant tournaments are not the "big match" searchers mean
@@ -70,11 +83,67 @@ def score(m):
             return 95
         if lg == 'Česká Chance Liga' and TOP_CZ.match(h) and TOP_CZ.match(a):
             return 90
-        if lg == 'Liga mistrů' and BIG.match(h) and BIG.match(a):
+        if lg == 'Česká Chance Liga' and (TOP_CZ.match(h) or TOP_CZ.match(a)):
+            return 82  # every Slavia, Sparta, Plzeň, Baník game: Czech searchers first
+        if lg in EURO and BIG.match(h) and BIG.match(a):
             return 80
-    if sp == HOCKEY and (h == 'Česko' or a == 'Česko'):
-        return 85
+        if lg in TOP_LEAGUES and BIG.match(h) and BIG.match(a):
+            return 76  # Premier League / La Liga / Bundesliga / Serie A big games
+        if lg == '1. anglická liga' and BIG6.match(h) and BIG6.match(a):
+            return 70
+        if lg == 'Česká Chance Liga':
+            return 40  # rest of the Czech league: only with a trend boost
+    if sp == HOCKEY:
+        if h == 'Česko' or a == 'Česko':
+            return 85
+        if lg == 'Česká Tipsport extraliga' and CZ_HOCKEY_TOP.match(h) and CZ_HOCKEY_TOP.match(a):
+            return 60
+        if lg == 'NHL':
+            return 30  # NHL games with Czech players come up through the trends
+    if sp == TENNIS and not LOW_TOUR.search(lg) and (CZ_TENNIS.search(h) or CZ_TENNIS.search(a)):
+        return 80 if GRAND_SLAM.search(lg) else 65
+    if sp in (BASKET, DARTS):
+        return 20  # trend-only
     return 0
+
+
+STOP = {'praha', 'united', 'city', 'club', 'sport', 'sporting', 'real', 'team', 'cesko', 'ceska', 'ceske', 'liga', 'zapas', 'vyhra', 'prohra', 'gol', 'goly',
+        'trener', 'hrac', 'hraci', 'tymu', 'proti', 'sezona', 'sezony', 'nejlepsi', 'novy', 'nova', 'zpravy', 'pohar', 'skupina', 'kolo'}
+
+
+def fold(t):
+    return unicodedata.normalize('NFD', t.lower()).encode('ascii', 'ignore').decode()
+
+
+def words(t):
+    return {w for w in re.findall(r'[a-z]{5,}', fold(t)) if w not in STOP}
+
+
+def trends():
+    """Google Trends "trending now" for Czechia (official RSS, no key, ~10 searches a day with their news headlines).
+    Returns [(search, words of the search + headlines)]; empty on any error — previews then run on base scores."""
+    try:
+        raw = urllib.request.urlopen(urllib.request.Request('https://trends.google.com/trending/rss?geo=CZ', headers={'User-Agent': 'Mozilla/5.0'}), timeout=20).read().decode('utf-8', 'ignore')
+    except Exception as e:
+        print(f'trendy nedostupné: {e}', file=sys.stderr)
+        return []
+    import html as _html
+    out = []
+    for it in re.findall(r'<item>(.*?)</item>', raw, re.S):
+        title = _html.unescape(re.search(r'<title>(.*?)</title>', it, re.S).group(1)).strip()
+        news = ' '.join(_html.unescape(x) for x in re.findall(r'<ht:news_item_title>(.*?)</ht:news_item_title>', it, re.S))
+        out.append((title, words(title) | words(news)))
+    return out
+
+
+def trend_boost(m, tr):
+    """+35 when a trending search (or its headlines) names one of the teams/players: e.g. "Michal Postava" → "Detroit povolal…" → Detroit's game."""
+    names = words(m['h']) | words(m.get('a') or '')
+    for title, ws in tr:
+        hit = names & ws
+        if hit:
+            return 35, f'trend „{title}“ ({", ".join(sorted(hit))})'
+    return 0, ''
 
 
 def existing_ids():
@@ -343,11 +412,16 @@ def sh(cmd, **kw):
 def main():
     dry = '--dry-run' in sys.argv
     force = [int(sys.argv[i + 1]) for i, a in enumerate(sys.argv) if a == '--id']
-    items = kv('pre') + kv('live')
+    # A match in play is in both snapshots: one entry per id.
+    items = list({m['id']: m for m in kv('pre') + kv('live')}.values())
     now = time.time() * 1000
     have = existing_ids()
-    sports = {16: 'fotbal', 23: 'hokej'}
+    sports = SPORT_SLUGS
+    tr = trends()
+    if tr:
+        print('trendy CZ: ' + ', '.join(t for t, _ in tr))
     cands = []
+    why = {}
     for m in items:
         if m['id'] in have:
             continue
@@ -355,21 +429,26 @@ def main():
             if m['id'] in force:
                 cands.append((999, m))
             continue
-        s = score(m)
-        if s and now + 10 * 3600_000 <= m['st'] <= now + 60 * 3600_000:
+        base = score(m)
+        if not base or not (now + 10 * 3600_000 <= m['st'] <= now + 60 * 3600_000):
+            continue
+        boost, reason = trend_boost(m, tr)
+        s = base + boost
+        # Own threshold 60: big matches on their own; Chance Liga, NHL, basketball and darts only when people search for them.
+        if s >= 60:
             cands.append((s, m))
+            why[m['id']] = reason
     cands.sort(key=lambda x: (-x[0], x[1]['st']))
     cands = cands[:MAX]
     for s, m in cands:
-        print(f"{s:3} {datetime.fromtimestamp(m['st'] / 1000, TZ):%d.%m %H:%M} {m['lg']} | {m['h']} – {m['a']}")
+        print(f"{s:3} {datetime.fromtimestamp(m['st'] / 1000, TZ):%d.%m %H:%M} {m['lg']} | {m['h']} – {m['a']}{'  ← ' + why[m['id']] if why.get(m['id']) else ''}")
     if dry or not cands:
         return
     OUT.mkdir(parents=True, exist_ok=True)
     made, total = [], 0.0
     for s, m in cands:
         sport_slug = sports.get(m['sp'], 'fotbal')
-        comp = '/fotbal-online/' + {'Liga mistrů': 'liga-mistru', 'Evropská liga': 'evropska-liga', 'Konferenční liga': 'konferencni-liga', 'Česká Chance Liga': 'chance-liga'}.get(m['lg'], '') if m['sp'] == FOOTBALL else f'/{sport_slug}-online/'
-        comp = comp.rstrip('/') + '/'
+        comp = COMP_PATH.get(m['lg'], f'/{sport_slug}-online/')
         slug = f"{slugify(m['h'])}-{slugify(m['a'])}-{datetime.fromtimestamp(m['st'] / 1000, TZ):%Y-%m-%d}"
         match_url = f"/zapas/{m['id']}-{slugify(m['h'] + ' ' + m['a'])}/"
         try:
