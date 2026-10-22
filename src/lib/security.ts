@@ -1,15 +1,15 @@
 /**
  * Security headers for SSR responses (src/worker.ts) — keep in sync with public/_headers, which covers static files.
- * Third parties: Tipsport/Chance banner scripts + images, Allwyn banner image, team logos from API-Football's CDN. Scripts are external files only
+ * Third parties: Tipsport/Chance banner scripts + images, Allwyn banner image, Google Analytics (loaded only after consent, Souhlas.astro). Scripts are external files only
  * (vite assetsInlineLimit 0), so script-src needs no 'unsafe-inline'; JSON-LD blocks are data, not script.
  */
 export const CSP = [
   "default-src 'self'",
-  "script-src 'self' https://ban.tipsport.cz https://ban.chance.cz",
-  "img-src 'self' data: https://ban.tipsport.cz https://ban.chance.cz https://media.sazka.cz",
+  "script-src 'self' https://ban.tipsport.cz https://ban.chance.cz https://www.googletagmanager.com",
+  "img-src 'self' data: https://ban.tipsport.cz https://ban.chance.cz https://media.sazka.cz https://*.google-analytics.com https://*.googletagmanager.com",
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self'",
-  "connect-src 'self'",
+  "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",

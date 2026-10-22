@@ -5,6 +5,7 @@ import Search from '../components/Search.astro';
 import IconSprite from '../components/IconSprite.astro';
 import MobileMenu from '../components/MobileMenu.astro';
 import MoreMenu from '../components/MoreMenu.astro';
+import Souhlas from '../components/Souhlas.astro';
 import { NAV_MAIN, NAV_SPORTS, NAV_COMPS } from '../lib/menu';
 import { SPORTS } from '../lib/sports';
 import { COMPETITIONS } from '../lib/competitions';
@@ -108,7 +109,7 @@ const footComps = COMPETITIONS.filter((c) => c.top);
         <div><h4>Dnes</h4><a href="/fotbal-dnes/">Fotbal dnes</a><a href="/hokej-dnes/">Hokej dnes</a><a href="/tenis-dnes/">Tenis dnes</a><a href="/basketbal-dnes/">Basketbal dnes</a><a href="/volejbal-dnes/">Volejbal dnes</a><a href="/sipky-dnes/">Šipky dnes</a></div>
         <div><h4>Sázkové kanceláře</h4><a href="/sazkove-kancelare/">Srovnání kanceláří</a><a href="/sazkove-kancelare/tipsport/tv/">Tipsport TV</a><a href="/sazkove-kancelare/tipsport/aplikace/">Tipsport aplikace</a><a href="/sazkove-kancelare/tipsport/kontrola-tiketu/">Kontrola tiketu</a><a href="/pobocky/">Pobočky</a><a href="/clanky/dan-z-vyhry-sazky/">Daň z výhry</a></div>
         <div><h4>Přehledy</h4><a href="/zive/">Živé přenosy</a><a href="/program/">Program dnes</a><a href="/program/zitra/">Program zítra</a>{results ? <a href="/vysledky/">Výsledky zápasů</a> : null}<a href="/hledat/">Hledat zápas</a><a href="/jak-sledovat/">Kde sledovat velké zápasy</a><a href="/sazkove-kancelare/tipsport/tv/">Tipsport TV</a><a href="/sazkove-kancelare/">Sázkové kanceláře a bonusy</a><a href="/clanky/">Články</a></div>
-        <div><h4>Web</h4><a href="/o-webu/">O webu</a><a href="/zodpovedne-hrani/">Zodpovědné hraní</a><a href="/osobni-udaje/">Ochrana údajů</a><a href="/podminky/">Podmínky</a><a href="/zdroje-fotek/">Zdroje fotek</a><a href="/kontakt/">Kontakt</a></div>
+        <div><h4>Web</h4><a href="/o-webu/">O webu</a><a href="/zodpovedne-hrani/">Zodpovědné hraní</a><a href="/osobni-udaje/">Ochrana údajů</a><button type="button" class="pata-cookies" data-souhlas-otevri>Nastavení cookies</button><a href="/podminky/">Podmínky</a><a href="/zdroje-fotek/">Zdroje fotek</a><a href="/kontakt/">Kontakt</a></div>
       </div>
       <div class="warn"><b>18+</b><span>{BONUS.warn} Pomoc: <a href="https://www.hrajrozumne.cz" rel="noopener nofollow" style="display:inline;text-decoration:underline">hrajrozumne.cz</a>.</span></div>
       <p class="legal">SportStreamy je nezávislý přehled sportovních přenosů. Videa nevysíláme ani neukládáme – odkazy vedou na stránky licencovaných provozovatelů (Tipsport, Chance, Allwyn, MerkurXtip), od kterých můžeme získat provizi, pokud se zaregistruješ. Sledování přenosů je vázané na registraci a přihlášení u provozovatele. Komerční sdělení jsou označena „Reklama“.</p>
@@ -124,6 +125,7 @@ const footComps = COMPETITIONS.filter((c) => c.top);
     </nav>
   ) : null}
   <MobileMenu results={results} section={section} />
+  <Souhlas />
   <script>
     // Phones: hide the sticky header while scrolling down, show it again on the way up (transform only, no layout).
     const bar = document.querySelector<HTMLElement>('.bar');

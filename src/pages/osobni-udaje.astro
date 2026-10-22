@@ -2,9 +2,16 @@
 import Page from '../layouts/Page.astro';
 export const prerender = true;
 ---
-<Page title="Ochrana osobních údajů" description="Jaká data SportStreamy zpracovává: žádné cookies, žádné účty, anonymní počítání kliků." h1="Ochrana osobních údajů" lead="Krátce: o tobě nechceme vědět víc, než je nutné.">
+<Page title="Ochrana osobních údajů" description="Jaká data SportStreamy zpracovává: měření návštěvnosti jen se souhlasem, žádné účty, anonymní počítání kliků." h1="Ochrana osobních údajů" lead="Krátce: o tobě nechceme vědět víc, než je nutné.">
   <h2>Co neděláme</h2>
-  <p>Nemáme registraci, formuláře ani newsletter. Nepoužíváme sledovací cookies ani reklamní nástroje třetích stran.</p>
+  <p>Nemáme registraci, formuláře ani newsletter. Nepoužíváme reklamní cookies ani remarketing a bez tvého souhlasu neměříme nic, co by ukládalo cookies.</p>
+  <h2 id="cookies">Cookies a Google Analytics</h2>
+  <p>Při první návštěvě se zobrazí lišta s volbou <strong>Přijmout vše</strong> / <strong>Odmítnout vše</strong> (případně Nastavení). Volbu ukládáme v úložišti prohlížeče na 6 měsíců; jinak web pro svůj provoz žádné cookies nepotřebuje.</p>
+  <ul>
+    <li><strong>Nezbytné</strong> – zapamatování tvé volby (localStorage <code>sportstreamy-souhlas</code>). Vždy zapnuté.</li>
+    <li><strong>Statistika</strong> – Google Analytics 4 (Google Ireland Ltd.), cookies <code>_ga</code> a <code>_ga_*</code> s platností až 2 roky. Měříme návštěvnost stránek a prokliky na partnery. Google signály ani personalizace reklam nejsou zapnuté. Načte se <strong>jen po tvém souhlasu</strong>.</li>
+  </ul>
+  <p>Souhlas můžeš kdykoli změnit nebo odvolat tlačítkem <button type="button" class="pata-cookies" style="display:inline;padding:0;text-decoration:underline" data-souhlas-otevri>Nastavení cookies</button> (je i v patičce). Po odvolání cookies Google Analytics smažeme.</p>
   <h2>Co se měří</h2>
   <p>Když klikneš na odkaz „Sledovat“ nebo „Bonus“, zaznamenáme anonymní údaj: který odkaz, z které stránky, typ zařízení (mobil/počítač) a zemi. Nezaznamenáváme IP adresu ani nic, co by tě identifikovalo. Slouží k tomu, abychom věděli, které části webu jsou užitečné.</p>
   <h2>Odkazy na partnery</h2>
