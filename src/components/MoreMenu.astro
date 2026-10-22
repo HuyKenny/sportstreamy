@@ -1,0 +1,31 @@
+---
+import Icon from './Icon.astro';
+import { NAV_MORE, NAV_COMPS } from '../lib/menu';
+/** Desktop "Další ▾": a native <details> panel (works without JavaScript; the small script adds Esc and outside click). */
+interface Props { section?: string }
+const { section = '' } = Astro.props;
+const active = NAV_MORE.some((g) => g.items.some((i) => i.k === section));
+---
+<details class="more-menu">
+  <summary class:list={[active && 'is-active']}>Další <span aria-hidden="true">▾</span></summary>
+  <div class="more-panel">
+    <div class="more-col only-narrow">
+      <p class="more-k">Top soutěže</p>
+      {NAV_COMPS.map((i) => <a href={i.href} aria-current={section === i.k ? 'page' : undefined}>{i.label}</a>)}
+    </div>
+    {NAV_MORE.map((g) => (
+      <div class="more-col">
+        <p class="more-k">{g.title}</p>
+        {g.items.map((i) => <a href={i.href} aria-current={section === i.k ? 'page' : undefined}>{i.icon ? <Icon name={i.icon} /> : null}{i.label}</a>)}
+      </div>
+    ))}
+  </div>
+</details>
+<script>
+  // Close the panel with Esc or a click outside it, and return focus to its button.
+  const d = document.querySelector<HTMLDetailsElement>('.more-menu');
+  if (d) {
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && d.open) { d.open = false; d.querySelector('summary')?.focus(); } });
+    document.addEventListener('click', (e) => { if (d.open && !d.contains(e.target as Node)) d.open = false; });
+  }
+</script>

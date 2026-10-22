@@ -27,7 +27,7 @@ const comp = m ? competitionOf(m.sp, m.lg) : null;
 const title = `${d.home} – ${d.away}`;
 const st = d.start.getTime();
 const leagueHref = m ? leaguePathOf(m) : sport ? sportPath(sport.slug) : '/program/';
-const crumbs = [{ name: 'Domů', href: '/' }, { name: 'Velké zápasy', href: '/jak-sledovat/' }, { name: title }];
+const crumbs = [{ name: 'Domů', href: '/' }, { name: 'Kde sledovat', href: '/jak-sledovat/' }, { name: title }];
 const others = (await previews({ upcoming: true })).filter((p) => p.id !== entry.id).slice(0, 4);
 const fmt = new Intl.DateTimeFormat('cs-CZ', { day: 'numeric', month: 'long', year: 'numeric' });
 const article = { '@context': 'https://schema.org', '@type': 'Article', headline: d.title, description: d.description, datePublished: d.date.toISOString(), dateModified: d.date.toISOString(), inLanguage: 'cs', mainEntityOfPage: `${SITE}${previewPath(entry)}`, author: { '@type': 'Organization', name: 'SportStreamy', url: `${SITE}/o-webu/` }, publisher: { '@type': 'Organization', name: 'SportStreamy' } };

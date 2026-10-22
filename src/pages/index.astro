@@ -79,7 +79,7 @@ const resultsToday = rdb ? (await rowsBetween(rdb, ...pragueDay(todayKey), rcfg.
 
         {big.length ? (
           <section class="sec">
-            <div class="sec-head"><h2>Velké zápasy</h2><a href="/jak-sledovat/">Všechny náhledy ›</a></div>
+            <div class="sec-head"><h2>Kde sledovat velké zápasy</h2><a href="/jak-sledovat/">Všechny ›</a></div>
             <div class="cards">{big.map((p) => <a class="card" href={previewPath(p)}><div><small style="color:var(--ink-2)">{p.data.league} · {hhmm(p.data.start.getTime())}</small><h3>{p.data.home} – {p.data.away}</h3><p>Kde sledovat, TV a kurzy</p></div></a>)}</div>
           </section>
         ) : null}

@@ -593,3 +593,30 @@ a, button, .btn, .chip, summary { touch-action: manipulation; }
   .more a { display: inline-flex; align-items: center; min-height: 40px; }
   .promo { min-height: 40px; }
 }
+
+/* Desktop navigation: groups + "Další" panel (22. 10.) */
+.nav .wrap { position: relative; overflow: visible; align-items: stretch; }
+.nav-g { display: flex; gap: 2px; }
+.nav-g + .nav-g, .nav-g + .more-menu { margin-left: 8px; padding-left: 8px; border-left: 1px solid var(--line-2); }
+.nav-g + .nav-g { border-image: linear-gradient(transparent 25%, var(--line-2) 25% 75%, transparent 75%) 1; }
+.more-menu { margin-left: 8px; }
+.more-menu summary { display: inline-flex; align-items: center; gap: 6px; height: 100%; padding: 11px 13px; font-weight: 700; font-stretch: 88%; font-size: .93rem; color: var(--ink-2); cursor: pointer; list-style: none; border-bottom: 3px solid transparent; white-space: nowrap; }
+.more-menu summary::-webkit-details-marker { display: none; }
+.more-menu summary:hover, .more-menu[open] summary { color: var(--ink); }
+.more-menu summary.is-active { color: var(--ink); border-bottom-color: var(--cta); }
+.more-menu summary:focus-visible { outline: 2px solid var(--cta); outline-offset: -2px; }
+.more-menu[open] summary span { display: inline-block; transform: rotate(180deg); }
+.more-panel { position: absolute; z-index: 50; left: var(--gutter); right: var(--gutter); top: 100%; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px 24px; padding: 18px 20px 20px; background: var(--bg-2); border: 2px solid #000; border-top: 0; border-radius: 0 0 var(--r) var(--r); box-shadow: 0 18px 40px rgba(0, 0, 0, .55); }
+.more-col { display: flex; flex-direction: column; min-width: 0; }
+.more-k { margin: 0 0 6px; font-family: var(--mono); font-size: .66rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); }
+.nav .more-panel a { display: flex; align-items: center; gap: 8px; padding: 7px 0; border: 0; font-size: .92rem; color: var(--ink-2); white-space: normal; }
+.nav .more-panel a:hover, .nav .more-panel a[aria-current] { color: var(--ink); }
+.nav .more-panel a[aria-current] { box-shadow: inset 3px 0 0 var(--cta); padding-left: 8px; }
+.more-panel .ico { width: 16px; height: 16px; color: var(--ink-3); }
+/* Narrow desktops (900–1199 px): the competitions group moves into "Další" so nothing scrolls off screen. */
+.more-col.only-narrow { display: none; }
+@media (max-width: 1199px) {
+  .nav-comps { display: none; }
+  .more-col.only-narrow { display: flex; }
+  .more-panel { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}

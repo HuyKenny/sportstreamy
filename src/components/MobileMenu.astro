@@ -1,19 +1,12 @@
 ---
 import Icon from './Icon.astro';
 import Search from './Search.astro';
-import { SPORTS } from '../lib/sports';
+import { NAV_MAIN, NAV_SPORTS, NAV_COMPS, NAV_MORE } from '../lib/menu';
 import { BONUS } from '../lib/bonus';
 /** Phone menu (the top navigation is hidden under 900 px): a modal sheet opened from the header or the dock. */
 interface Props { results: boolean; section?: string }
 const { results, section = '' } = Astro.props;
-const main = [
-  { href: '/zive/', label: 'Živé přenosy', icon: 'live', k: 'zive' },
-  { href: '/program/', label: 'Program', icon: 'calendar', k: 'program' },
-  ...(results ? [{ href: '/vysledky/', label: 'Výsledky', icon: 'trophy', k: 'vysledky' }] : []),
-  { href: '/jak-sledovat/', label: 'Velké zápasy', icon: 'tv', k: 'nahledy' },
-  { href: '/sazkove-kancelare/', label: 'Sázkové kanceláře', icon: 'gift', k: 'bonusy' },
-  { href: '/clanky/', label: 'Články a návody', icon: 'arrow', k: 'clanky' },
-];
+const main = [...NAV_MAIN.filter((n) => results || n.k !== 'vysledky'), NAV_MORE[2].items[0], { href: '/sazkove-kancelare/', label: 'Sázkové kanceláře a bonusy', k: 'bonusy', icon: 'gift' }, { href: '/clanky/', label: 'Články a návody', k: 'clanky', icon: 'arrow' }];
 ---
 <dialog class="mmenu" id="mmenu" aria-label="Menu">
   <div class="mm-head">
@@ -25,18 +18,19 @@ const main = [
   <small class="mm-ad">Reklama · Tipsport · 18+</small>
   <nav aria-label="Sekce">
     <ul class="mm-list">
-      {main.map((n) => <li><a href={n.href} aria-current={section === n.k ? 'page' : undefined}><Icon name={n.icon} />{n.label}</a></li>)}
+      {main.map((n) => <li><a href={n.href} aria-current={section === n.k ? 'page' : undefined}><Icon name={n.icon ?? "arrow"} />{n.label}</a></li>)}
     </ul>
     <p class="mm-k">Sporty</p>
     <ul class="mm-sports">
-      {SPORTS.filter((s) => s.main || ['hazena', 'florbal', 'stolni-tenis', 'esporty', 'sipky', 'bojove-sporty'].includes(s.slug)).map((s) => <li><a href={`/${s.slug}-online/`}><Icon name={s.slug} />{s.name}</a></li>)}
+      {[...NAV_SPORTS, ...NAV_MORE[0].items].map((n) => <li><a href={n.href} aria-current={section === n.k ? 'page' : undefined}><Icon name={n.icon ?? 'ball'} />{n.label}</a></li>)}
     </ul>
-    <p class="mm-k">Oblíbené soutěže</p>
+    <p class="mm-k">Soutěže</p>
     <ul class="mm-sports">
-      <li><a href="/fotbal-online/chance-liga/">Chance Liga</a></li>
-      <li><a href="/fotbal-online/liga-mistru/">Liga mistrů</a></li>
-      <li><a href="/hokej-online/tipsport-extraliga/">Tipsport extraliga</a></li>
-      <li><a href="/hokej-online/nhl/">NHL</a></li>
+      {[...NAV_COMPS, ...NAV_MORE[1].items.slice(0, 4)].map((n) => <li><a href={n.href} aria-current={section === n.k ? 'page' : undefined}>{n.label}</a></li>)}
+    </ul>
+    <p class="mm-k">Kde sledovat a sázet</p>
+    <ul class="mm-list">
+      {NAV_MORE[2].items.slice(1).concat({ href: '/pobocky/', label: 'Pobočky sázkových kanceláří', k: 'pobocky', icon: 'home' }).map((n) => <li><a href={n.href}><Icon name={n.icon ?? 'tv'} />{n.label}</a></li>)}
     </ul>
   </nav>
 </dialog>
