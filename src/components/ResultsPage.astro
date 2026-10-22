@@ -9,6 +9,7 @@ import { compName, compPath, resultPath, isStale } from '../lib/results/view';
 import { pragueMidnight } from '../lib/results/time';
 import { hhmm, longDay, addDays, dayKey, plural } from '../lib/text';
 import { breadcrumbLd, SITE } from '../lib/seo';
+import Icon from './Icon.astro';
 interface Props { d: ResultsPageData }
 const { d } = Astro.props;
 const now = Date.now();
@@ -27,11 +28,11 @@ const days: [string, string][] = [[yKey, 'Včera'], [d.today, 'Dnes'], [tKey, 'Z
 const counts = (g: string) => d.all.filter((r) => (!d.comp || r.comp === d.comp) && (!g || group(r.status) === ({ probiha: 'live', skonceno: 'final', nadchazejici: 'upcoming' } as Record<string, string>)[g])).length;
 const staleN = d.rows.filter((r) => isStale(r, now, d.staleMs)).length;
 const live = d.all.some((r) => group(r.status) === 'live');
-// While football is the only sport with results, /vysledky/fotbal/ is the same list: it points its canonical to /vysledky/.
-const canonical = d.noindex ? d.path : RESULT_SPORTS.length === 1 ? '/vysledky/' : d.base;
+const canonical = d.noindex ? d.path : d.base;
+const hub = !d.sport.id;
 const crumbs = [{ name: 'Domů', href: '/' }, { name: 'Výsledky', href: '/vysledky/' }, ...(d.base !== '/vysledky/' ? [{ name: d.sport.name }] : [])];
 // Title-sized list: two names, or the first two and "další soutěže".
-const comps = d.comps.length <= 2 ? d.comps.map(compName).join(' a ') : `${d.comps.slice(0, 2).map(compName).join(', ')} a další soutěže`;
+const comps = hub ? 'fotbal, hokej, basketbal, volejbal a házená' : d.comps.length <= 2 ? d.comps.map(compName).join(' a ') : `${d.comps.slice(0, 2).map(compName).join(', ')} a další soutěže`;
 const ld = [breadcrumbLd(crumbs), { '@context': 'https://schema.org', '@type': 'ItemList', name: h1, numberOfItems: d.rows.length, itemListElement: d.rows.slice(0, 30).map((r, i) => ({ '@type': 'ListItem', position: i + 1, url: SITE + resultPath(r), name: `${r.home} – ${r.away}` })) }];
 ---
 <Base title={`${h1[0].toUpperCase()}${h1.slice(1)} – ${comps} | SportStreamy`} description={`${h1[0].toUpperCase()}${h1.slice(1)}: ${d.all.length} ${plural(d.all.length, 'zápas', 'zápasy', 'zápasů')} (${comps}). Skóre, stav zápasu a odkaz na detail s přenosem. Průběžně aktualizované výsledky.`} path={canonical} noindex={d.noindex} ld={ld} section="vysledky" ttl={isToday ? 60 : 600}>
@@ -40,7 +41,7 @@ const ld = [breadcrumbLd(crumbs), { '@context': 'https://schema.org', '@type': '
     <section class="pagehead">
       <div class="kicker"><span>{longDay(noon(d.key))}</span>{live ? <span class="tag-live"><span class="dot"></span>Probíhá</span> : null}<span>· {d.updated ? `aktualizováno ${hhmm(d.updated)}${dayKey(d.updated) !== d.today ? ` (${longDay(d.updated)})` : ''}` : 'zatím bez dat'}</span></div>
       <h1>{h1[0].toUpperCase()}{h1.slice(1)}</h1>
-      <p class="lead">Průběžně aktualizované výsledky soutěží {d.comps.map(compName).join(', ')}: skóre, stav zápasu a odkaz na detail. Průběžné skóre přebíráme z partnerského rozhraní Tipsportu zhruba každé 3 minuty (nejde o okamžitý livescore), konečné výsledky, statistiky a sestavy doplňujeme z API-Football.</p>
+      <p class="lead">Průběžně aktualizované výsledky soutěží {d.comps.map(compName).join(', ')}: skóre, stav zápasu a odkaz na detail. U odehraných zápasů najdeš průběh, statistiky a sestavy.</p>
     </section>
     <nav class="chips" aria-label="Den">
       {days.map(([k, l]) => <a class="chip" href={href({ den: k })} aria-current={k === d.key ? 'page' : undefined}>{l}</a>)}
@@ -51,8 +52,11 @@ const ld = [breadcrumbLd(crumbs), { '@context': 'https://schema.org', '@type': '
         <button class="chip" type="submit">Zobrazit</button>
       </form>
     </nav>
-    {RESULT_SPORTS.length > 1 ? <nav class="chips" aria-label="Sport">{RESULT_SPORTS.map((s) => <a class="chip" href={`/vysledky/${s.slug}/`}>{s.name}</a>)}</nav> : null}
-    <nav class="chips" aria-label="Soutěž" data-filter="c">
+    <nav class="chips" aria-label="Sport">
+      <a class="chip" href="/vysledky/" aria-current={hub ? 'page' : undefined}><Icon name="trophy" />Všechny sporty</a>
+      {RESULT_SPORTS.map((s) => <a class="chip" href={`/vysledky/${s.slug}/`} aria-current={d.sport.slug === s.slug ? 'page' : undefined}><Icon name={s.slug} />{s.name}{hub ? <em>{d.sports.find((x) => x.slug === s.slug)?.n ?? 0}</em> : null}</a>)}
+    </nav>
+    <nav class="chips" aria-label="Soutěž" data-filter="c" hidden={hub}>
       <a class="chip" href={href({ soutez: '' })} data-v="" aria-current={!d.comp ? 'page' : undefined}>Všechny soutěže</a>
       {d.comps.map((c) => <a class="chip" href={href({ soutez: c })} data-v={c} aria-current={d.comp === c ? 'page' : undefined}>{compName(c)}<em>{d.all.filter((r) => r.comp === c).length}</em></a>)}
     </nav>
@@ -65,7 +69,7 @@ const ld = [breadcrumbLd(crumbs), { '@context': 'https://schema.org', '@type': '
     </section>
     <section class="sec prose">
       <h2>Jak výsledky čteme</h2>
-      <p>U budoucích zápasů ukazujeme čas výkopu, skóre až po začátku. „Konec“ píšeme jen u zápasu, který zdroj označil jako ukončený; když zápas z nabídky zmizí bez potvrzení, ověříme výsledek přes API-Football; do té doby uvidíš „Výsledek nepotvrzen“ s posledním známým skóre. Program dalších dnů najdeš v <a href="/program/">programu přenosů</a>, zápasy jednotlivých soutěží na stránkách {d.comps.map((c, i) => <>{i ? (i === d.comps.length - 1 ? ' a ' : ', ') : ''}<a href={compPath(c)}>{compName(c)}</a></>)}.</p>
+      <p>U budoucích zápasů ukazujeme čas výkopu, skóre až po začátku. „Konec“ píšeme jen u zápasu, jehož konec máme potvrzený; než ho potvrdíme, uvidíš „Výsledek nepotvrzen“ s posledním známým skóre. Program dalších dnů najdeš v <a href="/program/">programu přenosů</a>, zápasy jednotlivých soutěží na stránkách {d.comps.map((c, i) => <>{i ? (i === d.comps.length - 1 ? ' a ' : ', ') : ''}<a href={compPath(c)}>{compName(c)}</a></>)}.</p>
     </section>
   </div>
 </Base>

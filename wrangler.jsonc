@@ -29,7 +29,9 @@
     // Results (on since 21. 10. 2026, Kenny approved; Tipsport allowed it with its current call pattern).
     "RESULTS_ENABLED": "on",
     "RESULTS_SYNC": "on",
-    "RESULTS_COMPETITIONS": "chance-liga,liga-mistru,evropska-liga,konferencni-liga,premier-league,chance-narodni-liga,nike-liga,la-liga,bundesliga,serie-a,ligue-1,championship",
+    "RESULTS_COMPETITIONS": "chance-liga,liga-mistru,evropska-liga,konferencni-liga,premier-league,chance-narodni-liga,nike-liga,la-liga,bundesliga,serie-a,ligue-1,championship,nhl,tipsport-extraliga,slovenska-extraliga,nba,euroliga,extraliga-volejbal,chance-extraliga-hazena",
+    // api-sports sports synced from the Raspberry; each has its own host and daily quota (sports-api.ts).
+    "RESULTS_API_SPORTS": "fotbal,hokej,basketbal,volejbal,hazena",
     "RESULTS_PRIORITY": "chance-liga,premier-league,liga-mistru,evropska-liga,konferencni-liga",
     // api-football runs from the Raspberry (bin/sportstreamy-af.sh → scripts/af-sync.ts): CF egress IPs hit its rate limit.
     "RESULTS_APIFOOTBALL": "off",

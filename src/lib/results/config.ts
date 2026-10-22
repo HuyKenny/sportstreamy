@@ -7,6 +7,7 @@ export interface ResultsEnv {
   RESULTS_SYNC?: string; // writes from the cron
   RESULTS_COMPETITIONS?: string; // comma-separated slugs from competitions.ts
   RESULTS_APIFOOTBALL?: string;
+  RESULTS_API_SPORTS?: string; // sports synced from api-sports (sports-api.ts slugs), each with its own daily quota
   RESULTS_API_CAP?: string; // our daily ceiling on the shared api-football quota
   RESULTS_API_RESERVE?: string; // never go below this many requests left at the provider (other users of the key)
   RESULTS_API_KEEP?: string; // requests kept for result checks: optional data (details, H2H) stops above this
@@ -22,6 +23,7 @@ export interface ResultsConfig {
   sync: boolean;
   comps: string[];
   apiFootball: boolean;
+  apiSports: string[];
   cap: number;
   reserve: number;
   keep: number;
@@ -39,6 +41,7 @@ export function resultsConfig(env: ResultsEnv): ResultsConfig {
     sync: on(env.RESULTS_SYNC) && !!env.RESULTS,
     comps: (env.RESULTS_COMPETITIONS ?? 'chance-liga,liga-mistru,evropska-liga,konferencni-liga,premier-league,chance-narodni-liga,nike-liga,la-liga,bundesliga,serie-a,ligue-1,championship').split(',').map((s) => s.trim()).filter(Boolean),
     apiFootball: on(env.RESULTS_APIFOOTBALL) && !!env.APISPORTS_KEY,
+    apiSports: (env.RESULTS_API_SPORTS ?? 'fotbal').split(',').map((s) => s.trim()).filter(Boolean),
     cap: num(env.RESULTS_API_CAP, 80),
     reserve: num(env.RESULTS_API_RESERVE, 20),
     keep: num(env.RESULTS_API_KEEP, 25),

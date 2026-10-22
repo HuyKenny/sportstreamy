@@ -11,12 +11,12 @@ const { r, now, staleMs, showComp = false, showDay = false } = Astro.props;
 const g = group(r.status);
 const sc = scoreText(r);
 const stale = isStale(r, now, staleMs);
-const label = statusLabel(r.status, r.status_raw);
+const label = statusLabel(r.status, r.status_raw, r.sport);
 const red = scorers(detailOf(r));
 ---
 <div class:list={['row', 'res', g === 'live' && 'is-live', g === 'final' && 'is-final']} data-g={g} data-c={r.comp} data-rid={r.ext_id}>
   <div class="when">
-    {r.status === 'scheduled' ? hhmm(r.start_utc) : <span data-st>{g === 'final' ? <Icon name="check" /> : null}{statusShort(r.status)}</span>}
+    {r.status === 'scheduled' ? hhmm(r.start_utc) : <span data-st>{g === 'final' ? <Icon name="check" /> : null}{statusShort(r.status, r.sport)}</span>}
     {r.status !== 'scheduled' ? <small>{showDay && dayKey(r.start_utc) !== dayKey(now) ? shortDay(r.start_utc) : hhmm(r.start_utc)}</small> : showDay && dayKey(r.start_utc) !== dayKey(now) ? <small>{shortDay(r.start_utc)}</small> : null}
   </div>
   <div style="min-width:0">

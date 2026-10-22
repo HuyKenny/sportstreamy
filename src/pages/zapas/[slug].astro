@@ -62,13 +62,14 @@ const otherResults = r && rdb ? (await recentOfComp(rdb, r.comp, now, 7)).filter
 const h2h = r && rdb ? await meetings(rdb, r.home_ext, r.away_ext, r.ext_id) : [];
 // Team logos from API-Football's CDN (identification use, allowed by its terms), only for linked teams.
 const logo = r && rdb ? await teamIds(rdb, r) : {};
-const logoSrc = (id?: string) => (id ? `https://media.api-sports.io/football/teams/${id}.png` : '');
+const LOGO_SPORT: Record<number, string> = { 16: 'football', 23: 'hockey', 7: 'basketball', 47: 'volleyball', 20: 'handball' };
+const logoSrc = (id?: string) => (id && r && LOGO_SPORT[r.sport] ? `/logo/${LOGO_SPORT[r.sport]}/${id}.png` : '');
 const o = over ? undefined : m?.o?.t;
 const title = m ? matchTitle(m) : '';
 const lgName = comp?.name ?? m?.lg ?? '';
 const watchLabel = m?.stream ? (state === 'live' ? 'Sledovat živě' : 'Sledovat zápas') : 'Živé statistiky';
 const resultSentence = r && m ? (final
-  ? `Zápas ${title} skončil ${sc ?? 'bez zveřejněného skóre'}${r.status === 'aet' ? ' po prodloužení' : r.status === 'pen' ? ' po penaltách' : ''}${detail ? ` (${detail})` : ''}.`
+  ? `Zápas ${title} skončil ${sc ?? 'bez zveřejněného skóre'}${r.status === 'aet' ? ' po prodloužení' : r.status === 'pen' ? (r.sport === 23 ? ' po nájezdech' : ' po penaltách') : ''}${detail ? ` (${detail})` : ''}.`
   : r.status === 'cancelled' ? `Zápas ${title} byl zrušen.`
   : `Konečný výsledek zápasu ${title} zdroj nepotvrdil.${sc ? ` Poslední známé skóre bylo ${sc} (${hhmm(r.checked_at)}).` : ''}`) : '';
 const faq = !m ? [] : over ? [
@@ -95,7 +96,7 @@ const ttl = over ? 3600 : state === 'live' ? 30 : 60;
     <Crumbs items={crumbs} />
     <section class="pagehead" style="padding-bottom:14px">
       <div class="kicker">
-        {over ? <span>{statusLabel(r!.status)}</span> : state === 'live' ? <span class="tag-live"><span class="dot"></span>Živě</span> : state === 'pre' ? <span style="color:var(--cta)">{m.stream ? 'Bude se vysílat' : 'Program'}</span> : <span>Záznam</span>}
+        {over ? <span>{statusLabel(r!.status, null, r!.sport)}</span> : state === 'live' ? <span class="tag-live"><span class="dot"></span>Živě</span> : state === 'pre' ? <span style="color:var(--cta)">{m.stream ? 'Bude se vysílat' : 'Program'}</span> : <span>Záznam</span>}
         <span>· {hhmm(m.st)} · {over ? longDay(m.st) : dayLabel(m.st, now)} · {sport.name}</span>
       </div>
       <h1>{final && sc ? `${title} ${sc}` : over ? `${title} – výsledek` : `${title} živě`}</h1>
@@ -105,7 +106,7 @@ const ttl = over ? 3600 : state === 'live' ? 30 : 60;
       <div>
         {r && r.status !== 'scheduled' ? (
           <section class:list={['result-box', final && 'is-final']} aria-label="Výsledek a stav zápasu" data-rid={r.ext_id}>
-            <div class="rb-st">{final ? <Icon name="check" /> : isInPlay(r.status) ? <span class="dot"></span> : <Icon name="clock" />}{statusLabel(r.status, r.status_raw)}{isInPlay(r.status) && r.minute_raw ? ` · ${r.minute_raw}` : ''}</div>
+            <div class="rb-st">{final ? <Icon name="check" /> : isInPlay(r.status) ? <span class="dot"></span> : <Icon name="clock" />}{statusLabel(r.status, r.status_raw, r.sport)}{isInPlay(r.status) && r.minute_raw ? ` · ${r.minute_raw}` : ''}</div>
             <div class="rb-main">
               <span class="rb-team">{logo.h ? <img class="rb-logo" src={logoSrc(logo.h)} width="36" height="36" alt="" loading="lazy" decoding="async" /> : null}{r.home}</span>
               <span class="rb-sc" aria-label={sc ? `Skóre ${sc}` : 'Skóre není k dispozici'}>{sc ?? '–'}</span>
@@ -122,9 +123,9 @@ const ttl = over ? 3600 : state === 'live' ? 30 : 60;
               </div>
             ) : null}
             {detail ? <p class="rb-meta">{detail[0].toUpperCase()}{detail.slice(1)}</p> : null}
-            {r.status === 'unconfirmed' ? <p class="rb-meta">Zápas zmizel z nabídky zdroje bez potvrzeného konce. {sc ? 'Skóre je poslední známé, ne nutně konečné.' : ''}</p> : null}
-            {r.status === 'postponed' ? <p class="rb-meta">Zápas je odložený. Nový termín doplníme, jakmile ho zdroj zveřejní.</p> : null}
-            <p class="rb-meta">{final ? 'Výsledek potvrzen' : 'Poslední aktualizace'} {hhmm(final && r.final_at ? r.final_at : r.checked_at)} · zdroj {r.result_src === 'apifootball' ? 'API-Football' : 'Tipsport'}{stale ? ' · data mohou být zastaralá' : ''}</p>
+            {r.status === 'unconfirmed' ? <p class="rb-meta">Konec zápasu zatím nemáme potvrzený. {sc ? 'Skóre je poslední známé, ne nutně konečné.' : ''}</p> : null}
+            {r.status === 'postponed' ? <p class="rb-meta">Zápas je odložený. Nový termín doplníme, jakmile bude známý.</p> : null}
+            <p class="rb-meta">{final ? 'Výsledek potvrzen' : 'Poslední aktualizace'} {hhmm(final && r.final_at ? r.final_at : r.checked_at)}{stale ? ' · data mohou být zastaralá' : ''}</p>
           </section>
         ) : null}
         {over ? (
@@ -146,7 +147,7 @@ const ttl = over ? 3600 : state === 'live' ? 30 : 60;
             <div><dt>{over ? 'Hráno' : 'Začátek'}</dt><dd>{hhmm(m.st)} · {shortDay(m.st)}</dd></div>
             <div><dt>Sport</dt><dd><a href={sportPath(sport.slug)}>{sport.name}</a></dd></div>
             <div><dt>Soutěž</dt><dd><a href={leaguePathOf(m)}>{lgName}</a></dd></div>
-            <div><dt>{over ? 'Výsledek' : 'Přenos'}</dt><dd>{over ? (final && sc ? sc : statusLabel(r!.status)) : m.stream ? 'Video · Tipsport' : 'Statistiky · Tipsport'}</dd></div>
+            <div><dt>{over ? 'Výsledek' : 'Přenos'}</dt><dd>{over ? (final && sc ? sc : statusLabel(r!.status, null, r!.sport)) : m.stream ? 'Video · Tipsport' : 'Statistiky · Tipsport'}</dd></div>
           </dl>
         </section>
 

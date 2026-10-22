@@ -443,7 +443,8 @@ a, button, .btn, .chip, summary { touch-action: manipulation; }
 
 /* Results (pilot) */
 .res-group + .res-group { margin-top: 14px; }
-.res-group .dayhead a { color: inherit; text-decoration: none; }
+.res-group .dayhead a { color: inherit; text-decoration: none; display: inline-flex; align-items: center; gap: 7px; }
+.res-group .dayhead .ico { width: 14px; height: 14px; }
 .res-group .dayhead a:hover { color: var(--cta); }
 .row.res { grid-template-columns: 74px minmax(0, 1fr) auto; }
 .row.res .when { font-size: .82rem; }

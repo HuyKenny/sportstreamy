@@ -20,7 +20,7 @@ export const GET: APIRoute = async ({ url }) => {
   const [from, to] = pragueDay(key);
   const out: Record<string, [string, string, string, string]> = {};
   for (const r of await rowsBetween(db, from, to, resultsConfig(e).comps)) {
-    out[r.ext_id] = [r.status === 'scheduled' ? '' : statusShort(r.status), statusLabel(r.status, r.status_raw), scoreText(r) ?? '', r.minute_raw ?? ''];
+    out[r.ext_id] = [r.status === 'scheduled' ? '' : statusShort(r.status, r.sport), statusLabel(r.status, r.status_raw, r.sport), scoreText(r) ?? '', r.minute_raw ?? ''];
   }
   return new Response(JSON.stringify(out), { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, s-maxage=30', 'X-Robots-Tag': 'noindex' } });
 };

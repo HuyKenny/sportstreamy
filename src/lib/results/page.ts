@@ -4,9 +4,21 @@ import { rowsBetween, dataRange, type ResultRow } from './store';
 import { pragueDay, isDayKey } from './time';
 import { group, type Group } from './status';
 import { dayKey, addDays } from '../text';
+import { competitionBySlug } from '../competitions';
 
-/** Sports with a verified results source. Only football for the pilot. */
-export const RESULT_SPORTS = [{ slug: 'fotbal', id: 16, name: 'Fotbal', genitive: 'fotbalu' }];
+/** Sports with a verified results source, in menu order. '' = all of them (the /vysledky/ hub). */
+export const RESULT_SPORTS = [
+  { slug: 'fotbal', id: 16, name: 'Fotbal', genitive: 'fotbalu' },
+  { slug: 'hokej', id: 23, name: 'Hokej', genitive: 'hokeje' },
+  { slug: 'basketbal', id: 7, name: 'Basketbal', genitive: 'basketbalu' },
+  { slug: 'volejbal', id: 47, name: 'Volejbal', genitive: 'volejbalu' },
+  { slug: 'hazena', id: 20, name: 'Házená', genitive: 'házené' },
+];
+const ALL = { slug: '', id: 0, name: 'Všechny sporty', genitive: 'zápasů' };
+const sportOfComp = (c: string) => competitionBySlug(c)?.sp ?? 0;
+/** Configured competitions of one sport (or all, grouped by sport in menu order). */
+export const compsOf = (comps: string[], sport: number) =>
+  sport ? comps.filter((c) => sportOfComp(c) === sport) : RESULT_SPORTS.flatMap((s) => comps.filter((c) => sportOfComp(c) === s.id));
 
 const STAV: Record<string, Group> = { probiha: 'live', skonceno: 'final', nadchazejici: 'upcoming' };
 export const STAV_LABELS: [string, string][] = [['', 'Vše'], ['probiha', 'Probíhá'], ['skonceno', 'Skončeno'], ['nadchazejici', 'Nadcházející']];
@@ -25,7 +37,8 @@ export interface ResultsPageData {
   base: string;
   noindex: boolean;
   path: string;
-  sport: (typeof RESULT_SPORTS)[number];
+  sport: (typeof RESULT_SPORTS)[number] | typeof ALL;
+  sports: { slug: string; name: string; n: number }[]; // sports with matches that day (hub chips)
   updated: number | null;
 }
 
@@ -35,10 +48,12 @@ export interface ResultsPageData {
  */
 export async function resultsPage(env: ResultsEnv, url: URL, sportSlug: string, now = Date.now()): Promise<{ redirect: string; status: 301 | 302 } | { notFound: true } | ResultsPageData> {
   const db = resultsDb(env);
-  const sport = RESULT_SPORTS.find((s) => s.slug === sportSlug);
+  const sport = sportSlug ? RESULT_SPORTS.find((s) => s.slug === sportSlug) : ALL;
   if (!db || !sport) return { notFound: true };
-  const cfg = resultsConfig(env);
-  const base = url.pathname === '/vysledky/' ? '/vysledky/' : `/vysledky/${sport.slug}/`;
+  const cfg0 = resultsConfig(env);
+  const cfg = { ...cfg0, comps: compsOf(cfg0.comps, sport.id) };
+  if (!cfg.comps.length) return { notFound: true };
+  const base = sport.slug ? `/vysledky/${sport.slug}/` : '/vysledky/';
   const p = url.searchParams;
   const today = dayKey(now);
   const den = p.get('den') ?? '';
@@ -57,7 +72,7 @@ export async function resultsPage(env: ResultsEnv, url: URL, sportSlug: string, 
   if (den && (!isDayKey(den) || den < minKey || den > maxKey)) return { redirect: keep({}), status: 302 };
   const key = den || today;
   const [from, to] = pragueDay(key);
-  const all = await rowsBetween(db, from, to, cfg.comps, sport.id);
+  const all = await rowsBetween(db, from, to, cfg.comps, sport.id || undefined);
   const rows = all.filter((r) => (!comp || r.comp === comp) && (!stav || group(r.status) === STAV[stav]));
   const updated = all.reduce<number | null>((m, r) => (m == null || r.checked_at > m ? r.checked_at : m), null);
   return {
@@ -65,5 +80,6 @@ export async function resultsPage(env: ResultsEnv, url: URL, sportSlug: string, 
     noindex: !!(den || comp || stav || p.size),
     path: `${url.pathname}${url.search}`,
     sport, updated,
+    sports: RESULT_SPORTS.map((s) => ({ slug: s.slug, name: s.name, n: all.filter((r) => r.sport === s.id).length })).filter((s) => !sport.id && s.n),
   };
 }

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import { competitionBySlug } from '../src/lib/competitions';
 import { testDb } from './d1';
 import { classify, fromTipsport, fromApiFootball, periodsOf, penaltiesOf, score, type Raw } from '../src/lib/results/normalize';
 import { upsertState, rowsBetween, rowByExt, markUnconfirmed, opsStatus, finalsSince, checkTeams } from '../src/lib/results/store';
@@ -373,7 +374,7 @@ describe('api-football as second source', () => {
     const db = testDb();
     await syncTipsportSchedule(db, [tip({ dateStart: T0 + 3600_000 }), tip({ id: 2, dateStart: T0 + 5 * 86_400_000 })], cfg, T0);
     expect(await dueDays(db, cfg.comps, T0)).toEqual(['2026-10-24']);
-    await db.prepare("INSERT INTO af_fetch VALUES ('2026-10-24', ?)").bind(T0).run();
+    await db.prepare("INSERT INTO api_fetch VALUES ('apifootball', '2026-10-24', ?)").bind(T0).run();
     expect(await dueDays(db, cfg.comps, T0 + 3600_000)).toEqual([]);
     await db.prepare("UPDATE matches SET af_id = '1'").run();
     expect(await dueDays(db, cfg.comps, T0 + 3600_000 + 101 * 60_000)).toEqual(['2026-10-24']);
@@ -434,5 +435,70 @@ describe('match events', () => {
     ] }, T0)!;
     expect(d.events.map((e) => [e.kind, e.player, e.assist])).toEqual([['sub', 'Off', 'On'], ['yellowred', 'Y', null], ['var', 'Z', null]]);
     expect(d.events[2].note).toBe('Goal cancelled');
+  });
+});
+
+import { readFileSync } from 'node:fs';
+import { SPORT_APIS, sportApi } from '../src/lib/results/sports-api';
+import { detailFromHockey } from '../src/lib/results/afdata';
+import { detailText } from '../src/lib/results/view';
+import { syncApiSports } from '../src/lib/results/sync';
+
+/** Real api-sports responses of 21. 10. 2026 (logos stripped). */
+const REAL = JSON.parse(readFileSync(new URL('./fixtures/api-sports-2026-10-21.json', import.meta.url), 'utf8'));
+
+describe('more sports from api-sports', () => {
+  const hockey = sportApi('hokej')!;
+  it('hockey: periods, overtime and shoot-out from real games', () => {
+    const [ft, ap, aot] = REAL.hockey.map((g: Raw) => hockey.parse(g)!);
+    expect(ft).toMatchObject({ status: 'ft', sh: 3, sa: 2, periods: [[3, 1], [0, 0], [0, 1]], pen: null, league: 57 });
+    expect(ap).toMatchObject({ status: 'pen', sh: 4, sa: 3, periods: [[1, 0], [2, 0], [0, 3], [0, 0]], pen: [2, 1] });
+    expect(aot).toMatchObject({ status: 'aet', periods: [[1, 1], [2, 0], [0, 2], [0, 1]] });
+  });
+  it('basketball quarters + overtime, volleyball sets, handball without halves stays null', () => {
+    const b = sportApi('basketbal')!;
+    expect(b.parse(REAL.basketball[0])).toMatchObject({ status: 'ft', sh: 90, sa: 81, periods: [[23, 25], [13, 23], [28, 14], [26, 19]], league: 120 });
+    expect(b.parse(REAL.basketball[1])).toMatchObject({ status: 'aet', sh: 94, sa: 99 });
+    expect(b.parse(REAL.basketball[1])!.periods).toHaveLength(5);
+    expect(sportApi('volejbal')!.parse(REAL.volleyball[0])).toMatchObject({ sh: 3, sa: 0, periods: [[25, 21], [25, 19], [25, 17]] });
+    expect(sportApi('hazena')!.parse(REAL.handball[0])).toMatchObject({ sh: 33, sa: 25, periods: null });
+  });
+  it('hockey events: game minute, assists, penalties with notes', () => {
+    const d = detailFromHockey(REAL.hockey_events, '691', T0)!;
+    expect(d.events[0]).toMatchObject({ min: "13'", side: 'h', kind: 'goal', player: 'O. Palat', assist: 'J. Pageau, A. Duclair' });
+    expect(d.events.find((e) => e.note === 'Power-play')).toMatchObject({ kind: 'goal', side: 'h', player: 'S. Holmstrom' });
+    expect(d.events.find((e) => e.min === "20'")).toMatchObject({ kind: 'pim', note: 'Hooking' }); // P2 00 = 20'
+    expect(d.events.some((e) => e.note === 'Too many men on the ice')).toBe(false); // no player → left out
+  });
+  it('sport-aware result text', () => {
+    const row = (sport: number, periods: unknown, extra = {}) => ({ sport, periods: JSON.stringify(periods), status: 'ft', pen_h: null, pen_a: null, ...extra }) as never;
+    expect(detailText(row(23, [[1, 0], [0, 2], [1, 1], [0, 0]], { status: 'pen', pen_h: 2, pen_a: 1 }))).toBe('třetiny 1:0, 0:2, 1:1 · prodloužení 0:0 · nájezdy 2:1');
+    expect(detailText(row(47, [[25, 21], [23, 25]]))).toBe('sety 25:21, 23:25');
+    expect(detailText(row(7, [[20, 18], [20, 20], [20, 20], [20, 20], [5, 3]]))).toBe('čtvrtiny 20:18, 20:20, 20:20, 20:20 · prodloužení 5:3');
+    expect(detailText(row(16, [[1, 0], [0, 1]]))).toBe('1. poločas 1:0');
+  });
+  it('a hockey sync uses only the hockey quota, football stays untouched', async () => {
+    const db = testDb();
+    await syncTipsportSchedule(db, [tip({ id: 77, idSuperSport: 23, nameCompetition: 'NHL', homeParticipant: 'New York Islanders', visitingParticipant: 'Anaheim Ducks', homeParticipantId: 501, visitingParticipantId: 502, dateStart: REAL.hockey[0].timestamp * 1000 })], { ...cfg, comps: ['nhl'] }, REAL.hockey[0].timestamp * 1000 - 86_400_000);
+    const at = REAL.hockey[0].timestamp * 1000 + 3 * 3600_000;
+    const f = fakeFetch(json({ errors: [], response: REAL.hockey }));
+    const r = await syncApiSports(db, { ...cfg, comps: ['nhl', 'chance-liga'], stats: false }, hockey, opts(f, 80), at);
+    expect(r.error).toBeUndefined();
+    expect(String(f.mock.calls[0][0])).toContain('v1.hockey.api-sports.io/games?');
+    const row = (await rows(db))[0];
+    expect(row).toMatchObject({ status: 'ft', sh: 3, sa: 2, af_id: '444738', result_src: 'apihockey' });
+    const usage = (await db.prepare('SELECT provider, used FROM api_usage').all()).results;
+    expect(usage).toEqual([{ provider: 'apihockey', used: 1 }]);
+  });
+  it('every sport maps only curated competitions', () => {
+    for (const s of SPORT_APIS) for (const c of Object.keys(s.leagues)) expect(competitionBySlug(c)?.sp, c).toBe(s.sport);
+  });
+  it('Tipsport texts of other sports', () => {
+    expect(classify({ dateStart: T0, statusOffer: '2.tř. - 31.min (1:0, 0:1) 5na4' }, T0 + 1)).toBe('live');
+    expect(classify({ dateStart: T0, statusOffer: '1.přestávka (1:0)' }, T0 + 1)).toBe('ht');
+    expect(classify({ dateStart: T0, statusOffer: '2.set (25:21)' }, T0 + 1)).toBe('live');
+    expect(classify({ dateStart: T0, statusOffer: '3.čtvrt. (20:18, 15:22)' }, T0 + 1)).toBe('live');
+    expect(statusLabel('ht', null, 23)).toBe('Přestávka');
+    expect(statusLabel('pen', null, 23)).toBe('Konec po nájezdech');
   });
 });

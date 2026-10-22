@@ -33,7 +33,7 @@ export function nameScore(a: string, b: string): number {
 
 export interface Detail {
   /** For 'sub': player = going off, assist = coming on (checked against real data: scorers appear as `player` when replaced). */
-  events: { min: string; side: 'h' | 'a'; kind: 'goal' | 'own' | 'pen' | 'missed' | 'red' | 'yellowred' | 'yellow' | 'sub' | 'var'; player: string; assist: string | null; note?: string }[];
+  events: { min: string; side: 'h' | 'a'; kind: 'goal' | 'own' | 'pen' | 'missed' | 'red' | 'yellowred' | 'yellow' | 'sub' | 'var' | 'pim'; player: string; assist: string | null; note?: string }[];
   stats: { key: string; h: string | null; a: string | null }[];
   lineups: { side: 'h' | 'a'; formation: string | null; coach: string | null; xi: string[] }[];
   at: number;
@@ -85,6 +85,36 @@ export function meetingsFrom(list: Raw[], limit = 5): Meeting[] {
   return list
     .filter((f) => FINISHED.has(String(f.fixture?.status?.short)) && f.goals?.home != null && f.goals?.away != null)
     .map((f) => ({ date: Number(f.fixture.timestamp) * 1000, home: String(f.teams?.home?.name ?? ''), away: String(f.teams?.away?.name ?? ''), sh: Number(f.goals.home), sa: Number(f.goals.away), league: String(f.league?.name ?? '') }))
+    .sort((x, y) => y.date - x.date)
+    .slice(0, limit);
+}
+
+/**
+ * Hockey game events (api-sports /games/events): goals with assists and penalties. The minute is within the period
+ * ("P2", "05"), shown as game time (25'). Comments carry the kind of goal or penalty ("Power-play", "Tripping - 2 min").
+ */
+export function detailFromHockey(list: Raw[], homeId: string, at: number): Detail | null {
+  const events = list.flatMap((e) => {
+    const kind = e.type === 'goal' ? 'goal' : e.type === 'penalty' ? 'pim' : null;
+    const player = (e.players ?? [])[0];
+    if (!kind || !player) return [];
+    const per = Number(/^P(\d)$/.exec(String(e.period ?? ''))?.[1] ?? 0);
+    const minute = Number(e.minute);
+    const min = per && Number.isFinite(minute) ? `${(per - 1) * 20 + minute}'` : String(e.period ?? '') === 'OT' && Number.isFinite(minute) ? `${60 + minute}'` : '';
+    return [{
+      min, side: String(e.team?.id) === homeId ? ('h' as const) : ('a' as const), kind: kind as Detail['events'][number]['kind'],
+      player: String(player), assist: (e.assists ?? []).filter(Boolean).join(', ') || null,
+      ...(e.comment ? { note: String(e.comment) } : {}),
+    }];
+  });
+  return events.length ? { events, stats: [], lineups: [], at } : null;
+}
+
+/** Head-to-head of any sport from games reduced to Fx: finished meetings only, newest first. */
+export function meetingsFromFx(list: { ts: number; home: { name: string }; away: { name: string }; sh: number | null; sa: number | null; status?: string; leagueName: string }[], limit = 5): Meeting[] {
+  return list
+    .filter((f) => ['ft', 'aet', 'pen'].includes(f.status ?? '') && f.sh != null && f.sa != null)
+    .map((f) => ({ date: f.ts, home: f.home.name, away: f.away.name, sh: f.sh!, sa: f.sa!, league: f.leagueName }))
     .sort((x, y) => y.date - x.date)
     .slice(0, limit);
 }

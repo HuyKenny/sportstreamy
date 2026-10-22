@@ -144,3 +144,33 @@ Ligy api-football jsem ověřil přes `/leagues?id=` 21. 10., všechny mají akt
 2. **api-football:** Kenny potvrdil (21. 10.) povolení využívat Free plán v plném rozsahu. Uvádíme zdroj „API-Football“. Loga týmů na detailu jsou z jejich CDN (podle podmínek „pro identifikaci“), fotky hráčů nepoužíváme.
 3. **Práva lig:** na faktické výsledky se obecně nevztahují. Systematický archiv s detailními statistikami ale může podléhat právům organizátorů. Riziko zůstává na straně provozovatele.
 4. **Strukturovaná data:** `SportsEvent` jen s ověřenými vlastnostmi. Speciální zobrazení v Googlu neslibujeme.
+
+## Další sporty (od 22. 10. 2026)
+Výsledky mají i hokej, basketbal, volejbal a házenou. Stránky `/vysledky/` (všechny sporty) a `/vysledky/<sport>/` jsou samostatně indexovatelné.
+
+**Zdroje:**
+- **Tipsport:** stejné dotazy jako dřív (soutěže jsou kurátorované, feed je stahuje tak jako tak).
+- **api-sports:** každý sport má vlastní host a **vlastní denní kvótu 100**, ověřeno přes `/status`. Další sport tedy nebere fotbalu.
+  - Definice jsou v `src/lib/results/sports-api.ts` (`SPORT_APIS`): host, endpointy, mapování lig a normalizátor.
+  - Synchronizaci zapíná `RESULTS_API_SPORTS`.
+
+| Sport | Ligy (id u poskytovatele) | Detail | H2H |
+|---|---|---|---|
+| hokej `v1.hockey` | NHL 57, Tipsport extraliga 10, Tipos extraliga 91 | `/games/events?game=` (góly s asistencemi, vyloučení) | `/games/h2h` |
+| basketbal `v1.basketball` | NBA 12, Euroliga 120 | čtvrtiny přímo v denním seznamu | `/games?h2h=` |
+| volejbal `v1.volleyball` | CZ Extraliga 38 | sety v denním seznamu | `/games/h2h` |
+| házená `v1.handball` | CZ Extraliga 12 | poločasy v denním seznamu (často prázdné) | `/games/h2h` |
+
+**Pravidla:**
+- Maxa liga u poskytovatele nemá aktuální sezónu, proto chybí. MS v hokeji se namapuje před turnajem.
+- Stavy v1: `P1..P3`, `Q1..Q4`, `S1..S5` = probíhá; `AOT` = po prodloužení; `AP` = po nájezdech / penaltách; `POST` = odloženo.
+- Sync (Malina, `5-59/15`) jde sport po sportu, každý pod vlastním zámkem a vlastním řádkem v `api_usage`. Při výpadku jednoho sportu ostatní pokračují.
+- Migrace `0003_multisport.sql`: tabulka `api_fetch` (provider, den).
+
+**Odhad dotazů za den (strop 95 a rezerva 3 na sport):** hokej ~55, basket ~30, volejbal ~12, házená ~13. Nepovinná data se zastaví, když zbývá `RESULTS_API_KEEP`.
+
+## Zdroje dat se na webu neuvádějí (Kenny, 22. 10. 2026)
+- Na stránkách nesmí být názvy zdrojů dat (API-Football, api-sports, „partnerské rozhraní Tipsportu“) ani frekvence stahování. Konkurence by postup okopírovala.
+- Loga týmů jdou přes `/logo/<sport>/<id>.png` z naší domény, ne přímo z CDN poskytovatele.
+- Tipsport jako partner pro sledování a kurzy na webu zůstává (affiliate).
+- Kontrola před nasazením: `grep -rliE "api-football|api-sports|apisports|partnersk" dist/client/` musí být prázdný.

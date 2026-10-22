@@ -3,9 +3,10 @@ import type { ResultsConfig } from './config';
 import { fromTipsport, type Raw, type Obs } from './normalize';
 import { checkTeams, upsertState, upsertSchedule, markUnconfirmed } from './store';
 import { runJob, type RunResult } from './budget';
-import { AF_LEAGUE, fixturesOnDate, fixtureDetail, headToHead, QuotaError, type AfOptions } from './apifootball';
+import { listOnDate, detailFor, h2hFor, QuotaError, type AfOptions } from './apifootball';
 import { AF_DONE, dueDays, markFetched, slotRows, linksFor, pair, applyFixture, needDetail, needH2h, saveStats, saveH2h, spare } from './afstore';
-import { nameScore, detailFrom, meetingsFrom } from './afdata';
+import { nameScore, detailFrom, detailFromHockey, meetingsFromFx } from './afdata';
+import { FOOTBALL, type Fx, type SportApi } from './sports-api';
 
 const LEASE = 150_000; // shorter than the */3 cron interval
 
@@ -38,32 +39,32 @@ export function syncTipsportSchedule(db: Db, raw: Raw[], cfg: ResultsConfig, at 
   });
 }
 
-const LEAGUE_COMP = new Map(Object.entries(AF_LEAGUE).map(([comp, id]) => [id, comp]));
-
 /**
- * Pair one day's api-football fixtures with our Tipsport matches and apply their results.
+ * Pair one day's api-sports games with our Tipsport matches and apply their results.
  * Pairing never relies on names alone: same competition, kick-off within 15 min, and either known team links or
- * both names matching (one exact + one half-matching name, or one name when the slot holds a single fixture and a
+ * both names matching (one exact + one half-matching name, or one name when the slot holds a single game and a
  * single match). More than one candidate = not paired.
  */
-export async function pairAndApply(db: Db, fixtures: Raw[], comps: string[], at: number): Promise<{ applied: number; ambiguous: number }> {
+export async function pairAndApply(db: Db, games: Raw[], comps: string[], at: number, def: SportApi = FOOTBALL): Promise<{ applied: number; ambiguous: number }> {
   let applied = 0;
   let ambiguous = 0;
-  const pilot = fixtures.filter((f) => comps.includes(LEAGUE_COMP.get(Number(f.league?.id)) ?? '') && f.fixture?.id && f.teams?.home?.id && f.teams?.away?.id);
-  for (const fx of pilot) {
-    const comp = LEAGUE_COMP.get(Number(fx.league.id))!;
-    const start = Number(fx.fixture.timestamp) * 1000;
-    const rows = await slotRows(db, comp, start);
-    let row = rows.find((r) => r.af_id === String(fx.fixture.id));
+  const leagueComp = new Map(Object.entries(def.leagues).map(([comp, id]) => [id, comp]));
+  const pilot = games
+    .map((raw) => ({ raw, fx: def.parse(raw) }))
+    .filter((x): x is { raw: Raw; fx: Fx } => !!x.fx && comps.includes(leagueComp.get(x.fx.league) ?? '') && !!x.fx.home.id && !!x.fx.away.id);
+  for (const { raw, fx } of pilot) {
+    const comp = leagueComp.get(fx.league)!;
+    const rows = await slotRows(db, comp, fx.ts);
+    let row = rows.find((r) => r.af_id === fx.id);
     if (!row) {
-      const sameSlot = pilot.filter((f) => f.league.id === fx.league.id && Math.abs(Number(f.fixture.timestamp) * 1000 - start) <= 15 * 60_000).length;
+      const sameSlot = pilot.filter((x) => x.fx.league === fx.league && Math.abs(x.fx.ts - fx.ts) <= 15 * 60_000).length;
       const links = await linksFor(db, rows.flatMap((r) => [r.home_ext, r.away_ext]));
       const ok = rows.filter((r) => !r.af_id).filter((r) => {
         const lh = r.home_ext ? links.get(r.home_ext) : undefined;
         const la = r.away_ext ? links.get(r.away_ext) : undefined;
-        if (lh || la) return (!lh || lh === String(fx.teams.home.id)) && (!la || la === String(fx.teams.away.id));
-        const sh = nameScore(r.home, String(fx.teams.home.name));
-        const sa = nameScore(r.away, String(fx.teams.away.name));
+        if (lh || la) return (!lh || lh === fx.home.id) && (!la || la === fx.away.id);
+        const sh = nameScore(r.home, fx.home.name);
+        const sa = nameScore(r.away, fx.away.name);
         // Both names, or one exact and the other half ("Sporting Lisboa" ~ "Sporting CP"); the single-candidate check below still applies.
         return (sh >= 0.75 && sa >= 0.75) || (Math.max(sh, sa) === 1 && Math.min(sh, sa) >= 0.5) || (rows.length === 1 && sameSlot === 1 && Math.max(sh, sa) >= 0.75);
       });
@@ -74,26 +75,30 @@ export async function pairAndApply(db: Db, fixtures: Raw[], comps: string[], at:
       if (!(await pair(db, ok[0], fx, at))) { ambiguous++; continue; }
       row = ok[0];
     }
-    if (await applyFixture(db, row, fx, at)) applied++;
+    if (await applyFixture(db, row, raw, at, def)) applied++;
   }
   return { applied, ambiguous };
 }
 
 /**
- * api-football as the second source, run from the 15-minute cron: fixture lists of the days that need them
+ * One sport from api-sports, run from the 15-minute cron on the Raspberry: game lists of the days that need them
  * (pairing, confirming results Tipsport may have missed), then — while `keep` requests stay free — details of
- * finished matches (which also confirm the result) and head-to-head of upcoming ones. Results first, optional data last; every request is reserved.
+ * finished matches (football: events/stats/lineups, hockey: events; the response also confirms the result) and
+ * head-to-head of upcoming ones. Results first, optional data last; every request is reserved in that sport's own
+ * daily ledger, so one sport can never use up another's quota.
  */
-export function syncApiFootball(db: Db, cfg: ResultsConfig, o: AfOptions, at = Date.now()): Promise<RunResult> {
-  return runJob(db, 'apifootball', at, 10 * 60_000, async () => {
+export function syncApiSports(db: Db, cfg: ResultsConfig, def: SportApi, o: AfOptions, at = Date.now()): Promise<RunResult> {
+  const comps = cfg.comps.filter((c) => c in def.leagues);
+  return runJob(db, def.provider, at, 10 * 60_000, async () => {
     let seen = 0;
     let written = 0;
     let review = 0;
-    for (const day of await dueDays(db, cfg.comps, at)) {
-      const fixtures = await fixturesOnDate(db, day, o);
-      await markFetched(db, day, at);
-      const r = await pairAndApply(db, fixtures, cfg.comps, at);
-      seen += fixtures.length;
+    if (!comps.length) return { seen, written, review };
+    for (const day of await dueDays(db, comps, at, def)) {
+      const games = await listOnDate(db, def, day, o);
+      await markFetched(db, day, at, def.provider);
+      const r = await pairAndApply(db, games, comps, at, def);
+      seen += games.length;
       written += r.applied;
       review += r.ambiguous;
     }
@@ -101,21 +106,30 @@ export function syncApiFootball(db: Db, cfg: ResultsConfig, o: AfOptions, at = D
       // Optional data only while `keep` requests stay free for result checks later in the day.
       // At most 4 optional requests per run: the provider's per-minute limit is tighter than documented.
       let left = 4;
-      const room = async () => left-- > 0 && (await spare(db, 'apifootball', at, o.cap, o.floor)) > cfg.keep;
+      const room = async () => left-- > 0 && (await spare(db, def.provider, at, o.cap, o.floor)) > cfg.keep;
       try {
-        for (const row of await needDetail(db, cfg.comps, cfg.priority, at, 6)) {
-          if (!(await room())) break;
-          const fx = await fixtureDetail(db, row.af_id!, o);
-          if (!fx) { await saveStats(db, row.id, JSON.stringify({ none: true, at })); continue; }
-          // The same response confirms or corrects the result.
-          if (await applyFixture(db, row, fx, at)) written++;
-          const done = AF_DONE.includes(String((fx as Raw).fixture?.status?.short ?? ''));
-          // Stored even when empty, so a match without published details is not asked for again; unfinished → retry.
-          if (done) await saveStats(db, row.id, JSON.stringify(detailFrom(fx, at) ?? { none: true, at }));
+        if (def.detail) {
+          for (const row of await needDetail(db, comps, cfg.priority, at, 6)) {
+            if (!(await room())) break;
+            const res = await detailFor(db, def, row.af_id!, o);
+            if (def.detail.path === '/fixtures') {
+              const fx = res as Raw | null;
+              if (!fx) { await saveStats(db, row.id, JSON.stringify({ none: true, at })); continue; }
+              // The same response confirms or corrects the result.
+              if (await applyFixture(db, row, fx, at, def)) written++;
+              const done = AF_DONE.includes(String(fx.fixture?.status?.short ?? ''));
+              // Stored even when empty, so a match without published details is not asked for again; unfinished → retry.
+              if (done) await saveStats(db, row.id, JSON.stringify(detailFrom(fx, at) ?? { none: true, at }));
+            } else {
+              const home = (await linksFor(db, [row.home_ext])).get(row.home_ext ?? '') ?? '';
+              await saveStats(db, row.id, JSON.stringify(detailFromHockey((res as Raw[]) ?? [], home, at) ?? { none: true, at }));
+            }
+          }
         }
-        for (const row of await needH2h(db, cfg.comps, cfg.priority, at, 6)) {
+        for (const row of await needH2h(db, comps, cfg.priority, at, 6)) {
           if (!(await room())) break;
-          await saveH2h(db, row.id, JSON.stringify(meetingsFrom(await headToHead(db, row.af_h, row.af_a, o))));
+          const games = (await h2hFor(db, def, row.af_h, row.af_a, o)).map((g) => def.parse(g)).filter((x): x is Fx => !!x);
+          await saveH2h(db, row.id, JSON.stringify(meetingsFromFx(games)));
         }
       } catch (e) {
         // Optional data stops quietly at the budget or a persistent rate limit; results are already stored.
@@ -125,3 +139,6 @@ export function syncApiFootball(db: Db, cfg: ResultsConfig, o: AfOptions, at = D
     return { seen, written, review };
   });
 }
+
+/** Football (the original entry point, kept for the existing callers and tests). */
+export const syncApiFootball = (db: Db, cfg: ResultsConfig, o: AfOptions, at = Date.now()) => syncApiSports(db, cfg, FOOTBALL, o, at);

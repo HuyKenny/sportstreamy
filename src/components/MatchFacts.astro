@@ -1,6 +1,6 @@
 ---
 import type { ResultRow } from '../lib/results/store';
-import { detailOf, meetingsOf, STAT_LABELS, EVENT_LABELS, VAR_LABELS, statNum } from '../lib/results/view';
+import { detailOf, meetingsOf, STAT_LABELS, EVENT_LABELS, VAR_LABELS, HOCKEY_NOTES, statNum } from '../lib/results/view';
 import { shortDay } from '../lib/text';
 import EventIcon from './EventIcon.astro';
 import Icon from './Icon.astro';
@@ -11,7 +11,6 @@ const d = detailOf(r);
 const meet = meetingsOf(r);
 const team = (side: 'h' | 'a') => (side === 'h' ? r.home : r.away);
 const year = (ms: number) => new Date(ms).getUTCFullYear();
-const anything = !!(d || meet.length);
 // Running score next to each goal, from the events themselves (own goals already carry the scoring side).
 let gh = 0;
 let ga = 0;
@@ -46,7 +45,7 @@ const share = (h: string | null, a: string | null) => {
                 <span class="tl-out"><span class="sr">Z hřiště: </span>{e.player}</span>
               </>) : (<>
                 <b>{e.player}</b>{e.score ? <span class="tl-sc">{e.score}</span> : null}
-                <small>{EVENT_LABELS[e.kind]}{e.kind === 'var' && e.note ? `: ${VAR_LABELS[e.note] ?? e.note}` : ''}{e.assist && e.kind !== 'var' ? ` · asistence ${e.assist}` : ''}<span class="sr"> · {team(e.side)}</span></small>
+                <small>{EVENT_LABELS[e.kind]}{e.kind === 'var' && e.note ? `: ${VAR_LABELS[e.note] ?? e.note}` : ''}{(e.kind === 'goal' || e.kind === 'pim') && e.note && HOCKEY_NOTES[e.note] ? ` ${e.kind === 'pim' ? '· ' : ''}${HOCKEY_NOTES[e.note]}` : ''}{e.assist && e.kind !== 'var' ? ` · asistence ${e.assist}` : ''}<span class="sr"> · {team(e.side)}</span></small>
               </>)}
             </div>
           </div>
@@ -84,7 +83,6 @@ const share = (h: string | null, a: string | null) => {
 {meet.length ? (
   <section class="sec"><div class="sec-head"><h2>Vzájemné zápasy</h2></div>
     <div class="rows">{meet.map((x) => <div class="row h2h"><div class="when">{year(x.date)}<small>{shortDay(x.date)}</small></div><div style="min-width:0"><div class="meta"><Icon name="trophy" /><span class="lg">{x.league}</span></div><span class="tm">{x.home} – {x.away}</span></div><div class="act"><div class="score">{x.sh}:{x.sa}</div></div></div>)}</div>
-    <p class="muted" style="font-size:.84rem;margin-top:6px">Posledních {meet.length} odehraných vzájemných zápasů, které eviduje API-Football (názvy týmů podle zdroje).</p>
+    <p class="muted" style="font-size:.84rem;margin-top:6px">Posledních {meet.length} odehraných vzájemných zápasů, (názvy týmů v původním znění).</p>
   </section>
 ) : null}
-{anything ? <p class="muted" style="font-size:.8rem">Průběh, statistiky, sestavy a vzájemné zápasy: API-Football{d ? ` · načteno ${new Date(d.at).toLocaleString('cs-CZ', { timeZone: 'Europe/Prague', day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })}` : ''}.</p> : null}

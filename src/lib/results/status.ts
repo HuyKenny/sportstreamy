@@ -21,17 +21,18 @@ export function group(s: string): Group {
 }
 
 /** Human label; never "Konec" for anything that is not a confirmed final state. */
-export function statusLabel(s: string, raw?: string | null): string {
+export function statusLabel(s: string, raw?: string | null, sport = 16): string {
+  const hockey = sport === 23;
   switch (s) {
     case 'scheduled': return 'Nezačalo';
     case 'live': return 'Probíhá';
-    case 'ht': return 'Poločas';
-    case 'bt': return 'Přestávka před prodloužením / penaltami';
+    case 'ht': return sport === 23 || sport === 47 ? 'Přestávka' : sport === 7 ? 'Poločasová přestávka' : 'Poločas';
+    case 'bt': return hockey ? 'Přestávka' : 'Přestávka před prodloužením / penaltami';
     case 'et': return 'Prodloužení';
-    case 'pens': return 'Penalty';
+    case 'pens': return hockey ? 'Nájezdy' : 'Penalty';
     case 'ft': return 'Konec';
     case 'aet': return 'Konec po prodloužení';
-    case 'pen': return 'Konec po penaltách';
+    case 'pen': return hockey ? 'Konec po nájezdech' : 'Konec po penaltách';
     case 'postponed': return 'Odloženo';
     case 'interrupted': return 'Přerušeno';
     case 'cancelled': return 'Zrušeno';
@@ -41,16 +42,16 @@ export function statusLabel(s: string, raw?: string | null): string {
 }
 
 /** Short form for the narrow time column of a row. */
-export function statusShort(s: string): string {
+export function statusShort(s: string, sport = 16): string {
   switch (s) {
     case 'live': return 'Živě';
-    case 'ht': return 'Poločas';
+    case 'ht': return sport === 16 || sport === 20 ? 'Poločas' : 'Přest.';
     case 'bt': return 'Přest.';
     case 'et': return 'Prodl.';
-    case 'pens': return 'Penalty';
+    case 'pens': return sport === 23 ? 'Nájezdy' : 'Penalty';
     case 'ft': return 'Konec';
     case 'aet': return 'Po prodl.';
-    case 'pen': return 'Po pen.';
+    case 'pen': return sport === 23 ? 'Po SN' : 'Po pen.';
     case 'postponed': return 'Odlož.';
     case 'interrupted': return 'Přeruš.';
     case 'cancelled': return 'Zruš.';

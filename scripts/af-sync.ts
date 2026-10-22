@@ -8,7 +8,8 @@
 import { readFileSync } from 'node:fs';
 import type { Db, Stmt } from '../src/lib/results/db';
 import { resultsConfig, type ResultsEnv } from '../src/lib/results/config';
-import { syncApiFootball } from '../src/lib/results/sync';
+import { syncApiSports } from '../src/lib/results/sync';
+import { SPORT_APIS } from '../src/lib/results/sports-api';
 import { opsStatus } from '../src/lib/results/store';
 
 const APP = process.env.APP ?? '/home/kenny/ai/apps/sportstreamy/';
@@ -59,8 +60,15 @@ const env: ResultsEnv = { ...wrangler.vars, RESULTS: {}, RESULTS_APIFOOTBALL: 'o
 const cfg = resultsConfig(env);
 if (!cfg.sync) process.exit(0); // results sync switched off in wrangler.jsonc
 const db = d1();
-const r = await syncApiFootball(db, cfg, { key: ss.APISPORTS_KEY, cap: cfg.cap, floor: cfg.reserve });
+// One sport after another; each has its own host, daily quota and ledger row, so one never starves another.
+let failed = false;
+for (const def of SPORT_APIS.filter((x) => cfg.apiSports.includes(x.slug))) {
+  const r = await syncApiSports(db, cfg, def, { key: ss.APISPORTS_KEY, cap: cfg.cap, floor: cfg.reserve });
+  const s = await opsStatus(db, Date.now(), cfg.staleMs);
+  console.log(new Date().toISOString(), def.slug, JSON.stringify({ run: r, usage: s.usage.find((u) => u.provider === def.provider) ?? null }));
+  // Budget and per-minute refusals are expected states, not failures worth an alert.
+  if (r.error && !/ratelimit|too many|budget/i.test(r.error)) failed = true;
+}
 const s = await opsStatus(db, Date.now(), cfg.staleMs);
-console.log(new Date().toISOString(), JSON.stringify({ run: r, usage: s.usage[0] ?? null, paired: s.paired, confirmedByApiFootball: s.confirmedByApiFootball, mismatch: s.mismatch, unconfirmed: s.unconfirmed }));
-// Budget and per-minute refusals are expected states, not failures worth an alert.
-process.exit(r.error && !/ratelimit|too many|budget/i.test(r.error) ? 1 : 0);
+console.log(new Date().toISOString(), 'all', JSON.stringify({ paired: s.paired, confirmedByApiFootball: s.confirmedByApiFootball, mismatch: s.mismatch, unconfirmed: s.unconfirmed }));
+process.exit(failed ? 1 : 0);

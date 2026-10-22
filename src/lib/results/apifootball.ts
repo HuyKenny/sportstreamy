@@ -1,14 +1,14 @@
 import type { Db } from './db';
 import { reserve, reportRemaining, refund } from './budget';
 import { utcDay } from './time';
+import { FOOTBALL, type SportApi } from './sports-api';
 
 /**
  * api-football v3 client. Server-side only: the key comes from the Worker secret, is sent as a header and never
  * appears in a URL, log line or error message. Every attempt (including retries) is reserved in the quota ledger
  * first. Only fixed endpoints are exposed — there is no generic proxy.
  */
-const BASE = 'https://v3.football.api-sports.io';
-const PROVIDER = 'apifootball';
+const FOOTBALL_HOST = 'v3.football.api-sports.io';
 
 export class QuotaError extends Error {}
 export class ProviderError extends Error {}
@@ -24,6 +24,9 @@ export interface AfOptions {
   attempts?: number;
   /** Minimum spacing between requests (default MIN_GAP_MS; tests pass 0). */
   gapMs?: number;
+  /** api-sports host and ledger key of the sport (default football). Each host has its own quota. */
+  host?: string;
+  provider?: string;
 }
 
 const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
@@ -34,27 +37,33 @@ const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
  * once the reported per-minute allowance drops to 5. Refused requests are not counted by the provider (refunded).
  */
 export const MIN_GAP_MS = 10_000;
-let lastCall = 0;
-let minuteLeft: number | null = null;
+/** Per host: when it was last called and how many requests the provider said are left in the current minute. */
+const lastCall = new Map<string, number>();
+const minuteLeftOf = new Map<string, number | null>();
+const PATHS = new Set(['/status', '/leagues', '/fixtures', '/fixtures/headtohead', '/games', '/games/h2h', '/games/events']);
 
 /** True when api-football reported errors inside a 200 response (`errors` is [] or {} when all is well). */
 export const hasErrors = (e: unknown) => (Array.isArray(e) ? e.length > 0 : !!e && typeof e === 'object' && Object.keys(e).length > 0);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function afGet(db: Db, path: '/status' | '/leagues' | '/fixtures' | '/fixtures/headtohead', params: Record<string, string>, o: AfOptions): Promise<any> {
+export async function afGet(db: Db, path: string, params: Record<string, string>, o: AfOptions): Promise<any> {
+  if (!PATHS.has(path)) throw new ProviderError(`endpoint not allowed: ${path}`);
+  const host = o.host ?? FOOTBALL_HOST;
+  const PROVIDER = o.provider ?? 'apifootball';
+  let minuteLeft = minuteLeftOf.get(host) ?? null;
   const f = o.fetch ?? fetch;
   const sleep = o.sleep ?? wait;
   const now = o.now ?? Date.now;
   const attempts = o.attempts ?? 3;
-  const url = `${BASE}${path}${Object.keys(params).length ? `?${new URLSearchParams(params)}` : ''}`;
+  const url = `https://${host}${path}${Object.keys(params).length ? `?${new URLSearchParams(params)}` : ''}`;
   let last = 'no attempt';
   for (let i = 0; i < attempts; i++) {
     const day = utcDay(now());
     if (!(await reserve(db, PROVIDER, day, o.cap, o.floor))) throw new QuotaError(`daily budget reached (${o.cap}) or provider quota at reserve`);
-    const pause = minuteLeft !== null && minuteLeft <= 5 ? 61_000 : (o.gapMs ?? MIN_GAP_MS) - (Date.now() - lastCall);
+    const pause = minuteLeft !== null && minuteLeft <= 5 ? 61_000 : (o.gapMs ?? MIN_GAP_MS) - (Date.now() - (lastCall.get(host) ?? 0));
     if (pause > 0 && o.gapMs !== 0) await sleep(pause);
-    if (pause > 0 && o.gapMs !== 0 && minuteLeft !== null && minuteLeft <= 5) minuteLeft = null;
-    lastCall = Date.now();
+    if (pause > 0 && o.gapMs !== 0 && minuteLeft !== null && minuteLeft <= 5) { minuteLeft = null; minuteLeftOf.set(host, null); }
+    lastCall.set(host, Date.now());
     let res: Response;
     try {
       res = await f(url, { headers: { 'x-apisports-key': o.key, Accept: 'application/json' }, signal: AbortSignal.timeout(o.timeoutMs ?? 10_000) });
@@ -64,9 +73,10 @@ export async function afGet(db: Db, path: '/status' | '/leagues' | '/fixtures' |
       continue;
     }
     // One line per request for the Workers log (no key, no query values beyond the path).
-    console.log('api-football', path, res.status, `minute-left=${res.headers.get('x-ratelimit-remaining')}`, `day-left=${res.headers.get('x-ratelimit-requests-remaining')}`);
+    console.log(PROVIDER, path, res.status, `minute-left=${res.headers.get('x-ratelimit-remaining')}`, `day-left=${res.headers.get('x-ratelimit-requests-remaining')}`);
     const ml = res.headers.get('x-ratelimit-remaining');
     minuteLeft = ml !== null && Number.isFinite(Number(ml)) ? Number(ml) : minuteLeft;
+    minuteLeftOf.set(host, minuteLeft);
     const rem = Number(res.headers.get('x-ratelimit-requests-remaining'));
     if (res.headers.has('x-ratelimit-requests-remaining') && Number.isFinite(rem)) await reportRemaining(db, PROVIDER, day, rem);
     if (res.status === 429 || res.status >= 500) {
@@ -85,6 +95,7 @@ export async function afGet(db: Db, path: '/status' | '/leagues' | '/fixtures' |
       if (/ratelimit|too many/i.test(text)) {
         await refund(db, PROVIDER, day);
         minuteLeft = null;
+        minuteLeftOf.set(host, null);
         if (i < attempts - 1) { last = text; await sleep(61_000); continue; }
       }
       throw new ProviderError(text);
@@ -94,38 +105,33 @@ export async function afGet(db: Db, path: '/status' | '/leagues' | '/fixtures' |
   throw new ProviderError(`gave up after ${attempts} attempts: ${last}`);
 }
 
-/** Our competition slug → api-football league id (each verified with /leagues?id= on 21. 10. 2026, season 2026 current). */
-export const AF_LEAGUE: Record<string, number> = {
-  'chance-liga': 345, // Czech Liga
-  'chance-narodni-liga': 346, // FNL
-  'liga-mistru': 2, // UEFA Champions League
-  'evropska-liga': 3, // UEFA Europa League
-  'konferencni-liga': 848, // UEFA Europa Conference League
-  'premier-league': 39,
-  championship: 40,
-  'la-liga': 140,
-  bundesliga: 78,
-  'serie-a': 135,
-  'ligue-1': 61,
-  'nike-liga': 332, // Slovakia Super Liga
-};
+export const AF_LEAGUE: Record<string, number> = FOOTBALL.leagues;
+
+const forSport = (def: SportApi, o: AfOptions): AfOptions => ({ ...o, host: def.host, provider: def.provider });
 
 /**
- * All fixtures of one Prague day in one request (no league/season filter — on the Free plan the season filter
+ * All games of one Prague day in one request (no league/season filter — on the Free plan the season filter
  * is limited to 2022–2024, the date query is not, but only for yesterday…tomorrow).
  */
-export async function fixturesOnDate(db: Db, date: string, o: AfOptions) {
-  const j = await afGet(db, '/fixtures', { date, timezone: 'Europe/Prague' }, o);
+export async function listOnDate(db: Db, def: SportApi, date: string, o: AfOptions) {
+  const j = await afGet(db, def.list, { date, timezone: 'Europe/Prague' }, forSport(def, o));
   return (j.response ?? []) as Record<string, unknown>[];
 }
 
-/** One fixture with events, lineups, statistics and players (one request per match; `ids` is not on Free). */
-export async function fixtureDetail(db: Db, id: string, o: AfOptions) {
-  const j = await afGet(db, '/fixtures', { id }, o);
-  return ((j.response ?? []) as Record<string, unknown>[])[0] ?? null;
+/** Football: one fixture with events, lineups, statistics (`ids` is not on Free). Hockey: the game's events. */
+export async function detailFor(db: Db, def: SportApi, id: string, o: AfOptions) {
+  if (!def.detail) return null;
+  const j = await afGet(db, def.detail.path, { [def.detail.param]: id }, forSport(def, o));
+  const r = (j.response ?? []) as Record<string, unknown>[];
+  return def.detail.path === '/fixtures' ? r[0] ?? null : r;
 }
 
-export async function headToHead(db: Db, a: string, b: string, o: AfOptions) {
-  const j = await afGet(db, '/fixtures/headtohead', { h2h: `${a}-${b}` }, o);
+export async function h2hFor(db: Db, def: SportApi, a: string, b: string, o: AfOptions) {
+  const j = await afGet(db, def.h2h.path, { [def.h2h.param]: `${a}-${b}` }, forSport(def, o));
   return (j.response ?? []) as Record<string, unknown>[];
 }
+
+/** Football wrappers (kept for the existing call sites and tests). */
+export const fixturesOnDate = (db: Db, date: string, o: AfOptions) => listOnDate(db, FOOTBALL, date, o);
+export const fixtureDetail = (db: Db, id: string, o: AfOptions) => detailFor(db, FOOTBALL, id, o) as Promise<Record<string, unknown> | null>;
+export const headToHead = (db: Db, a: string, b: string, o: AfOptions) => h2hFor(db, FOOTBALL, a, b, o);

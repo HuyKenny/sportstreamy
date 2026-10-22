@@ -22,10 +22,18 @@ export function periodsOf(r: Pick<ResultRow, 'periods'>): [number, number][] {
 /** "poločas 1:0" (+ "prodloužení 1:0", "penalty 4:3") from what the provider published. */
 export function detailText(r: ResultRow): string {
   const p = periodsOf(r);
+  const pair = (x: [number, number]) => `${x[0]}:${x[1]}`;
   const out: string[] = [];
-  if (p[0]) out.push(`1. poločas ${p[0][0]}:${p[0][1]}`);
-  if ((r.status === 'aet' || r.status === 'pen') && p.length > 2) out.push(`prodloužení ${p.slice(2).map((x) => `${x[0]}:${x[1]}`).join(', ')}`);
-  if (r.pen_h != null && r.pen_a != null) out.push(`penalty ${r.pen_h}:${r.pen_a}`);
+  const shoot = r.sport === 23 ? 'nájezdy' : 'penalty';
+  if (r.sport === 16 || r.sport === 20) {
+    if (p[0]) out.push(`1. poločas ${pair(p[0])}`);
+    if ((r.status === 'aet' || r.status === 'pen') && p.length > 2) out.push(`prodloužení ${p.slice(2).map(pair).join(', ')}`);
+  } else if (p.length) {
+    const regular = r.sport === 23 ? 3 : r.sport === 7 ? 4 : p.length;
+    out.push(`${periodWord(r.sport).many} ${p.slice(0, regular).map(pair).join(', ')}`);
+    if (p.length > regular) out.push(`prodloužení ${p.slice(regular).map(pair).join(', ')}`);
+  }
+  if (r.pen_h != null && r.pen_a != null) out.push(`${shoot} ${r.pen_h}:${r.pen_a}`);
   return out.join(' · ');
 }
 
@@ -64,7 +72,7 @@ export const STAT_LABELS: Record<string, string> = {
   'Goalkeeper Saves': 'Zákroky brankáře', expected_goals: 'Očekávané góly (xG)',
 };
 export const EVENT_LABELS: Record<Detail['events'][number]['kind'], string> = {
-  goal: 'Gól', own: 'Vlastní gól', pen: 'Gól z penalty', missed: 'Neproměněná penalta', red: 'Červená karta', yellowred: 'Druhá žlutá a červená', yellow: 'Žlutá karta', sub: 'Střídání', var: 'VAR',
+  goal: 'Gól', own: 'Vlastní gól', pen: 'Gól z penalty', missed: 'Neproměněná penalta', red: 'Červená karta', yellowred: 'Druhá žlutá a červená', yellow: 'Žlutá karta', sub: 'Střídání', var: 'VAR', pim: 'Vyloučení',
 };
 
 /** Stored api-football details, or null when there are none (never an empty shell). */
@@ -106,4 +114,22 @@ export function scorers(d: Detail | null): { h: Detail['events']; a: Detail['eve
     redH: ev.filter((e) => red(e) && e.side === 'h').length,
     redA: ev.filter((e) => red(e) && e.side === 'a').length,
   };
+}
+
+/** Hockey: kind of goal and infraction as the provider words them → Czech (unknown words are left out). */
+export const HOCKEY_NOTES: Record<string, string> = {
+  'Power-play': 'v přesilovce', 'Short-handed': 'v oslabení', 'Empty-net': 'do prázdné branky', 'Penalty shot': 'trestné střílení',
+  Hooking: 'hákování', Holding: 'držení', 'Holding the stick': 'držení hole', Slashing: 'sekání', Tripping: 'podražení',
+  Roughing: 'hrubost', Interference: 'bránění ve hře', 'High-sticking': 'vysoká hůl', 'Cross-checking': 'krosček',
+  Fighting: 'bitka', Boarding: 'naražení na mantinel', Charging: 'napadení', Elbowing: 'loket', 'Delay of game': 'zdržování hry',
+  'Too many men on the ice': 'too many men', Unsportsmanlike: 'nesportovní chování', 'Unsportsmanlike conduct': 'nesportovní chování',
+  Misconduct: 'osobní trest', 'Game misconduct': 'osobní trest do konce utkání', Kneeing: 'koleno', Diving: 'filmování', Spearing: 'bodnutí holí',
+};
+
+/** Sport-aware labels: hockey has periods and shoot-outs, basketball quarters, volleyball sets. */
+export function periodWord(sport: number): { one: string; many: string } {
+  if (sport === 23) return { one: 'třetina', many: 'třetiny' };
+  if (sport === 7) return { one: 'čtvrtina', many: 'čtvrtiny' };
+  if (sport === 47) return { one: 'set', many: 'sety' };
+  return { one: 'poločas', many: 'poločasy' };
 }

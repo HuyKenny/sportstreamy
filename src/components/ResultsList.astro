@@ -1,6 +1,9 @@
 ---
 import type { ResultRow as Row } from '../lib/results/store';
 import ResultRow from './ResultRow.astro';
+import Icon from './Icon.astro';
+import { competitionBySlug } from '../lib/competitions';
+import { SPORT_BY_ID } from '../lib/sports';
 import { byComp, compName, compPath } from '../lib/results/view';
 /** Results grouped by competition (pilot order), each group headed by a link to the competition page. */
 interface Props { rows: Row[]; comps: string[]; now: number; staleMs: number; empty: string; showDay?: boolean }
@@ -10,7 +13,7 @@ const groups = byComp(rows, comps);
 {groups.length ? groups.map((g) => (
   <div class="res-group" data-c={g.comp}>
     <div class="rows">
-      <div class="dayhead"><a href={compPath(g.comp)}>{compName(g.comp)}</a></div>
+      <div class="dayhead"><a href={compPath(g.comp)}><Icon name={SPORT_BY_ID.get(competitionBySlug(g.comp)?.sp ?? 16)?.slug ?? 'ball'} />{compName(g.comp)}</a></div>
       {g.rows.map((r) => <ResultRow r={r} now={now} staleMs={staleMs} showDay={showDay} />)}
     </div>
   </div>

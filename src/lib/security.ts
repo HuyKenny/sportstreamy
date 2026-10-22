@@ -6,7 +6,7 @@
 export const CSP = [
   "default-src 'self'",
   "script-src 'self' https://ban.tipsport.cz https://ban.chance.cz",
-  "img-src 'self' data: https://ban.tipsport.cz https://ban.chance.cz https://media.sazka.cz https://media.api-sports.io",
+  "img-src 'self' data: https://ban.tipsport.cz https://ban.chance.cz https://media.sazka.cz",
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self'",
   "connect-src 'self'",

@@ -82,7 +82,8 @@ export function classify(raw: { ended?: boolean; statusOffer?: string | null; ti
   if (/poločas|přestávk/i.test(t)) return 'ht';
   if (PEN.test(t)) return 'pens';
   if (ET.test(t)) return 'et';
-  if (/\d\.\s?pol\.|\d+\.\s?min/i.test(t) || /^\d{1,3}'(\+\d+)?$/.test(String(raw.time ?? ''))) return 'live';
+  // Football/handball "2.pol. - 48.min", hockey "2.tř. - 31.min", basketball "3.čtvrt.", volleyball "2.set".
+  if (/\d\.\s?(pol|tř|čtvrt|čt|set)\b|\d+\.\s?min|\d\.\s?set/i.test(t) || /^\d{1,3}'(\+\d+)?$/.test(String(raw.time ?? ''))) return 'live';
   // Past kick-off time but Tipsport still counts down ("Za 5 minut"): a late start, not a result.
   // Same for a bare kick-off time ("21:00").
   if (/^za\s+(\d+|okamžik)/i.test(t) || /^\d{1,2}:\d{2}$/.test(t)) return 'scheduled';

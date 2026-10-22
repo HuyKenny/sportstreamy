@@ -202,7 +202,7 @@ export async function opsStatus(db: Db, now: number, staleMs: number): Promise<O
   const [ok, err, usage, counts] = await db.batch([
     db.prepare('SELECT job, MAX(finished) AS at FROM sync_runs WHERE ok = 1 GROUP BY job'),
     db.prepare('SELECT job, started AS at, error FROM sync_runs WHERE ok = 0 ORDER BY started DESC LIMIT 1'),
-    db.prepare('SELECT provider, day, used, cap, remaining_reported FROM api_usage ORDER BY day DESC LIMIT 6'),
+    db.prepare('SELECT provider, day, used, cap, remaining_reported FROM api_usage ORDER BY day DESC, provider LIMIT 12'),
     db.prepare(`SELECT COUNT(*) AS matches, SUM(review) AS review,
       SUM(CASE WHEN status IN (${q(IN_PLAY)}) AND checked_at < ? THEN 1 ELSE 0 END) AS staleLive,
       SUM(CASE WHEN status = 'unconfirmed' THEN 1 ELSE 0 END) AS unconfirmed,

@@ -2,13 +2,13 @@ import type { Db } from './db';
 import type { ResultRow } from './store';
 import type { Raw } from './normalize';
 import { FINAL, isFinal } from './status';
-import { AF_STATUS } from './normalize';
 import { utcDay } from './time';
+import { DONE, FOOTBALL, type Fx, type SportApi } from './sports-api';
 import { dayKey } from '../text';
 
 const q = (list: readonly string[]) => list.map((s) => `'${s}'`).join(',');
-/** api-football codes after which nothing about the result changes any more. */
-export const AF_DONE = ['FT', 'AET', 'PEN', 'PST', 'CANC', 'ABD', 'AWD', 'WO'];
+/** Provider codes after which nothing about the result changes any more (all sports). */
+export const AF_DONE = DONE;
 const PILOT = (comps: string[]) => `provider = 'tipsport' AND review = 0 AND comp IN (${q(comps)})`;
 
 /**
@@ -18,7 +18,7 @@ const PILOT = (comps: string[]) => `provider = 'tipsport' AND review = 0 AND com
  *   at most every 30 min per day — one request settles all of them.
  * Only days inside the Free plan's window (UTC yesterday…tomorrow).
  */
-export async function dueDays(db: Db, comps: string[], now: number): Promise<string[]> {
+export async function dueDays(db: Db, comps: string[], now: number, def: Pick<SportApi, 'provider' | 'durationMin'> = FOOTBALL): Promise<string[]> {
   if (!comps.length) return [];
   const from = now - 36 * 3600_000;
   const to = now + 36 * 3600_000;
@@ -26,7 +26,7 @@ export async function dueDays(db: Db, comps: string[], now: number): Promise<str
     .prepare(`SELECT start_utc, af_id, af_status, status FROM matches WHERE ${PILOT(comps)} AND start_utc BETWEEN ? AND ? AND status <> 'cancelled'`)
     .bind(from, to)
     .all<Pick<ResultRow, 'start_utc' | 'af_id' | 'af_status' | 'status'>>();
-  const fetched = new Map((await db.prepare('SELECT day, at FROM af_fetch').all<{ day: string; at: number }>()).results.map((x) => [x.day, x.at]));
+  const fetched = new Map((await db.prepare('SELECT day, at FROM api_fetch WHERE provider = ?').bind(def.provider).all<{ day: string; at: number }>()).results.map((x) => [x.day, x.at]));
   const allowed = new Set([utcDay(now - 86_400_000), utcDay(now), utcDay(now + 86_400_000)]);
   const days = new Set<string>();
   for (const m of r.results) {
@@ -34,14 +34,14 @@ export async function dueDays(db: Db, comps: string[], now: number): Promise<str
     if (!allowed.has(day)) continue;
     const last = fetched.get(day) ?? 0;
     const needPair = !m.af_id && now - last > 8 * 3600_000;
-    const needResult = m.start_utc <= now - 100 * 60_000 && !isFinal(m.status) && !AF_DONE.includes(m.af_status ?? '') && now - last > 30 * 60_000;
+    const needResult = m.start_utc <= now - def.durationMin * 60_000 && !isFinal(m.status) && !AF_DONE.includes(m.af_status ?? '') && now - last > 30 * 60_000;
     if (needPair || needResult) days.add(day);
   }
   return [...days].sort();
 }
 
-export const markFetched = (db: Db, day: string, at: number) =>
-  db.prepare('INSERT INTO af_fetch (day, at) VALUES (?, ?) ON CONFLICT (day) DO UPDATE SET at = excluded.at').bind(day, at).run();
+export const markFetched = (db: Db, day: string, at: number, provider = FOOTBALL.provider) =>
+  db.prepare('INSERT INTO api_fetch (provider, day, at) VALUES (?, ?, ?) ON CONFLICT (provider, day) DO UPDATE SET at = excluded.at').bind(provider, day, at).run();
 
 /** Pilot matches of one competition around a kick-off time. */
 export async function slotRows(db: Db, comp: string, start: number, tolMs = 15 * 60_000): Promise<ResultRow[]> {
@@ -60,17 +60,17 @@ export async function linksFor(db: Db, tipIds: (string | null)[]): Promise<Map<s
 }
 
 /** Pair a match with a fixture and remember both team pairs. False when a stored link contradicts it. */
-export async function pair(db: Db, row: ResultRow, fx: Raw, at: number): Promise<boolean> {
+export async function pair(db: Db, row: ResultRow, fx: Fx, at: number): Promise<boolean> {
   const links = await linksFor(db, [row.home_ext, row.away_ext]);
-  const hAf = String(fx.teams.home.id);
-  const aAf = String(fx.teams.away.id);
+  const hAf = fx.home.id;
+  const aAf = fx.away.id;
   if ((row.home_ext && links.has(row.home_ext) && links.get(row.home_ext) !== hAf) || (row.away_ext && links.has(row.away_ext) && links.get(row.away_ext) !== aAf)) return false;
-  const stmts = [db.prepare('UPDATE matches SET af_id = ? WHERE id = ? AND af_id IS NULL').bind(String(fx.fixture.id), row.id)];
-  for (const [tip, af, tn, an] of [[row.home_ext, hAf, row.home, fx.teams.home.name], [row.away_ext, aAf, row.away, fx.teams.away.name]] as const) {
+  const stmts = [db.prepare('UPDATE matches SET af_id = ? WHERE id = ? AND af_id IS NULL').bind(fx.id, row.id)];
+  for (const [tip, af, tn, an] of [[row.home_ext, hAf, row.home, fx.home.name], [row.away_ext, aAf, row.away, fx.away.name]] as const) {
     if (tip) stmts.push(db.prepare('INSERT OR IGNORE INTO team_link (tip_id, af_id, tip_name, af_name, created) VALUES (?, ?, ?, ?, ?)').bind(tip, af, tn, String(an), at));
   }
   await db.batch(stmts);
-  row.af_id = String(fx.fixture.id);
+  row.af_id = fx.id;
   return true;
 }
 
@@ -81,24 +81,19 @@ export async function pair(db: Db, row: ResultRow, fx: Raw, at: number): Promise
  * - postponed/cancelled there while we have no result → same state here.
  * Live api-football states are ignored: live scores come from Tipsport.
  */
-export async function applyFixture(db: Db, row: ResultRow, fx: Raw, at: number): Promise<boolean> {
-  const short = String(fx.fixture?.status?.short ?? '');
-  const st = AF_STATUS[short];
-  const g = fx.goals ?? {};
-  const sc = fx.score ?? {};
-  const both = (x: { home?: unknown; away?: unknown } | undefined) => x && x.home != null && x.away != null;
-  const periods: [number, number][] = [];
-  if (both(sc.halftime) && both(sc.fulltime)) {
-    periods.push([sc.halftime.home, sc.halftime.away], [sc.fulltime.home - sc.halftime.home, sc.fulltime.away - sc.halftime.away]);
-    if (both(sc.extratime)) periods.push([sc.extratime.home, sc.extratime.away]);
-  }
-  const pen = both(sc.penalty) ? [sc.penalty.home, sc.penalty.away] : [null, null];
+export async function applyFixture(db: Db, row: ResultRow, raw: Raw, at: number, def: SportApi = FOOTBALL): Promise<boolean> {
+  const fx = def.parse(raw);
+  if (!fx) return false;
+  const { short, status: st } = fx;
+  const g = { home: fx.sh, away: fx.sa };
+  const periods = fx.periods ?? [];
+  const pen = fx.pen ?? [null, null];
   const base = 'af_status = ?, af_checked_at = ?';
   if (st && FINAL.includes(st) && g.home != null && g.away != null) {
     if (!isFinal(row.status)) {
       const r = await db
-        .prepare(`UPDATE matches SET ${base}, status = ?, sh = ?, sa = ?, periods = ?, pen_h = ?, pen_a = ?, result_src = 'apifootball', final_at = ?, checked_at = ?, minute_raw = NULL WHERE id = ? AND status NOT IN (${q(FINAL)})`)
-        .bind(short, at, st, g.home, g.away, periods.length ? JSON.stringify(periods) : null, pen[0], pen[1], at, at, row.id)
+        .prepare(`UPDATE matches SET ${base}, status = ?, sh = ?, sa = ?, periods = ?, pen_h = ?, pen_a = ?, result_src = ?, final_at = ?, checked_at = ?, minute_raw = NULL WHERE id = ? AND status NOT IN (${q(FINAL)})`)
+        .bind(short, at, st, g.home, g.away, periods.length ? JSON.stringify(periods) : null, pen[0], pen[1], def.provider, at, at, row.id)
         .run();
       return (r.meta.changes ?? 0) > 0;
     }
