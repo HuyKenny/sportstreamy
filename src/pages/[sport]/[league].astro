@@ -2,7 +2,7 @@
 import Base from '../../layouts/Base.astro';
 import Rows from '../../components/Rows.astro';
 import Aside from '../../components/Aside.astro';
-import { kurzyCompetitionUrl } from '../../lib/sister';
+import { kurzyCompetitionUrl, ziveCompetitionUrl } from '../../lib/sister';
 import Faq from '../../components/Faq.astro';
 import Photo from '../../components/Photo.astro';
 import Crumbs from '../../components/Crumbs.astro';
@@ -61,6 +61,7 @@ const faq = [
       <p class="lead">{comp?.intro ?? `${total} ${plural(total, 'zápas', 'zápasy', 'zápasů')} soutěže ${name} s přenosem nebo živými statistikami.`}</p>
       {comp?.guide ? <p style="margin:10px 0 0"><a class="btn" href={comp.guide.href}>{comp.guide.label} ›</a></p> : null}
       {comp && kurzyCompetitionUrl(comp.slug) ? <p class="muted" style="margin:10px 0 0;font-size:.9rem">Kurzy na zápasy {name} a jejich vývoj porovnává náš sesterský web <a href={kurzyCompetitionUrl(comp.slug)!}>KurzovýRadar</a>.</p> : null}
+      {comp && ziveCompetitionUrl(comp.slug) ? <p class="muted" style="margin:6px 0 0;font-size:.9rem">Divákům ze Slovenska ukazuje program {name} náš slovenský web <a href={ziveCompetitionUrl(comp.slug)!}>ŽivéPrenosy.sk</a>.</p> : null}
       <div class="stats"><div class:list={["live", !live.length && "zero"]}>{live.length}<span>živě teď</span></div><div>{next.length}<span>v programu</span></div></div>
     </div>
     <a class="credit" href={photo.url} rel="noopener nofollow">Foto: {photo.author} / Pexels</a>
