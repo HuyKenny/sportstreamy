@@ -42,6 +42,9 @@ export const COMPETITIONS: Competition[] = [
     intro: 'Francouzská Ligue 1 – PSG, Marseille, Lyon. Hlavní zápasy kola jsou v neděli večer.' },
   { slug: 'nike-liga', name: 'Niké liga', sp: 16, match: /^1\. slovenská liga$/, short: 'NL', color: '#264d8c',
     intro: 'Slovenská Niké liga, nejvyšší fotbalová soutěž na Slovensku.' },
+  // Slovak second tier and the Slovak handball/volleyball/hockey leagues: results for ziveprenosy.sk (shared D1).
+  { slug: '2-slovenska-liga', name: '2. slovenská liga', sp: 16, match: /^2\. slovenská liga$/, short: '2SK', color: '#3a6fb8',
+    intro: 'Druhá nejvyšší slovenská fotbalová soutěž.' },
   { slug: 'nhl', name: 'NHL', sp: 23, match: /^NHL$/, short: 'NHL', color: '#111111', top: true,
     intro: 'NHL je nejlepší hokejová liga světa a hraje v ní řada Čechů. Zápasy začínají u nás obvykle mezi půlnocí a druhou hodinou ranní, víkendové matiné kolem 19:00.' },
   { slug: 'tipsport-extraliga', name: 'Tipsport extraliga', sp: 23, match: /^Česká Tipsport extraliga$/, short: 'TE', color: '#0f3d7a', top: true,
@@ -50,6 +53,8 @@ export const COMPETITIONS: Competition[] = [
     intro: 'Maxa liga je druhá nejvyšší česká hokejová soutěž.' },
   { slug: 'slovenska-extraliga', name: 'Tipos extraliga', sp: 23, match: /^Slovenská Tipsport liga$/, short: 'SK', color: '#1d4e89',
     intro: 'Nejvyšší slovenská hokejová soutěž.' },
+  { slug: 'slovenska-1-liga-hokej', name: '1. slovenská hokejová liga', sp: 23, match: /^Slovensk\S* 1\. ?liga/, short: '1SK', color: '#3a6fb8',
+    intro: 'Druhá nejvyšší slovenská hokejová soutěž.' },
   { slug: 'nba', name: 'NBA', sp: 7, match: /^NBA$/, short: 'NBA', color: '#17408b', top: true,
     intro: 'NBA se kvůli časovému posunu hraje v noci našeho času. Program na další den najdeš už večer předem.' },
   { slug: 'euroliga', name: 'Euroliga', sp: 7, match: /^Euroliga$/, short: 'EUR', color: '#e2561b',
@@ -81,6 +86,11 @@ export const COMPETITIONS: Competition[] = [
     intro: 'Nejvyšší česká házenkářská soutěž.' },
   { slug: 'extraliga-volejbal', name: 'Extraliga volejbalu', sp: 47, match: /^Česká extraliga$/, short: 'VB', color: '#8a6d00',
     intro: 'Nejvyšší česká volejbalová soutěž mužů.' },
+  // Tipsport's exact names for these were not in the feed on 24. 10. 2026 — kept general (women's leagues excluded).
+  { slug: 'slovenska-extraliga-volejbal', name: 'Slovenská extraliga (volejbal)', sp: 47, match: /^Slovensk\S* (extra)?liga(?!.*(Ž|žen))/, short: 'VSK', color: '#3a6fb8',
+    intro: 'Nejvyšší slovenská volejbalová soutěž mužů.' },
+  { slug: 'slovenska-extraliga-hazena', name: 'Slovenská extraliga (házená)', sp: 20, match: /^Slovensk\S* .*extraliga(?!.*(Ž|žen))/, short: 'HSK', color: '#3a6fb8',
+    intro: 'Nejvyšší slovenská házenkářská soutěž mužů.' },
 ];
 
 const BY_SLUG = new Map(COMPETITIONS.map((c) => [c.slug, c]));

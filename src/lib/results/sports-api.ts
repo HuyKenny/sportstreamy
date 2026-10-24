@@ -31,7 +31,7 @@ export interface SportApi {
   h2h: { path: '/fixtures/headtohead' | '/games/h2h' | '/games'; param: 'h2h' };
   /** Optional per-match details: football fixture (events, stats, lineups), hockey events. */
   detail?: { path: '/fixtures' | '/games/events'; param: 'id' | 'game' };
-  /** Our competition slug → provider league id (verified with /leagues on 21.–22. 10. 2026). */
+  /** Our competition slug → provider league id (verified with /leagues on 21.–22. 10. 2026; Slovak ones 24. 10.). */
   leagues: Record<string, number>;
   /** Typical duration: the day list is re-checked for a result only after this many minutes. */
   durationMin: number;
@@ -123,15 +123,15 @@ export const SPORT_APIS: SportApi[] = [
     h2h: { path: '/fixtures/headtohead', param: 'h2h' }, detail: { path: '/fixtures', param: 'id' }, durationMin: 100,
     leagues: {
       'chance-liga': 345, 'chance-narodni-liga': 346, 'liga-mistru': 2, 'evropska-liga': 3, 'konferencni-liga': 848,
-      'premier-league': 39, championship: 40, 'la-liga': 140, bundesliga: 78, 'serie-a': 135, 'ligue-1': 61, 'nike-liga': 332,
+      'premier-league': 39, championship: 40, 'la-liga': 140, bundesliga: 78, 'serie-a': 135, 'ligue-1': 61, 'nike-liga': 332, '2-slovenska-liga': 506,
     },
     parse: football,
   },
   {
     slug: 'hokej', sport: 23, provider: 'apihockey', host: 'v1.hockey.api-sports.io', list: '/games',
     h2h: { path: '/games/h2h', param: 'h2h' }, detail: { path: '/games/events', param: 'game' }, durationMin: 150,
-    // Maxa liga has no current season at the provider (22. 10. 2026), so it is not mapped.
-    leagues: { nhl: 57, 'tipsport-extraliga': 10, 'slovenska-extraliga': 91 },
+    // Maxa liga has no current season at the provider (22. 10. 2026), so it is not mapped. Neither has the Slovak basketball Extraliga (24. 10.).
+    leagues: { nhl: 57, 'tipsport-extraliga': 10, 'slovenska-extraliga': 91, 'slovenska-1-liga-hokej': 42 },
     parse: v1('hockey'),
   },
   {
@@ -143,13 +143,13 @@ export const SPORT_APIS: SportApi[] = [
   {
     slug: 'volejbal', sport: 47, provider: 'apivolleyball', host: 'v1.volleyball.api-sports.io', list: '/games',
     h2h: { path: '/games/h2h', param: 'h2h' }, durationMin: 130,
-    leagues: { 'extraliga-volejbal': 38 },
+    leagues: { 'extraliga-volejbal': 38, 'slovenska-extraliga-volejbal': 145 },
     parse: v1('volleyball'),
   },
   {
     slug: 'hazena', sport: 20, provider: 'apihandball', host: 'v1.handball.api-sports.io', list: '/games',
     h2h: { path: '/games/h2h', param: 'h2h' }, durationMin: 90,
-    leagues: { 'chance-extraliga-hazena': 12 },
+    leagues: { 'chance-extraliga-hazena': 12, 'slovenska-extraliga-hazena': 98 },
     parse: v1('handball'),
   },
 ];

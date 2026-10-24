@@ -27,9 +27,10 @@
     "SAZKA_URL": "https://record.sazka.cz/_8u72YyI1anK2bnhOaaLAUmNd7ZgqdRLk/1/?payload=sportstreamy.cz",
     "MERKURXTIP_URL": "https://go.affilmaster.com/scripts/cdvy4d2?a_aid=TTE4W&a_bid=c708e3ae&data1=sportstreamy",
     // Results (on since 21. 10. 2026, Kenny approved; Tipsport allowed it with its current call pattern).
+    // The Slovak ones at the end (24. 10.) feed ziveprenosy.sk, which reads this D1.
     "RESULTS_ENABLED": "on",
     "RESULTS_SYNC": "on",
-    "RESULTS_COMPETITIONS": "chance-liga,liga-mistru,evropska-liga,konferencni-liga,premier-league,chance-narodni-liga,nike-liga,la-liga,bundesliga,serie-a,ligue-1,championship,nhl,tipsport-extraliga,slovenska-extraliga,nba,euroliga,extraliga-volejbal,chance-extraliga-hazena",
+    "RESULTS_COMPETITIONS": "chance-liga,liga-mistru,evropska-liga,konferencni-liga,premier-league,chance-narodni-liga,nike-liga,la-liga,bundesliga,serie-a,ligue-1,championship,nhl,tipsport-extraliga,slovenska-extraliga,nba,euroliga,extraliga-volejbal,chance-extraliga-hazena,2-slovenska-liga,slovenska-1-liga-hokej,slovenska-extraliga-volejbal,slovenska-extraliga-hazena",
     // api-sports sports synced from the Raspberry; each has its own host and daily quota (sports-api.ts).
     "RESULTS_API_SPORTS": "fotbal,hokej,basketbal,volejbal,hazena",
     "RESULTS_PRIORITY": "chance-liga,premier-league,liga-mistru,evropska-liga,konferencni-liga",
