@@ -12,6 +12,7 @@ export const GET = async () => {
   ];
   urls.push({ loc: '/jak-sledovat/', priority: 0.6 });
   urls.push({ loc: '/jak-sledovat/clash-mma/', lastmod: '2026-10-24', priority: 0.8 });
+  urls.push({ loc: '/jak-sledovat/g-mma/', lastmod: '2026-10-24', priority: 0.8 });
   const rc = resultsConfig(env as unknown as Env);
   if (rc.enabled) {
     urls.push({ loc: '/vysledky/', priority: 0.8 });

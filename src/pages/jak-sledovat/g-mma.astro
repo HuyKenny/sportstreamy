@@ -1,0 +1,117 @@
+---
+import Base from '../../layouts/Base.astro';
+import Crumbs from '../../components/Crumbs.astro';
+import Faq from '../../components/Faq.astro';
+import Icon from '../../components/Icon.astro';
+import Rows from '../../components/Rows.astro';
+import { getEnv, view } from '../../lib/page';
+import { competitionSlug } from '../../lib/competitions';
+import { EVENT, CARD, PROMO } from '../../lib/gmma';
+import { NEXT as CLASH } from '../../lib/clash';
+import { hhmm, longDay } from '../../lib/text';
+import { BONUS } from '../../lib/bonus';
+import { breadcrumbLd, faqLd } from '../../lib/seo';
+import type { Match } from '../../lib/types';
+// Evergreen G MMA guide; the fight list with times and odds is live, the rest is in src/lib/gmma.ts.
+export const prerender = false;
+const v = await view(getEnv());
+const now = Date.now();
+const isG = (m: Match) => m.sp === 208 && competitionSlug(m.sp, m.lg) === 'g-mma';
+const live = v.live.filter(isG);
+const next = v.upcoming.filter(isG);
+const done = v.recent.filter(isG);
+const st = Date.parse(EVENT.start);
+const end = Date.parse(EVENT.end);
+const state: 'pre' | 'live' | 'past' = now < st ? 'pre' : now < end ? 'live' : 'past';
+const today = longDay(st) === longDay(now);
+const when = `${today ? 'dnes' : longDay(st)} od ${hhmm(st)}`;
+const kc = (n: number) => n.toLocaleString('cs-CZ');
+const crumbs = [{ name: 'Domů', href: '/' }, { name: 'Kde sledovat', href: '/jak-sledovat/' }, { name: 'G MMA' }];
+const faq = [
+  { q: 'Kde sledovat G MMA 1 živě?', a: 'Celý galavečer se vysílá jen jako placený přenos (PPV) na platformě GECKO TV (geckotv.cz), kterou provozuje sama organizace. V televizi ani zdarma na YouTube celý turnaj nepoběží.' },
+  { q: 'Kolik stojí PPV na G MMA 1?', a: 'Cenu ukáže GECKO TV při nákupu, před potvrzením platby. Každé zakoupené PPV je navíc automaticky zařazené do Milionové hry o 111 111 Kč.' },
+  { q: 'Platí vstupenka do haly i pro online přenos?', a: 'Ne. Vstupenka slouží jen k návštěvě Nové Spirály, na přenos je potřeba koupit samostatné PPV.' },
+  { q: 'V kolik začíná G MMA 1?', a: `Galavečer začíná v sobotu 31. října 2026 v ${hhmm(st)} v Nové Spirále na pražském Výstavišti. Přesný čas startu vysílání je uvedený u přenosu na geckotv.cz.` },
+  { q: 'Kdo je za G MMA?', a: 'G MMA je nová česká organizace bizarních zápasů. Hlavní tváří a moderátorem je Jakub Jíra, bývalý moderátor Clash MMA, promotérem je Martin Kocourek. Generálním partnerem je Grandwin.' },
+  { q: 'Zaplatil jsem PPV, ale přenos nejde. Co dělat?', a: 'Zkontrolujte, že platba proběhla a že jste na geckotv.cz přihlášeni stejným účtem, pod kterým jste nakoupili. Obnovte stránku. Když to nepomůže, napište podpoře G MMA název galavečera, e-mail z nákupu a číslo objednávky.' },
+  { q: 'Dá se na G MMA vsadit?', a: next.length || live.length ? 'Ano, kurzy na zápasy jsou v přehledu na této stránce. Sázet mohou jen lidé starší 18 let.' : 'Kurzy na první turnaj nové organizace zatím české sázkové kanceláře nevypsaly. Jakmile je vypíšou, objeví se zápasy s kurzy na této stránce.' },
+];
+const eventLd = {
+  '@context': 'https://schema.org', '@type': 'SportsEvent', name: EVENT.name, sport: 'MMA',
+  startDate: EVENT.start, endDate: EVENT.end, eventStatus: 'https://schema.org/EventScheduled', eventAttendanceMode: 'https://schema.org/MixedEventAttendanceMode',
+  location: [{ '@type': 'Place', name: EVENT.venue, address: { '@type': 'PostalAddress', addressLocality: EVENT.city, addressCountry: 'CZ' } }, { '@type': 'VirtualLocation', url: 'https://geckotv.cz/' }],
+  organizer: { '@type': 'Organization', name: 'G MMA', url: 'https://www.gmma.cz/' },
+  offers: { '@type': 'Offer', name: 'Vstupenka', price: EVENT.tickets, priceCurrency: 'CZK', url: 'https://www.gmma.cz/vstupenky', availability: 'https://schema.org/InStock' },
+  description: `${EVENT.name}: Muradov vs. 6 Kotlárů, Kajínek, Sládek vs. Ovčáček. ${EVENT.venue}.`,
+};
+const title = 'G MMA 1 živě: kde sledovat, PPV, karta a kurzy | SportStreamy';
+const desc = `G MMA 1 ${when}: jak koupit PPV na GECKO TV, celá karta 13 zápasů (Muradov vs. 6 Kotlárů, Kajínek, Sládek vs. Ovčáček) a kurzy.`;
+---
+<Base title={title} description={desc.slice(0, 158)} ld={[breadcrumbLd(crumbs), faqLd(faq), eventLd]} section="nahledy" ttl={state === 'live' ? 60 : 300} lcp="bojove-sporty">
+  <div class="wrap">
+    <Crumbs items={crumbs} />
+    <section class="pagehead" style="padding-bottom:14px">
+      <div class="kicker">
+        {state === 'live' ? <span class="tag-live"><span class="dot"></span>Právě běží</span> : <span style="color:var(--cta)">Bojové sporty · průvodce</span>}
+        <span>· {EVENT.name} · {when}</span>
+      </div>
+      <h1>G MMA živě: kde sledovat G MMA 1, PPV a karta zápasů</h1>
+      <p class="lead">První galavečer nové organizace G MMA je {when} v pražské Nové Spirále. Na kartě je {EVENT.fights} zápasů: Muradov proti šesti Kotlárům, Kajínek proti bachaři nebo Sládek proti Ovčáčkovi. Celý večer uvidíte jen přes placený přenos na GECKO TV. Tady je, jak ho koupit a spustit, celá karta a kurzy.</p>
+    </section>
+
+    <section class="sec">
+      <dl class="facts">
+        <div><dt>Kdy</dt><dd>{longDay(st)} · {hhmm(st)}</dd></div>
+        <div><dt>Kde</dt><dd>{EVENT.venue}</dd></div>
+        <div><dt>Přenos</dt><dd><a href="https://geckotv.cz/" rel="nofollow noopener" target="_blank">PPV na GECKO TV</a></dd></div>
+        <div><dt>Vstupenky</dt><dd><a href="https://www.gmma.cz/vstupenky" rel="nofollow noopener" target="_blank">od {kc(EVENT.tickets)} Kč</a></dd></div>
+      </dl>
+    </section>
+
+    <section class="sec">
+      <div class="sec-head"><h2>Karta G MMA 1</h2><span class="n">{CARD.length} zápasů</span></div>
+      <div class="prose" style="max-width:none">
+        <table>
+          <thead><tr><th>Zápas</th><th>Typ</th><th>Poznámka</th></tr></thead>
+          <tbody>{CARD.map((f) => <tr><td><strong>{f.a}</strong> vs. <strong>{f.b}</strong></td><td>{f.type}</td><td>{f.note ?? ''}</td></tr>)}</tbody>
+        </table>
+      </div>
+      <p class="muted" style="font-size:.84rem">Karta podle organizátora k 24. 10. 2026. Oproti prvnímu oznámení se změnilo: místo Jiřího Paroubka nastoupí Jiří Ovčáček a v kleci je nově souboj chuligánů s policisty. Zápas Kajínek vs. Pokoš se odehraje až na dalším turnaji, pokud Kajínek porazí bachaře.</p>
+    </section>
+
+    <section class="sec">
+      <div class="sec-head"><h2>Časy zápasů a kurzy</h2>{live.length ? <span class="cnt live">{live.length} živě</span> : null}</div>
+      {live.length ? <Rows items={live} now={now} placement="gmma-live" live /> : null}
+      <Rows items={next} now={now} placement="gmma" empty={state === 'past' ? 'G MMA 1 skončil. Zápasy dalšího turnaje se objeví, jakmile k nim budou vypsané kurzy.' : 'Kurzy na první turnaj G MMA zatím sázkové kanceláře nevypsaly. Jakmile je vypíšou, zápasy s časy a kurzy se tu objeví samy.'} />
+      {done.length ? <><h3 style="margin:16px 0 8px">Odehrané</h3><Rows items={done} now={now} placement="gmma-recent" recent /></> : null}
+      <div class="watchbar">
+        <p>Sázky na bojové sporty · {BONUS.book} {BONUS.amount} za registraci<small>Reklama · přenos G MMA běží jen na GECKO TV · 18+</small></p>
+        <a class="btn lg" href="/go/tipsport/?p=gmma-guide" rel="sponsored nofollow noopener" target="_blank"><Icon name="gift" />{BONUS.cta}</a>
+      </div>
+    </section>
+
+    <article class="sec prose">
+      <h2>Jak koupit a spustit PPV na G MMA 1</h2>
+      <ol>
+        <li>Na <a href="https://www.gmma.cz/" rel="nofollow noopener" target="_blank">gmma.cz</a> klikněte na <strong>Kup PPV</strong>. Web vás přesměruje na <a href="https://geckotv.cz/" rel="nofollow noopener" target="_blank">geckotv.cz</a>, videoplatformu G MMA. Přechod na jinou doménu je v pořádku.</li>
+        <li>Vyberte galavečer G MMA 1, přihlaste se nebo si založte účet.</li>
+        <li>Dokončete platbu. Cenu i podmínky přístupu uvidíte před potvrzením nákupu.</li>
+        <li>V den turnaje se na geckotv.cz přihlaste stejným účtem, otevřete galavečer a po startu vysílání spusťte přehrávání. Organizátor doporučuje přihlásit se s předstihem.</li>
+      </ol>
+      <p>Vstupenka do Nové Spirály přenos nezahrnuje, PPV se kupuje zvlášť.</p>
+
+      <h2>Soutěže k PPV: až 111 111 Kč</h2>
+      <ul>
+        <li><strong>Milionová hra:</strong> každé PPV koupené do {PROMO.until} je automaticky ve hře o jackpot {kc(PROMO.jackpot)} Kč, který se losuje přímo na galavečeru. V každé ze {PROMO.stages} etap se navíc losují výhry {PROMO.stage} a stovky výher 200 free spinů u Grandwinu (jen pro hráče 18+ s účtem).</li>
+        <li><strong>Každé 1 000. PPV:</strong> kupující v pořadí 1 000, 2 000, 3 000 a dalších tisícovek dostane dárkovou kartu ONE1 v hodnotě 1 000 Kč.</li>
+      </ul>
+
+      <h2>Co je G MMA</h2>
+      <p>G MMA je nová česká organizace zápasů v kleci, která sází na známé tváře, kontroverzní postavy a bizarní formáty: polštářovou bitvu, souboj v rytířském brnění nebo zápas syna proti vlastní mámě. Hlavní tváří je Jakub Jíra, který dřív moderoval Clash MMA. Přenosy si organizace prodává sama přes vlastní platformu GECKO TV, kde vychází i pořad G FACE s představením soupeřů.</p>
+      <p>Konkurenční organizace je <a href="/jak-sledovat/clash-mma/">Clash MMA</a>{Date.parse(CLASH.start) > now ? ` (Clash 17 ${longDay(Date.parse(CLASH.start))})` : ''}. Program dalších galavečerů s časy a kurzy najdete u <a href="/bojove-sporty-online/oktagon/">Oktagonu</a> a <a href="/bojove-sporty-online/ufc/">UFC</a>.</p>
+    </article>
+
+    <section class="sec"><div class="sec-head"><h2>Časté otázky</h2></div><Faq items={faq} /></section>
+    <p class="muted" style="font-size:.76rem">Sázky jsou určené jen osobám starším 18 let a mohou způsobit závislost. {BONUS.warn}</p>
+  </div>
+</Base>

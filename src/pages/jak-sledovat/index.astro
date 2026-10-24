@@ -5,6 +5,7 @@ import { previews, previewPath } from '../../lib/nahledy';
 import { hhmm, longDay } from '../../lib/text';
 import { breadcrumbLd } from '../../lib/seo';
 import { NEXT, PPV } from '../../lib/clash';
+import { EVENT as GMMA } from '../../lib/gmma';
 export const prerender = false;
 const upcoming = await previews({ upcoming: true });
 const ids = new Set(upcoming.map((p) => p.id));
@@ -18,7 +19,7 @@ const card = (p: (typeof upcoming)[number]) => ({ href: previewPath(p), when: `$
     <section class="pagehead"><h1>Kde sledovat velké zápasy</h1><p class="lead">Náhledy zápasů, které stojí za to vidět: kdy se hraje, kde je přenos v televizi a online a co říkají kurzy.</p></section>
     <section class="sec">
       <div class="sec-head"><h2>Velké akce</h2></div>
-      <div class="cards"><a class="card" href="/jak-sledovat/clash-mma/"><div><small style="color:var(--ink-2)">{longDay(Date.parse(NEXT.start))} · {hhmm(Date.parse(NEXT.start))}</small><h3>Clash MMA: {NEXT.main}</h3><p>Kde sledovat, PPV od {PPV[0].price} Kč, časy zápasů a kurzy</p></div></a></div>
+      <div class="cards"><a class="card" href="/jak-sledovat/clash-mma/"><div><small style="color:var(--ink-2)">{longDay(Date.parse(NEXT.start))} · {hhmm(Date.parse(NEXT.start))}</small><h3>Clash MMA: {NEXT.main}</h3><p>Kde sledovat, PPV od {PPV[0].price} Kč, časy zápasů a kurzy</p></div></a><a class="card" href="/jak-sledovat/g-mma/"><div><small style="color:var(--ink-2)">{longDay(Date.parse(GMMA.start))} · {hhmm(Date.parse(GMMA.start))}</small><h3>G MMA 1: Muradov vs. 6 Kotlárů</h3><p>Kde sledovat, PPV na GECKO TV, celá karta a kurzy</p></div></a></div>
     </section>
     <section class="sec">
       <div class="sec-head"><h2>Nejbližší</h2></div>
