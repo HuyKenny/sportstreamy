@@ -8,10 +8,10 @@ export const prerender = false;
 export const GET = async () => {
   const doc = await loadBranches(env as unknown as Env);
   const lastmod = (doc.updated || new Date().toISOString()).slice(0, 10);
-  const urls: Url[] = [{ loc: '/sazkove-kancelare/', priority: 0.8 }, { loc: '/pobocky/', lastmod, priority: 0.6 }];
+  const urls: Url[] = [{ loc: '/sazkove-kancelare/', lastmod: '2026-10-24', priority: 0.9 }, { loc: '/pobocky/', lastmod, priority: 0.6 }];
   for (const b of BOOKS) {
     urls.push({ loc: `/sazkove-kancelare/${b.slug}/`, priority: 0.7 });
-    for (const t of b.topics) urls.push({ loc: `/sazkove-kancelare/${b.slug}/${t}/`, priority: t === 'tv' ? 0.8 : 0.6 });
+    for (const t of b.topics) urls.push({ loc: `/sazkove-kancelare/${b.slug}/${t}/`, priority: t === 'tv' || t === 'prihlaseni' || t === 'kurzy' ? 0.8 : 0.6 });
     const rows = doc.brands[b.slug] ?? [];
     if (!b.branches || !rows.length) continue;
     urls.push({ loc: `/pobocky/${b.slug}/`, lastmod, priority: 0.6 });

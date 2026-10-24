@@ -13,7 +13,7 @@ const b = BOOK_BY_SLUG.get(Astro.params.book as BookSlug);
 if (!b) return Astro.rewrite('/404/');
 const crumbs = [{ name: 'Domů', href: '/' }, { name: 'Sázkové kanceláře', href: '/sazkove-kancelare/' }, { name: b.name }];
 const faq = [
-  { q: `Je ${b.short} legální?`, a: b.partner || b.slug === 'fortuna' || b.slug === 'synottip' ? `${b.full} působí v Česku na základě povolení Ministerstva financí ČR.` : 'Seznam povolených provozovatelů zveřejňuje Ministerstvo financí ČR – vždy si ho ověř, než se registruješ.' },
+  { q: `Je ${b.short} legální?`, a: b.partner || b.slug === 'fortuna' || b.slug === 'synottip' || b.slug === 'betx' ? `${b.full} působí v Česku na základě povolení Ministerstva financí ČR.` : 'Seznam povolených provozovatelů zveřejňuje Ministerstvo financí ČR – vždy si ho ověř, než se registruješ.' },
   { q: `Dá se u ${b.short} sledovat sport živě?`, a: b.streams ? `Ano – ${b.watch}` : b.watch },
   { q: `Má ${b.short} bonus?`, a: b.bonus ? `Ano, ${b.bonus} pro nové hráče po registraci a ověření účtu. ${bonusTerms(b)}` : `Aktuální akce najdeš na webu ${b.site.replace('https://', '')}.${b.partner ? '' : ` Bonus přes SportStreamy nabízí Tipsport (${BONUS.amount}).`}` },
 ];

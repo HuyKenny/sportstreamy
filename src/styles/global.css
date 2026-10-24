@@ -620,3 +620,23 @@ a, button, .btn, .chip, summary { touch-action: manipulation; }
   .more-col.only-narrow { display: flex; }
   .more-panel { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 }
+
+/* Bookmaker hub + odds tables */
+.odds-table.kurzy th, .odds-table.kurzy td { padding: 9px 10px; }
+.odds-table.kurzy tbody th a { font-weight: 700; text-decoration: none; color: var(--ink); }
+.odds-table.kurzy tbody th a:hover { color: var(--cta); }
+.odds-table.kurzy td { width: 56px; font-variant-numeric: tabular-nums; }
+.odds-table.kurzy td:last-child { width: 1%; white-space: nowrap; text-align: right; }
+@media (max-width: 560px) { .odds-table.kurzy th, .odds-table.kurzy td { padding: 8px 6px; font-size: .86rem; } .odds-table.kurzy td:last-child .btn { padding: 6px 9px; } }
+.picks { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 12px; }
+.pick { display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; border: var(--frame); border-radius: var(--r); background: var(--card); box-shadow: var(--lift); }
+.pick small { font-family: var(--mono); font-size: .66rem; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+.pick h3 { margin: 0; font-size: 1.15rem; }
+.pick p { margin: 0; color: var(--ink-2); font-size: .9rem; flex: 1; }
+.pick .btn { align-self: flex-start; margin-top: 4px; }
+.taskgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); gap: 0; border: var(--frame); border-radius: var(--r); overflow: hidden; background: var(--card); }
+.taskgrid div { padding: 12px 14px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.taskgrid h3 { margin: 0 0 6px; font-size: .95rem; }
+.taskgrid a { display: inline-block; margin: 0 10px 4px 0; text-decoration: none; color: var(--ink-2); font-size: .9rem; }
+.taskgrid a:hover { color: var(--cta); text-decoration: underline; }
+.updated { font-family: var(--mono); font-size: .72rem; letter-spacing: .06em; color: var(--ink-3); margin: 6px 0 0; }

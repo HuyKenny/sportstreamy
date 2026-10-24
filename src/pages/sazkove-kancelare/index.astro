@@ -3,39 +3,88 @@ import Base from '../../layouts/Base.astro';
 import Faq from '../../components/Faq.astro';
 import Crumbs from '../../components/Crumbs.astro';
 import BannerSlot from '../../components/BannerSlot.astro';
-import { BOOKS, ctaFor } from '../../lib/books';
+import OddsTable from '../../components/OddsTable.astro';
+import { BOOKS, BOOK_BY_SLUG, ctaFor, bonusTerms, type Topic } from '../../lib/books';
+import { TOPIC_LABEL } from '../../lib/book-topics';
 import { BONUS } from '../../lib/bonus';
 import { BANNERS } from '../../lib/banners';
-import { breadcrumbLd, faqLd } from '../../lib/seo';
+import { breadcrumbLd, faqLd, SITE } from '../../lib/seo';
+import { getEnv, view, featured } from '../../lib/page';
+import { dayKey } from '../../lib/text';
 export const prerender = false;
-const faq = [
-  { q: 'Kterou sázkovou kancelář vybrat pro sledování přenosů?', a: 'Nejvíc živých přenosů má Tipsport, sledování je po registraci zdarma. Chance má podobnou nabídku zápasů a jiné kurzy, takže se hodí na porovnání.' },
-  { q: 'Musím vsadit, abych viděl přenos?', a: 'Ne. Ke sledování stačí ověřený účet a přihlášení. Sázení je dobrovolné a pouze pro osoby od 18 let.' },
-  { q: 'Jaké bonusy dostanu za registraci?', a: `Přes naše odkazy: Tipsport ${BONUS.amount}, Allwyn 500 Kč, MerkurXtip 500 Kč a Chance 200 Kč pro nové hráče po registraci a ověření účtu. Podmínky stanoví provozovatel.` },
-  { q: 'Proč u některých kanceláří není bonus přes vás?', a: 'S Fortunou, Betanem a Synot Tipem nemáme partnerskou smlouvu. Jejich stránky jsou informativní a odkazy na ně nejsou affiliate.' },
-  { q: 'Jsou kanceláře legální?', a: 'Všechny uvedené působí v Česku na základě povolení Ministerstva financí ČR. Aktuální seznam povolených provozovatelů zveřejňuje MF ČR.' },
+
+const UPDATED = '24. 10. 2026';
+const now = Date.now();
+const v = await view(getEnv());
+// Live evidence for the odds claim: the same matches priced by Tipsport and Chance.
+const priced = v.upcoming.filter((m) => m.a && m.o?.t && m.o.c && m.st < now + 48 * 3600_000);
+const same = priced.filter((m) => m.o!.t.every((x, i) => x === m.o!.c![i])).length;
+const todayOdds = featured(v.upcoming.filter((m) => m.a && m.o && [16, 23, 43, 7].includes(m.sp) && dayKey(m.st) === dayKey(now))).slice(0, 8);
+
+const partners = BOOKS.filter((b) => b.partner);
+const tipsport = BOOK_BY_SLUG.get('tipsport')!;
+const link = (slug: string, t: Topic) => `/sazkove-kancelare/${slug}/${t}/`;
+const tasks: { t: Topic; h: string }[] = [
+  { t: 'prihlaseni', h: 'Přihlášení do účtu' },
+  { t: 'registrace', h: 'Registrace a ověření' },
+  { t: 'kurzy', h: 'Kurzy dnes' },
+  { t: 'tv', h: 'TV a přenosy' },
+  { t: 'aplikace', h: 'Mobilní aplikace' },
+  { t: 'kontrola-tiketu', h: 'Kontrola tiketu' },
+  { t: 'bonus', h: 'Bonus a promo kód' },
 ];
+const faq = [
+  { q: 'Jaká je nejlepší sázková kancelář v Česku?', a: 'Záleží na tom, co od ní chceš. Pro sledování zápasů zdarma je nejlepší Tipsport, který má nejvíc živých přenosů, a zároveň nabízí nejvyšší bonus pro nové hráče. Pro loterie a sázky na jednom účtu se hodí Allwyn (dříve Sazka), pro sázky i casino na jednom účtu MerkurXtip a pro hustou síť poboček Tipsport, Fortuna nebo Allwyn.' },
+  { q: 'Které sázkové kanceláře jsou v Česku legální?', a: 'Legální jsou ty, které mají povolení Ministerstva financí ČR. V přehledu na této stránce jsou jen provozovatelé působící v Česku na základě povolení: Tipsport, Chance, Allwyn (SazkaBet), MerkurXtip, Fortuna, Betano, Synot Tip a BetX. Aktuální seznam držitelů povolení zveřejňuje Ministerstvo financí.' },
+  { q: 'Dají se v Česku legálně využívat zahraniční sázkové kanceláře?', a: 'Rozhoduje povolení, ne země původu firmy. Zahraniční značka je v Česku legální, jen když má povolení Ministerstva financí ČR. Weby bez povolení mohou skončit na seznamu nepovolených internetových her a poskytovatelé internetu je musí blokovat. U takové kanceláře tě nechrání české předpisy o ověřování hráčů, limitech ani rejstříku vyloučených osob.' },
+  { q: 'Musím vsadit, abych viděl přenos?', a: 'Ne. Ke sledování stačí ověřený účet a přihlášení. Sázení je dobrovolné a pouze pro osoby od 18 let. U některých zápasů může přehrávač vyžadovat zůstatek na účtu, podmínky ukáže u konkrétního přenosu.' },
+  { q: 'Jaké bonusy dostanu za registraci?', a: `Přes naše odkazy: Tipsport ${BONUS.amount}, Allwyn 500 Kč, MerkurXtip 500 Kč a Chance 200 Kč pro nové hráče po registraci a ověření účtu. Podmínky stanoví provozovatel a mění se, proto je před registrací vždy zkontroluj.` },
+  { q: 'Je nějaký bonus bez nutnosti vkladu?', a: 'Vstupní bonusy se obvykle připisují po registraci a ověření totožnosti a pak je potřeba splnit podmínky provozovatele (například protočení). Zda je nutný vklad, určují podmínky konkrétní akce, najdeš je u každé kanceláře v sekci bonusu.' },
+  { q: 'Mají Tipsport a Chance jiné kurzy?', a: priced.length >= 20 ? `Na výsledek zápasu (1X2) téměř ne. V naší nabídce porovnáváme ${priced.length} zápasů z příštích 48 hodin a u ${same} z nich jsou kurzy u Tipsportu a Chance stejné. Obě kanceláře jsou na stejné platformě, liší se hlavně bonusy, aplikací a doplňkovými sázkami.` : 'Na výsledek zápasu (1X2) jsou kurzy u Tipsportu a Chance téměř vždy stejné, protože obě kanceláře používají stejnou platformu. Liší se hlavně bonusy, aplikace a doplňkové sázky.' },
+  { q: 'Proč u některých kanceláří není bonus přes vás?', a: 'S Fortunou, Betanem, Synot Tipem a BetX nemáme partnerskou smlouvu. Jejich stránky jsou informativní a odkazy na ně nejsou affiliate.' },
+  { q: 'Mají sázkové kanceláře pobočky?', a: 'Ano, pobočky mají Tipsport, Chance, Allwyn a Fortuna. Přehled poboček včetně měst najdeš na stránce Pobočky sázkových kanceláří. MerkurXtip, Betano, Synot Tip a BetX jsou v našem přehledu jen online.' },
+  { q: 'Co je rejstřík vyloučených osob?', a: 'Seznam osob, které nesmí hrát hazardní hry. Vede ho Ministerstvo financí a zapsat se do něj můžeš i na vlastní žádost. Licencované kanceláře jsou povinny zapsané osoby nepustit ke hře.' },
+];
+const itemList = {
+  '@context': 'https://schema.org', '@type': 'ItemList', name: 'Sázkové kanceláře v Česku', itemListOrder: 'https://schema.org/ItemListUnordered',
+  itemListElement: BOOKS.map((b, i) => ({ '@type': 'ListItem', position: i + 1, name: b.name, url: `${SITE}/sazkove-kancelare/${b.slug}/` })),
+};
+const page = { '@context': 'https://schema.org', '@type': 'WebPage', name: 'Sázkové kanceláře v ČR: srovnání, bonusy a přenosy', url: `${SITE}/sazkove-kancelare/`, inLanguage: 'cs', dateModified: '2026-10-24', isPartOf: { '@type': 'WebSite', name: 'SportStreamy', url: SITE } };
 const crumbs = [{ name: 'Domů', href: '/' }, { name: 'Sázkové kanceláře' }];
-const yes = (v: boolean) => (v ? 'ano' : '—');
+const yes = (x: boolean) => (x ? 'ano' : '—');
 ---
-<Base title={`Sázkové kanceláře – srovnání, přenosy a bonusy (${BONUS.amount} Tipsport) | SportStreamy`} description={`Srovnání sázkových kanceláří v Česku: Tipsport, Chance, Allwyn, MerkurXtip, Fortuna, Betano, Synot Tip. Přenosy, aplikace, pobočky a bonusy: Tipsport ${BONUS.amount}, Allwyn a MerkurXtip 500 Kč, Chance 200 Kč.`} ld={[breadcrumbLd(crumbs), faqLd(faq)]} section="bonusy" ttl={3600}>
+<Base title="Sázkové kanceláře v ČR: srovnání a bonusy 2026 | SportStreamy" description={`Srovnání licencovaných sázkových kanceláří v ČR: Tipsport, Chance, Allwyn, MerkurXtip, Fortuna, Betano, Synot Tip, BetX. Přenosy, pobočky, aplikace a bonusy až ${BONUS.amount}.`} ld={[breadcrumbLd(crumbs), faqLd(faq), itemList, page]} section="bonusy" ttl={300}>
   <div class="wrap">
     <Crumbs items={crumbs} />
     <section class="pagehead">
       <div class="kicker"><span class="tag-ad">Reklama · 18+</span></div>
-      <h1>Sázkové kanceláře</h1>
-      <p class="lead">Srovnání licencovaných kanceláří v Česku z pohledu diváka: kde jsou živé přenosy, jaká je aplikace, jestli mají pobočky a jaký bonus dostaneš.</p>
+      <h1>Sázkové kanceláře v ČR: srovnání, bonusy a přenosy</h1>
+      <p class="lead">Srovnání osmi sázkových kanceláří s českým povolením z pohledu diváka a hráče: kde jsou živé přenosy, jaká je aplikace, kolik je poboček a jaký bonus dostaneš. Odkazy na přihlášení, kurzy a registraci najdeš u každé kanceláře.</p>
+      <p class="updated">Aktualizováno {UPDATED} · jen provozovatelé s povolením Ministerstva financí ČR</p>
     </section>
+
     <section class="sec">
+      <div class="sec-head"><h2>Která kancelář se hodí tobě</h2></div>
+      <div class="picks">
+        <div class="pick"><small>Sledovat zápasy</small><h3>Tipsport</h3><p>Nejvíc živých přenosů (Tipsport TV), sledování je po registraci zdarma.</p><a class="btn sm" href="/sazkove-kancelare/tipsport/tv/">Jak sledovat přenosy</a></div>
+        <div class="pick"><small>Nejvyšší bonus</small><h3>Tipsport {BONUS.amount}</h3><p>Nejvyšší vstupní bonus mezi našimi partnery. Podmínky stanoví provozovatel.</p><a class="btn sm" href={`${ctaFor(tipsport)}?p=books-pick-bonus`} rel="sponsored nofollow noopener" target="_blank">Chci {BONUS.amount}</a></div>
+        <div class="pick"><small>Loterie a sázky</small><h3>Allwyn (SazkaBet)</h3><p>Loterie i kurzové sázky na jednom účtu a největší síť prodejních míst.</p><a class="btn sm ghost" href="/sazkove-kancelare/sazka/">Více o Allwynu</a></div>
+        <div class="pick"><small>Sázky i casino</small><h3>MerkurXtip</h3><p>Kurzové a live sázky i casino na jednom účtu, jen online.</p><a class="btn sm ghost" href="/sazkove-kancelare/merkurxtip/">Více o MerkurXtipu</a></div>
+      </div>
+    </section>
+
+    <section class="sec">
+      <div class="sec-head"><h2>Srovnání sázkových kanceláří</h2></div>
       <div class="tablewrap">
         <table class="cmp-table">
-          <thead><tr><th>Kancelář</th><th>Živé přenosy</th><th>Pobočky</th><th>Bonus přes nás</th><th></th></tr></thead>
+          <thead><tr><th>Kancelář</th><th>Živé přenosy</th><th>Pobočky</th><th>Aplikace</th><th>Bonus přes nás</th><th></th></tr></thead>
           <tbody>
             {BOOKS.map((b) => (
               <tr>
                 <td><a href={`/sazkove-kancelare/${b.slug}/`}><b>{b.name}</b></a><br /><span class="muted" style="font-size:.8rem">{b.full}</span></td>
                 <td class={b.streams ? 'y' : 'n'} data-l="Přenosy">{yes(b.streams)}</td>
                 <td class={b.branches ? 'y' : 'n'} data-l="Pobočky">{b.branches ? <a href={`/pobocky/${b.slug}/`}>ano</a> : '—'}</td>
+                <td class={b.topics.includes('aplikace') ? 'y' : 'n'} data-l="Aplikace">{b.topics.includes('aplikace') ? <a href={link(b.slug, 'aplikace')}>ano</a> : '—'}</td>
                 <td class={b.bonus ? 'y' : 'n'} data-l="Bonus">{b.bonus ?? '—'}</td>
                 <td class="cta">{b.partner ? <a class="btn sm" href={`${ctaFor(b)}?p=books-table-${b.slug}`} rel="sponsored nofollow noopener" target="_blank">{b.bonus ? `Chci ${b.bonus}` : 'Přejít'}</a> : <a class="btn sm ghost" href={`/sazkove-kancelare/${b.slug}/`}>Více</a>}</td>
               </tr>
@@ -43,35 +92,73 @@ const yes = (v: boolean) => (v ? 'ano' : '—');
           </tbody>
         </table>
       </div>
+      <p class="muted" style="font-size:.82rem;margin-top:8px">Údaje o přenosech, pobočkách a aplikacích jsou ověřené na webech provozovatelů (20. 10. 2026). Bonus uvádíme jen u partnerů, u kterých je potvrzený; u ostatních dostaneš aktuální akci na webu provozovatele.</p>
     </section>
+
     <div class="banners">
       <BannerSlot banner={BANNERS.tipsport1000} placement="books-banner" />
       <BannerSlot banner={BANNERS.chance200} placement="books-banner" />
     </div>
+
     <section class="sec">
-      <div class="sec-head"><h2>Nejhledanější</h2></div>
-      <div class="chips">
-        <a class="chip" href="/sazkove-kancelare/tipsport/tv/">Tipsport TV</a>
-        <a class="chip" href="/sazkove-kancelare/tipsport/aplikace/">Tipsport aplikace</a>
-        <a class="chip" href="/sazkove-kancelare/tipsport/kontrola-tiketu/">Tipsport kontrola tiketu</a>
-        <a class="chip" href="/sazkove-kancelare/betano/bonus/">Betano promo kód</a>
-        <a class="chip" href="/sazkove-kancelare/fortuna/aplikace/">Fortuna aplikace</a>
-        <a class="chip" href="/sazkove-kancelare/fortuna/kontrola-tiketu/">Fortuna kontrola tiketu</a>
-        <a class="chip" href="/pobocky/">Pobočky sázkových kanceláří</a>
-        <a class="chip" href="/clanky/dan-z-vyhry-sazky/">Daň z výhry</a>
+      <div class="sec-head"><h2>Podle toho, co právě potřebuješ</h2></div>
+      <div class="taskgrid">
+        {tasks.map((x) => (
+          <div>
+            <h3>{x.h}</h3>
+            {BOOKS.filter((b) => b.topics.includes(x.t)).map((b) => <a href={link(b.slug, x.t)}>{b.short}</a>)}
+          </div>
+        ))}
+        <div><h3>Pobočky</h3><a href="/pobocky/">Všechny pobočky</a>{BOOKS.filter((b) => b.branches).map((b) => <a href={`/pobocky/${b.slug}/`}>{b.short}</a>)}</div>
       </div>
     </section>
+
+    {todayOdds.length ? (
+      <section class="sec">
+        <div class="sec-head"><h2>Kurzy dnes u Tipsportu a Chance</h2><a href="/sazkove-kancelare/tipsport/kurzy/">Všechny kurzy ›</a></div>
+        <OddsTable items={todayOdds} now={now} placement="books-odds" />
+        <p class="muted" style="font-size:.84rem;margin-top:8px">{priced.length >= 20 ? <>Porovnali jsme {priced.length} zápasů z nejbližších 48 hodin: u {same} z nich ({Math.round((same / priced.length) * 100)} %) mají Tipsport a Chance na výsledek zápasu stejné kurzy. Obě kanceláře jedou na stejné platformě, takže kurz 1X2 tě mezi nimi nerozhodne, spíš bonus, přenosy a pobočky.</> : <>Tipsport a Chance běží na stejné platformě a kurzy na výsledek zápasu jsou u nich téměř vždy shodné, takže mezi nimi nerozhoduje kurz 1X2, ale bonus, přenosy a pobočky.</>}</p>
+      </section>
+    ) : null}
+
     <section class="sec prose">
+      <h2>Jak vybrat sázkovou kancelář</h2>
+      <p>Rozdíly mezi licencovanými kancelářemi nejsou v kurzech tak velké, jak se zdá. Rozhodují tyto věci:</p>
+      <ul>
+        <li><strong>Povolení.</strong> Provozovatel musí mít povolení Ministerstva financí ČR. Jen tehdy ověřuje věk, hlídá limity a respektuje rejstřík vyloučených osob.</li>
+        <li><strong>Přenosy.</strong> Pokud chceš zápasy hlavně sledovat, hledej kancelář s vlastním přenosovým kanálem. Nejvíc videa nabízí <a href={link('tipsport', 'tv')}>Tipsport TV</a>, <a href={link('chance', 'tv')}>Chance</a> používá stejnou platformu.</li>
+        <li><strong>Kurzy a marže.</strong> Porovnej, kolik procent přes 100 % dávají převrácené hodnoty kurzů. Čím méně, tím lépe pro tebe. U výsledku zápasu jsou rozdíly mezi velkými kancelářemi malé, větší bývají u doplňkových sázek.</li>
+        <li><strong>Aplikace.</strong> Dobrá aplikace má rychlé live sázky, oznámení a přehled tiketů. Přehled je u každé kanceláře na stránce <em>Aplikace</em>.</li>
+        <li><strong>Vklady a výběry.</strong> Před registrací zjisti, jaké platební metody kancelář podporuje, jak rychle vyplácí a jestli účtuje poplatky.</li>
+        <li><strong>Bonus a jeho podmínky.</strong> Důležitější než výše bonusu je protočení a časový limit. Podmínky vždy čti na webu provozovatele.</li>
+        <li><strong>Pobočky.</strong> Pokud chceš vsadit papírový tiket nebo vybrat výhru osobně, vyber kancelář s hustou sítí, třeba <a href="/pobocky/tipsport/">Tipsport</a>, <a href="/pobocky/fortuna/">Fortuna</a> nebo <a href="/pobocky/sazka/">Allwyn</a>.</li>
+        <li><strong>Nástroje zodpovědného hraní.</strong> Limity vkladů, pauzy a sebevyloučení musí nabízet každý licencovaný provozovatel. Jak fungují, najdeš na stránce <a href="/zodpovedne-hrani/">zodpovědné hraní</a>.</li>
+      </ul>
+
+      <h2>Bonusy za registraci</h2>
+      <p>Přes naše odkazy dostanou noví hráči po registraci a ověření účtu tyto bonusy:</p>
+      <ul>{partners.filter((b) => b.bonus).map((b) => <li><strong><a href={`/sazkove-kancelare/${b.slug}/bonus/`}>{b.name}: {b.bonus}</a></strong>. {bonusTerms(b)}</li>)}</ul>
+      <p>U Fortuny, Betana, Synot Tipu a BetX bonus nezprostředkujeme. Aktuální akce a případný promo kód najdeš na jejich webech, vymyšlené kódy neuvádíme. Nejčastější dotaz je <a href={link('betano', 'bonus')}>Betano promo kód</a> a <a href={link('fortuna', 'bonus')}>Fortuna bonus</a>. Bonus je jen pro nové hráče starší 18 let a získat ho lze u každé kanceláře jednou.</p>
+
+      <h2>Zahraniční sázkové kanceláře: co je v ČR legální</h2>
+      <p>Legálnost nezávisí na tom, kde firma sídlí. Online sázky smí v Česku nabízet jen držitel povolení Ministerstva financí podle zákona o hazardních hrách. Mezinárodní značka tedy může být v Česku legální, pokud české povolení má. Provozovatele bez povolení může ministerstvo zapsat na seznam nepovolených internetových her a poskytovatelé internetu jsou povinni tyto weby blokovat.</p>
+      <p>U nepovolené kanceláře tě nechrání české předpisy: nemusí ověřovat věk, nabízet limity ani respektovat rejstřík vyloučených osob, a když dojde na spor o výběr, nemáš kde hledat pomoc. Proto v našem přehledu najdeš jen kanceláře působící na základě českého povolení. U každé uvádíme jméno provozovatele, takže si povolení můžeš ověřit na <a href="https://mf.gov.cz/cs/kontrola-a-regulace/hazardni-hry" rel="nofollow noopener" target="_blank">webu Ministerstva financí</a>.</p>
+
+      <h2>Přihlášení, registrace a ověření účtu</h2>
+      <p>Pro sledování přenosů i sázení potřebuješ ověřený účet. Registrace je u licencovaných kanceláří zdarma, vyžaduje věk 18+ a ověření totožnosti, nejrychleji přes bankovní identitu. Postup krok za krokem najdeš u každé kanceláře: <a href={link('tipsport', 'registrace')}>registrace Tipsport</a>, <a href={link('chance', 'registrace')}>registrace Chance</a>, <a href={link('sazka', 'registrace')}>registrace Allwyn</a>. Když se nemůžeš přihlásit, pomůže <a href={link('tipsport', 'prihlaseni')}>návod na přihlášení</a>, který máme pro každého provozovatele.</p>
+
       <h2>Jak sledovat přenos krok za krokem</h2>
       <ol>
         <li>Najdi zápas v <a href="/zive/">živých přenosech</a>, v <a href="/program/">programu</a> nebo přes hledání.</li>
-        <li>Klikni na „Sledovat“ – otevře se stránka zápasu u Tipsportu.</li>
+        <li>Klikni na „Sledovat“, otevře se stránka zápasu u Tipsportu.</li>
         <li>Přihlas se, nebo se bezplatně zaregistruj a ověř totožnost (vyžaduje zákon). Noví hráči dostanou {BONUS.amount}.</li>
         <li>Spusť přenos. Vsázet nemusíš.</li>
       </ol>
+
       <h2>Na co si dát pozor</h2>
-      <p>Sázky jsou určené pouze osobám starším 18 let a mohou způsobit závislost. Nesázej víc, než si můžeš dovolit prohrát. Pomoc najdeš na <a href="https://www.hrajrozumne.cz" rel="noopener nofollow">hrajrozumne.cz</a> a na stránce <a href="/zodpovedne-hrani/">zodpovědné hraní</a>.</p>
+      <p>Sázky jsou určené pouze osobám starším 18 let a mohou způsobit závislost. Nesázej víc, než si můžeš dovolit prohrát. Pomoc najdeš na <a href="https://www.hrajrozumne.cz" rel="noopener nofollow">hrajrozumne.cz</a> a na stránce <a href="/zodpovedne-hrani/">zodpovědné hraní</a>. Za odkazy na této stránce můžeme při registraci získat provizi, cena ani podmínky se pro tebe nemění. Hodnocení přehledu nezávisí na provizi: Fortunu, Betano, Synot Tip a BetX uvádíme bez affiliate.</p>
     </section>
+
     <section class="sec"><div class="sec-head"><h2>Časté otázky</h2></div><Faq items={faq} /></section>
   </div>
 </Base>

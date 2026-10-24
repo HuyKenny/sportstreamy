@@ -4,6 +4,8 @@ import Crumbs from '../../../components/Crumbs.astro';
 import Faq from '../../../components/Faq.astro';
 import Rows from '../../../components/Rows.astro';
 import BannerSlot from '../../../components/BannerSlot.astro';
+import OddsTable from '../../../components/OddsTable.astro';
+import { SPORT_BY_ID } from '../../../lib/sports';
 import { BOOK_BY_SLUG, ctaFor, type BookSlug, type Topic } from '../../../lib/books';
 import { topicPage, TOPIC_LABEL } from '../../../lib/book-topics';
 import { BANNERS } from '../../../lib/banners';
@@ -24,6 +26,19 @@ if (t === 'tv') {
   const v = await view(getEnv());
   streams = featured([...v.live.filter((m) => m.stream), ...v.upcoming.filter((m) => m.stream && dayKey(m.st) === dayKey(now))]).slice(0, 20);
 }
+// Odds page: today's (and, when thin, tomorrow's) matches with a 1X2 market, a block per main sport.
+const KURZY_SPORTS = [16, 23, 43, 7, 47];
+const oddsBlocks: { id: number; name: string; items: typeof streams }[] = [];
+if (t === 'kurzy') {
+  const v = await view(getEnv());
+  const withOdds = v.upcoming.filter((m) => m.a && m.o && KURZY_SPORTS.includes(m.sp));
+  const today = withOdds.filter((m) => dayKey(m.st) === dayKey(now));
+  const pool = today.length >= 12 ? today : withOdds.filter((m) => m.st < now + 36 * 3600_000);
+  for (const id of KURZY_SPORTS) {
+    const items = featured(pool.filter((m) => m.sp === id)).slice(0, id === 16 ? 14 : 8);
+    if (items.length) oddsBlocks.push({ id, name: SPORT_BY_ID.get(id)?.name ?? '', items });
+  }
+}
 const banner = b.slug === 'chance' ? BANNERS.chance200 : BANNERS.tipsport1000;
 const steps = pg.steps ?? [];
 const howTo = steps.length ? [{ '@context': 'https://schema.org', '@type': 'HowTo', name: pg.h1, step: steps.map((s, i) => ({ '@type': 'HowToStep', position: i + 1, name: s.h, text: s.p })) }] : [];
@@ -36,9 +51,10 @@ const howTo = steps.length ? [{ '@context': 'https://schema.org', '@type': 'HowT
       <p class="lead">{pg.lead}</p>
       <div class="cta-row">
         <a class="btn lg" href={`${ctaFor(b)}?p=topic-${b.slug}-${t}`} rel="sponsored nofollow noopener" target="_blank">{b.partner ? (b.bonus ? `Registrace + ${b.bonus}` : `Přejít na ${b.short}`) : `Alternativa: Tipsport ${BONUS.amount}`}</a>
-        {!b.partner ? <a class="btn ghost" href={b.site} rel="nofollow noopener" target="_blank">Web {b.short}</a> : null}
+        {!b.partner || t === 'prihlaseni' ? <a class="btn ghost" href={b.site} rel="nofollow noopener" target="_blank">Web {b.short}</a> : null}
         <span class="tag-ad">Reklama · 18+</span>
       </div>
+      {t === 'kurzy' ? <p class="muted" style="font-size:.82rem;margin-top:8px">Přehled kurzů 1X2 z nabídky kanceláře, aktualizovaný během dne. Sázky jsou jen pro osoby od 18 let a mohou způsobit závislost.</p> : null}
     </section>
     <div class="cols">
       <div>
@@ -48,6 +64,7 @@ const howTo = steps.length ? [{ '@context': 'https://schema.org', '@type': 'HowT
           </section>
         ) : null}
         {t === 'tv' ? <section class="sec zone live"><div class="sec-head"><h2>S videem teď a dnes <span class="cnt live">{streams.length}</span></h2><a href="/zive/">Vše živě ›</a></div><Rows items={streams} now={now} placement={`tv-${b.slug}`} empty="Dnes už žádný přenos s videem nezačíná – mrkni na zítřek v Programu." /></section> : null}
+        {t === 'kurzy' ? (oddsBlocks.length ? oddsBlocks.map((blk) => <section class="sec"><div class="sec-head"><h2>{blk.name}: kurzy {b.gen}</h2><a href={`/${SPORT_BY_ID.get(blk.id)?.slug}-online/`}>Všechny zápasy ›</a></div><OddsTable items={blk.items} now={now} book={b.slug === 'chance' ? 'chance' : 'tipsport'} placement={`kurzy-${b.slug}`} /></section>) : <section class="sec"><p class="muted">Kurzy na dnešní zápasy se právě načítají. Celý program najdeš v <a href="/program/">programu přenosů</a>.</p></section>) : null}
         <section class="sec prose">{pg.body.map((x) => <><h2>{x.h}</h2><p>{x.p}</p></>)}</section>
         <section class="sec"><div class="sec-head"><h2>Časté otázky</h2></div><Faq items={pg.faq} /></section>
         <div class="chips" aria-label={`Další o ${b.short}`}>{b.topics.filter((x) => x !== t).map((x) => <a class="chip" href={`/sazkove-kancelare/${b.slug}/${x}/`}>{x === 'bonus' && !b.bonus ? 'Promo kód a bonus' : TOPIC_LABEL[x]}</a>)}{b.branches ? <a class="chip" href={`/pobocky/${b.slug}/`}>Pobočky</a> : null}</div>

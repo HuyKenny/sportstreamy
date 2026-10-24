@@ -65,6 +65,6 @@ Video běží v prohlížeči na počítači i v mobilu a v aplikaci Tipsportu (
 
 ## Alternativa: Chance
 
-Chance běží na stejné platformě, takže nabízí stejné zápasy s videem a jen jiné kurzy. Hodí se, pokud už tam účet máš – viz [Chance TV](/sazkove-kancelare/chance/tv/).
+Chance běží na stejné platformě, takže nabízí stejné zápasy s videem a na výsledek zápasu prakticky stejné kurzy. Hodí se, pokud už tam účet máš – viz [Chance TV](/sazkove-kancelare/chance/tv/).
 
 Sázky jsou určené jen osobám starším 18 let a mohou způsobit závislost. Ke sledování přenosů sázet nemusíš.

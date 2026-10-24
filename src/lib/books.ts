@@ -6,8 +6,8 @@
  */
 import { BONUS } from './bonus';
 
-export type BookSlug = 'tipsport' | 'chance' | 'sazka' | 'merkurxtip' | 'fortuna' | 'betano' | 'synottip';
-export type Topic = 'tv' | 'aplikace' | 'kontrola-tiketu' | 'bonus' | 'registrace';
+export type BookSlug = 'tipsport' | 'chance' | 'sazka' | 'merkurxtip' | 'fortuna' | 'betano' | 'synottip' | 'betx';
+export type Topic = 'tv' | 'aplikace' | 'kontrola-tiketu' | 'bonus' | 'registrace' | 'prihlaseni' | 'kurzy';
 
 export interface BookInfo {
   slug: BookSlug;
@@ -37,16 +37,16 @@ export const BOOKS: BookInfo[] = [
     pros: ['Nejvíc zápasů s videem (Tipsport TV) – fotbal, hokej, tenis, basketbal, e-sporty', 'Bonus 1000 Kč pro nové hráče', 'Mobilní aplikace a hustá síť poboček', 'Česká licence'],
     cons: ['Video jen po registraci a ověření totožnosti', 'U části zápasů (Chance Liga, NHL) jen statistiky, ne video'],
     watch: 'Přenosy (Tipsport TV) se pouští po přihlášení do účtu. Registrace je bezplatná a trvá několik minut včetně ověření totožnosti.',
-    streams: true, branches: true, topics: ['tv', 'aplikace', 'kontrola-tiketu', 'bonus', 'registrace'],
+    streams: true, branches: true, topics: ['tv', 'aplikace', 'kontrola-tiketu', 'bonus', 'registrace', 'prihlaseni', 'kurzy'],
     more: 'Jak Tipsport obstál v delším testu – od registrace přes výběry po zákaznickou podporu – rozebírá <a href="https://kratkerecenze.cz/recenze-tipsport-cz-nejvetsi-sazkova-kancelar-v-ceske-republice/">nezávislá recenze Tipsportu na KrátkéRecenze.cz</a>.',
   },
   {
     slug: 'chance', name: 'Chance', short: 'Chance', gen: 'Chance', full: 'Chance a.s.', partner: true, go: 'chance', site: 'https://www.chance.cz', bonus: '200 Kč', color: '#0f7a3c',
-    blurb: 'Druhá velká česká kancelář na stejné platformě jako Tipsport – stejné zápasy, jiné kurzy. Generální partner Chance Ligy.',
-    pros: ['Stejné zápasy jako Tipsport – snadné porovnání kurzů', 'Bonus 200 Kč za registraci', 'Mobilní aplikace, pobočky', 'Česká licence'],
+    blurb: 'Druhá velká česká kancelář na stejné platformě jako Tipsport – stejné zápasy a v našich datech prakticky shodné kurzy na výsledek zápasu. Generální partner Chance Ligy.',
+    pros: ['Stejné zápasy a kurzy na výsledek zápasu jako Tipsport', 'Bonus 200 Kč za registraci', 'Mobilní aplikace, pobočky', 'Česká licence'],
     cons: ['Menší síť poboček než Tipsport'],
     watch: 'Stejně jako u Tipsportu se přenos pouští po přihlášení do účtu.',
-    streams: true, branches: true, topics: ['tv', 'aplikace', 'kontrola-tiketu', 'bonus', 'registrace'],
+    streams: true, branches: true, topics: ['tv', 'aplikace', 'kontrola-tiketu', 'bonus', 'registrace', 'prihlaseni', 'kurzy'],
   },
   {
     slug: 'sazka', name: 'Allwyn (SazkaBet)', short: 'Allwyn', gen: 'Allwynu', full: 'Allwyn a.s. (dříve Sazka)', partner: true, go: 'sazka', site: 'https://www.allwyn.cz', bonus: '500 Kč', color: '#1d6b4f',
@@ -54,7 +54,7 @@ export const BOOKS: BookInfo[] = [
     pros: ['Bonus 500 Kč pro nové hráče', 'Loterie a sázky na jednom účtu', 'Největší síť prodejních míst v Česku', 'Česká licence'],
     cons: ['Menší nabídka živých přenosů než Tipsport'],
     watch: 'Program přenosů od Allwynu nemáme; pro sledování zápasů doporučujeme Tipsport.',
-    streams: false, branches: true, topics: ['aplikace', 'kontrola-tiketu', 'bonus', 'registrace'],
+    streams: false, branches: true, topics: ['aplikace', 'kontrola-tiketu', 'bonus', 'registrace', 'prihlaseni'],
   },
   {
     slug: 'merkurxtip', name: 'MerkurXtip', short: 'MerkurXtip', gen: 'MerkurXtipu', full: 'MerkurXTip a.s.', partner: true, go: 'merkurxtip', site: 'https://www.merkurxtip.cz', bonus: '500 Kč', color: '#d4001a',
@@ -62,7 +62,7 @@ export const BOOKS: BookInfo[] = [
     pros: ['Bonus 500 Kč za registraci', 'Kurzové a live sázky i casino na jednom účtu', 'Česká licence'],
     cons: ['Bez přenosů zápasů – pro sledování doporučujeme Tipsport', 'Bez poboček, jen online'],
     watch: 'Program přenosů od MerkurXtipu nemáme; pro sledování zápasů doporučujeme Tipsport.',
-    streams: false, branches: false, topics: ['bonus', 'registrace'],
+    streams: false, branches: false, topics: ['bonus', 'registrace', 'prihlaseni'],
     more: 'Pokud tě u MerkurXtipu víc zajímá casino, aktuální free spiny a bonusy s datem platnosti sleduje <a href="https://spinydnes.cz/casino/merkurxtip/">přehled MerkurXtip casina na SpinyDnes</a>.',
   },
   {
@@ -71,7 +71,7 @@ export const BOOKS: BookInfo[] = [
     pros: ['Velká nabídka kurzových sázek a live sázek', 'Mobilní aplikace', 'Přes 400 prodejen po celé republice'],
     cons: ['Její přenosy a bonusy na SportStreamy nezprostředkujeme – pro sledování zápasů zdarma s bonusem doporučujeme Tipsport'],
     watch: 'Fortuna nabízí živé sázení; pro přehled přenosů a sledování zápasů zdarma používej program na SportStreamy (Tipsport).',
-    streams: false, branches: true, topics: ['aplikace', 'kontrola-tiketu', 'bonus', 'registrace'],
+    streams: false, branches: true, topics: ['aplikace', 'kontrola-tiketu', 'bonus', 'registrace', 'prihlaseni'],
   },
   {
     slug: 'betano', name: 'Betano', short: 'Betano', gen: 'Betana', full: 'Betano (betano.cz)', partner: false, site: 'https://www.betano.cz', color: '#ff6a00',
@@ -79,7 +79,7 @@ export const BOOKS: BookInfo[] = [
     pros: ['Široká nabídka trhů včetně sázek na hráče', 'Akce typu Betano žolík na vybrané zápasy'],
     cons: ['Bez poboček', 'Její bonusy na SportStreamy nezprostředkujeme – alternativou je Tipsport s bonusem 1000 Kč'],
     watch: 'Pro sledování zápasů zdarma používej program na SportStreamy – přenosy vedou k Tipsportu.',
-    streams: false, branches: false, topics: ['aplikace', 'bonus', 'registrace'],
+    streams: false, branches: false, topics: ['aplikace', 'bonus', 'registrace', 'prihlaseni'],
   },
   {
     slug: 'synottip', name: 'Synot Tip', short: 'Synot Tip', gen: 'Synot Tipu', full: 'SYNOT TIP, a.s.', partner: false, site: 'https://www.synottip.cz', color: '#c4161c',
@@ -87,7 +87,16 @@ export const BOOKS: BookInfo[] = [
     pros: ['Kurzové i live sázky', 'Mobilní aplikace'],
     cons: ['Menší nabídka přenosů – pro sledování zápasů doporučujeme Tipsport'],
     watch: 'Pro sledování zápasů zdarma používej program na SportStreamy – přenosy vedou k Tipsportu.',
-    streams: false, branches: false, topics: ['aplikace', 'bonus', 'registrace'],
+    streams: false, branches: false, topics: ['aplikace', 'bonus', 'registrace', 'prihlaseni'],
+  },
+  {
+    slug: 'betx', name: 'BetX', short: 'BetX', gen: 'BetXu', full: 'EVONA ELECTRONIC, spol. s r.o. (BetX)', partner: false, site: 'https://bet-x.cz', color: '#6a2cff',
+    blurb: 'Česká online kancelář a casino BetX, provozuje EVONA ELECTRONIC, spol. s r.o. (licence MF ČR). Casino a sázky na jednom webu, ověření účtu přes BankID.',
+    pros: ['Casino a sázky na jednom webu', 'Ověření účtu přes BankID', 'Česká licence'],
+    cons: ['Bez mobilní aplikace, funguje v mobilním prohlížeči', 'Bez přenosů zápasů – pro sledování doporučujeme Tipsport', 'Jen online, bez poboček sázkové kanceláře'],
+    watch: 'Program přenosů od BetX nemáme; pro sledování zápasů zdarma používej program na SportStreamy – přenosy vedou k Tipsportu.',
+    streams: false, branches: false, topics: ['bonus', 'registrace', 'prihlaseni'],
+    more: 'Pokud tě u BetX víc zajímá casino, aktuální bonusy a free spiny s datem ověření sleduje <a href="https://spinydnes.cz/casino/betx/">přehled BetX casina na SpinyDnes</a>.',
   },
 ];
 export const BOOK_BY_SLUG = new Map(BOOKS.map((b) => [b.slug, b]));

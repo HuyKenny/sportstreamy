@@ -21,6 +21,8 @@ export const TOPIC_LABEL: Record<Topic, string> = {
   'kontrola-tiketu': 'Kontrola tiketu',
   bonus: 'Bonus',
   registrace: 'Registrace',
+  prihlaseni: 'Přihlášení',
+  kurzy: 'Kurzy dnes',
 };
 
 export function topicPage(b: BookInfo, t: Topic): TopicPage {
@@ -111,6 +113,62 @@ export function topicPage(b: BookInfo, t: Topic): TopicPage {
           { q: 'Můžu bonus vybrat hned?', a: 'Ne, bonus je potřeba nejdřív protočit podle podmínek provozovatele.' },
         ],
       };
+    case 'prihlaseni': {
+      const dom = b.site.replace('https://www.', '').replace('https://', '');
+      const reg = b.partner ? `Nemáš účet? Registrace trvá pár minut${b.bonus ? ` a noví hráči dostanou bonus ${b.bonus}` : ''}.` : `Nemáš účet? ${n} bonus přes SportStreamy nezprostředkujeme, nejbližší alternativou je Tipsport s bonusem ${BONUS.amount}.`;
+      const app = b.topics.includes('aplikace');
+      return {
+        title: `${n} přihlášení – postup a když nejde přihlásit`,
+        h1: `${n} přihlášení do účtu`,
+        lead: `Jak se přihlásit do ${b.gen} na webu${app ? ' i v mobilní aplikaci' : ''}, co dělat se zapomenutým heslem a proč přihlášení někdy nejde. ${reg}`,
+        steps: [
+          { h: 'Otevři oficiální web', p: `Zadej adresu ${dom} přímo do prohlížeče nebo použij odkaz „Web ${n}“ na této stránce. Nepřihlašuj se přes odkazy z reklam, e-mailů nebo SMS od neznámých odesílatelů.` },
+          { h: 'Klikni na Přihlásit', p: 'Tlačítko je v horní liště webu. Zadej přihlašovací údaje, které jsi zvolil při registraci.' },
+          { h: 'Potvrď ověření, pokud o něj web žádá', p: 'Má-li účet zapnuté dvoufázové ověření nebo web zjistí nové zařízení, zadej kód z SMS nebo z aplikace.' },
+          ...(app ? [{ h: 'V aplikaci stejné údaje', p: 'Do oficiální aplikace se přihlásíš stejným jménem a heslem jako na webu. Účet je jeden, jen ho otevřeš na dvou zařízeních.' }] : []),
+        ],
+        body: [
+          { h: 'Zapomenuté heslo', p: 'Na přihlašovací obrazovce použij odkaz pro obnovení hesla. Pokyny dorazí na e-mail nebo telefon uvedený u účtu. Pokud k nim už přístup nemáš, napiš zákaznické podpoře provozovatele a připrav si doklad totožnosti.' },
+          { h: 'Nejde se přihlásit: špatné údaje', p: 'Nejčastější příčina jsou překlepy, zapnutý Caps Lock nebo staré heslo uložené v prohlížeči. Zkus údaje zadat ručně, případně si nech poslat nové heslo.' },
+          { h: 'Nejde se přihlásit: nedokončená registrace', p: `Účet bez ověřené totožnosti má omezené funkce. ${n} je jako provozovatel s českou licencí povinen ověřit věk a totožnost hráče, bez toho nelze sázet ani sledovat přenosy.` },
+          { h: 'Nejde se přihlásit: blokovaný nebo uzavřený účet', p: 'Účet může být dočasně omezen kvůli bezpečnosti, nastavené pauze nebo sebevyloučení. Kdo je zapsán v rejstříku vyloučených osob Ministerstva financí, nesmí u licencovaných provozovatelů hrát. O stavu účtu rozhoduje provozovatel, napiš jeho podpoře.' },
+          { h: 'Nejde se přihlásit: výpadek nebo údržba', p: 'Web i aplikace mají občas plánovanou údržbu nebo krátký výpadek. Zkus jiný prohlížeč, anonymní okno nebo za chvíli aplikaci znovu. Pomůže i aktualizace aplikace.' },
+          { h: 'Bezpečné přihlášení', p: `Přihlašuj se jen na oficiální doméně ${dom}. Podvodné stránky napodobují vzhled sázkových kanceláří a vylákají heslo. Nikdy nikomu nesděluj heslo ani kód z SMS, ani když se někdo představí jako podpora.` },
+        ],
+        faq: [
+          { q: `Jak se přihlásím do ${b.gen}?`, a: `Na webu ${dom}${app ? ' nebo v oficiální aplikaci' : ''} klikni na Přihlásit a zadej údaje z registrace. Bez dokončeného ověření účtu budou funkce omezené.` },
+          { q: 'Zapomněl jsem heslo, co teď?', a: 'Na přihlašovací obrazovce zvol obnovení hesla. Odkaz nebo kód přijde na e-mail či telefon uvedený u účtu.' },
+          { q: `Proč se nemůžu přihlásit do ${b.gen}?`, a: 'Nejčastěji jde o překlep v údajích, nedokončené ověření účtu, omezení účtu nebo krátký výpadek webu. Zkus obnovit heslo a jiný prohlížeč, a pokud problém trvá, kontaktuj podporu provozovatele.' },
+          { q: `Dá se do ${b.gen} přihlásit bez registrace?`, a: 'Ne. Přihlásit se lze jen do existujícího účtu. Nabídku kurzů si obvykle prohlédneš i bez účtu, ale vsadit nebo sledovat přenos můžeš až po registraci a ověření totožnosti.' },
+          { q: 'Je přihlášení na tomto webu bezpečné?', a: `Na SportStreamy se do ${b.gen} nepřihlašuješ a hesla od nás nikdo nechce. Odkaz „Web ${n}“ tě pošle na oficiální stránku provozovatele.` },
+        ],
+      };
+    }
+    case 'kurzy': {
+      const chance = b.slug === 'chance';
+      return {
+        title: `${n} kurzy dnes – fotbal, hokej, tenis`,
+        h1: `${n} kurzy dnes`,
+        lead: `Aktuální kurzy ${b.gen} na dnešní a nejbližší zápasy: fotbal, hokej, tenis, basketbal a další sporty. U každého zápasu kurz na výhru domácích (1), remízu (X) a výhru hostů (2).`,
+        steps: [
+          { h: 'Vyber zápas', p: 'Pod tímto textem jsou zápasy seřazené podle sportu a času. Kurzy se načítají z nabídky kanceláře a během dne se mění.' },
+          { h: `Otevři zápas u ${b.gen}`, p: 'Tlačítko Sledovat nebo Statistiky tě přesune na zápas v nabídce. Konečný kurz platí ten, který vidíš v účtu v okamžiku vsazení.' },
+          { h: 'Zvol tip a vklad', p: 'Kurz vynásob vkladem a dostaneš celkovou výplatu: při kurzu 2,50 a vkladu 100 Kč je to 250 Kč (výhra 150 Kč). Vsázej jen to, co si můžeš dovolit prohrát.' },
+        ],
+        body: [
+          { h: 'Jak číst kurzy', p: 'Kurz 1 platí na výhru domácího týmu, X na remízu a 2 na výhru hosta. U sportů bez remízy, třeba u tenisu, jsou jen kurzy 1 a 2. Čím nižší kurz, tím větší favorit podle kanceláře.' },
+          { h: 'Jak z kurzu poznat šanci', p: 'Převrácená hodnota kurzu je implikovaná pravděpodobnost: kurz 2,00 odpovídá 50 %, kurz 4,00 odpovídá 25 %. Součet všech tří kurzů vyjde nad 100 % a ten přebytek je marže kanceláře. Podrobně v článku o kurzech 1X2.' },
+          { h: chance ? 'Chance a Tipsport' : 'Tipsport a Chance', p: 'Obě kanceláře jsou na stejné platformě. V našich datech jsou kurzy na výsledek zápasu u drtivé většiny zápasů shodné, rozdíl bývá u speciálních sázek, bonusů a podmínek. Proto má smysl porovnávat spíš nabídku, přenosy a bonus než kurz 1X2.' },
+          { h: 'Kdy se kurzy mění', p: 'Kurzy se upravují podle zájmu sázejících, zranění, sestav nebo počasí. Před zápasem se hýbou pomalu, během zápasu (live sázky) vteřinu po vteřině. Naše tabulka je přehled, rozhodující je vždy kurz v tiketu.' },
+        ],
+        faq: [
+          { q: `Kde najdu aktuální kurzy ${b.gen}?`, a: `Na této stránce vidíš kurzy na dnešní zápasy, kompletní nabídku najdeš po přihlášení na ${b.site.replace('https://www.', '').replace('https://', '')} nebo v aplikaci.` },
+          { q: 'Proč se kurzy během dne mění?', a: 'Kanceláře kurzy průběžně upravují podle sázek, zpráv o týmech a vývoje zápasu. Na tiketu platí kurz z okamžiku, kdy ho podáš.' },
+          { q: `Jsou kurzy u ${b.gen} stejné jako u ${chance ? 'Tipsportu' : 'Chance'}?`, a: 'Na výsledek zápasu (1X2) jsou u našich zápasů téměř vždy shodné, protože obě kanceláře používají stejnou platformu. Liší se bonusy, aplikace a doplňkové sázky.' },
+          { q: 'Co znamená kurz 1,50?', a: 'Při vkladu 100 Kč a výhře dostaneš zpět 150 Kč, tedy 50 Kč čistého zisku. Kurz 1,50 odpovídá zhruba 67 % šanci podle kanceláře.' },
+        ],
+      };
+    }
     case 'registrace':
       return {
         title: `${n} registrace a ověření účtu – postup`,

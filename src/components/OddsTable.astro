@@ -1,0 +1,31 @@
+---
+import type { Match } from '../lib/types';
+import { hhmm, shortDay, dayKey } from '../lib/text';
+import { goPath, matchPath, matchTitle } from '../lib/url';
+import { competitionOf } from '../lib/competitions';
+/** Compact 1/X/2 table: one bookmaker's odds (Tipsport `t`, Chance `c`) for the given matches. */
+interface Props { items: Match[]; now: number; book?: 'tipsport' | 'chance'; placement: string }
+const { items, now, book = 'tipsport', placement } = Astro.props;
+const odds = (m: Match) => (book === 'chance' ? m.o?.c ?? m.o?.t : m.o?.t);
+const f = (n: number | null | undefined) => (n == null ? '–' : n.toFixed(2));
+---
+<div class="tablewrap">
+  <table class="odds-table kurzy">
+    <thead><tr><th>Zápas</th><th>1</th><th>X</th><th>2</th><th></th></tr></thead>
+    <tbody>
+      {items.map((m) => {
+        const o = odds(m);
+        const lg = competitionOf(m.sp, m.lg)?.name ?? m.lg;
+        return (
+          <tr>
+            <th scope="row"><a href={matchPath(m)}>{matchTitle(m)}</a><br /><span class="muted" style="font-size:.78rem">{dayKey(m.st) === dayKey(now) ? hhmm(m.st) : `${shortDay(m.st)} ${hhmm(m.st)}`} · {lg}</span></th>
+            <td data-l="1"><b>{f(o?.[0])}</b></td>
+            <td data-l="X"><b>{f(o?.[1])}</b></td>
+            <td data-l="2"><b>{f(o?.[2])}</b></td>
+            <td><a class="btn sm" href={goPath(m, placement, book)} rel="sponsored nofollow noopener" target="_blank">Otevřít</a></td>
+          </tr>
+        );
+      })}
+    </tbody>
+  </table>
+</div>
