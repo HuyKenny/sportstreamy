@@ -11,6 +11,7 @@ export const GET = async () => {
     { loc: '/clanky/', priority: 0.5 }, { loc: '/o-webu/' }, { loc: '/zodpovedne-hrani/' }, { loc: '/osobni-udaje/' }, { loc: '/podminky/' }, { loc: '/kontakt/' }, { loc: '/zdroje-fotek/' },
   ];
   urls.push({ loc: '/jak-sledovat/', priority: 0.6 });
+  urls.push({ loc: '/jak-sledovat/clash-mma/', lastmod: '2026-10-24', priority: 0.8 });
   const rc = resultsConfig(env as unknown as Env);
   if (rc.enabled) {
     urls.push({ loc: '/vysledky/', priority: 0.8 });

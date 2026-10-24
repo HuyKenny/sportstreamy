@@ -1,0 +1,151 @@
+---
+import Base from '../../layouts/Base.astro';
+import Crumbs from '../../components/Crumbs.astro';
+import Faq from '../../components/Faq.astro';
+import Icon from '../../components/Icon.astro';
+import Rows from '../../components/Rows.astro';
+import { getEnv, view } from '../../lib/page';
+import { competitionSlug } from '../../lib/competitions';
+import { NEXT, PPV, PPV_EARLY, CARD, CHAMPIONS, EVENTS } from '../../lib/clash';
+import { hhmm, longDay } from '../../lib/text';
+import { BONUS } from '../../lib/bonus';
+import { breadcrumbLd, faqLd, SITE } from '../../lib/seo';
+import type { Match } from '../../lib/types';
+// Evergreen Clash MMA guide; the fight list with times and odds is live, the rest is in src/lib/clash.ts.
+export const prerender = false;
+const v = await view(getEnv());
+const now = Date.now();
+const isClash = (m: Match) => m.sp === 208 && competitionSlug(m.sp, m.lg) === 'clash';
+const live = v.live.filter(isClash);
+const next = v.upcoming.filter(isClash);
+const done = v.recent.filter(isClash);
+const st = Date.parse(NEXT.start);
+const end = Date.parse(NEXT.end);
+const state: 'pre' | 'live' | 'past' = now < st ? 'pre' : now < end ? 'live' : 'past';
+const today = longDay(st) === longDay(now);
+const when = `${today ? 'dnes' : longDay(st)} od ${hhmm(st)}`;
+const [lo, hi] = [PPV[0].price, PPV[PPV.length - 1].price];
+const main = live.concat(next, done).find((m) => /Kocián/.test(m.h + m.a));
+const d = (iso: string) => new Date(iso + 'T12:00:00Z').toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric', year: 'numeric' });
+const crumbs = [{ name: 'Domů', href: '/' }, { name: 'Kde sledovat', href: '/jak-sledovat/' }, { name: 'Clash MMA' }];
+const faq = [
+  { q: 'Kde sledovat Clash 17 živě?', a: `Celý turnaj vysílá jen organizace Clash MMA formou placeného přenosu (PPV) na webu clashmma.com. Basic stojí ${PPV[0].price} Kč, Premium ${PPV[1].price} Kč. Úvodní zápasy večera Clash pouští zdarma na svém YouTube kanálu.` },
+  { q: 'Kolik stojí PPV na Clash 17?', a: `Basic za ${PPV[0].price} Kč (${PPV[0].quality}, ${PPV[0].replay}) a Premium za ${PPV[1].price} Kč (${PPV[1].quality}, ${PPV[1].replay}). V předprodeji do 22. 10. byly o 20 Kč levnější (${PPV_EARLY.basic} a ${PPV_EARLY.premium} Kč).` },
+  { q: 'Dá se Clash sledovat v televizi?', a: 'Ano. Na chytré televizi si stáhněte aplikaci Playlive a přihlaste se stejným účtem, kterým jste PPV koupili. Druhá možnost je poslat obraz na televizi tlačítkem pro vysílání (cast) přímo v přehrávači.' },
+  { q: 'Je Clash v televizi zdarma, třeba na Nově nebo na Oneplay?', a: 'Ne. Jediný oficiální způsob, jak vidět celý turnaj, je PPV na clashmma.com. Weby, které nabízejí celý Clash zdarma, vysílají nelegálně.' },
+  { q: 'V kolik začíná hlavní zápas Kocián vs. Fenin?', a: `Turnaj startuje v ${hhmm(st)}. Hlavní zápas přijde na řadu jako poslední${main ? `, podle aktuálního programu kolem ${hhmm(main.st)}` : ', obvykle po 23. hodině'}. Časy se během večera posouvají podle délky předchozích zápasů.` },
+  { q: 'Kde vsadit na Clash MMA?', a: 'Kurzy na Clash vypisují české sázkové kanceláře s licencí, například Tipsport a Chance. Najdete je v sekci bojových sportů, aktuální kurzy všech zápasů jsou i v přehledu na této stránce. Sázet mohou jen lidé starší 18 let.' },
+  { q: 'Kdo je šampionem Clash MMA?', a: `Profi belt drží ${CHAMPIONS[0].who}, těžkou váhu ${CHAMPIONS[1].who}. Kompletní přehled pásů je v tabulce šampionů na této stránce.` },
+];
+const eventLd = {
+  '@context': 'https://schema.org', '@type': 'SportsEvent', name: NEXT.name, sport: 'MMA',
+  startDate: NEXT.start, endDate: NEXT.end, eventStatus: 'https://schema.org/EventScheduled', eventAttendanceMode: 'https://schema.org/MixedEventAttendanceMode',
+  location: [{ '@type': 'Place', name: NEXT.venue, address: { '@type': 'PostalAddress', addressLocality: NEXT.city, addressCountry: 'CZ' } }, { '@type': 'VirtualLocation', url: 'https://clashmma.com/' }],
+  organizer: { '@type': 'Organization', name: 'Clash MMA', url: 'https://clashmma.com/' },
+  offers: PPV.map((p) => ({ '@type': 'Offer', name: `PPV ${p.name}`, price: p.price, priceCurrency: 'CZK', url: 'https://clashmma.com/', availability: 'https://schema.org/InStock' })),
+  description: `${NEXT.name}: ${NEXT.main}, ${NEXT.venue}.`,
+};
+const ld = [breadcrumbLd(crumbs), faqLd(faq), eventLd];
+const title = `Clash 17 živě: kde sledovat, cena PPV a karta | SportStreamy`;
+const desc = `Clash 17 ${today ? 'dnes' : longDay(st)} od ${hhmm(st)}: PPV za ${lo}–${hi} Kč, co je zdarma, časy všech zápasů, kurzy, karta Kocián vs. Fenin a historie Clash MMA.`;
+---
+<Base title={title} description={desc.slice(0, 158)} ld={ld} section="nahledy" ttl={state === 'live' ? 60 : 300} lcp="bojove-sporty">
+  <div class="wrap">
+    <Crumbs items={crumbs} />
+    <section class="pagehead" style="padding-bottom:14px">
+      <div class="kicker">
+        {state === 'live' ? <span class="tag-live"><span class="dot"></span>Právě běží</span> : <span style="color:var(--cta)">Bojové sporty · průvodce</span>}
+        <span>· {NEXT.name} · {when}</span>
+      </div>
+      <h1>Clash MMA živě: kde sledovat Clash 17, cena PPV a karta</h1>
+      <p class="lead">{NEXT.name} je {when} v Ústí nad Labem. V hlavním zápase se potkají {NEXT.main}. Celý večer uvidíte jen přes placený přenos Clashe za {lo}–{hi} Kč, úvodní zápasy jsou zdarma na YouTube. Níže najdete časy jednotlivých zápasů, kurzy, kartu a všechno o organizaci.</p>
+    </section>
+
+    <section class="sec">
+      <dl class="facts">
+        <div><dt>Kdy</dt><dd>{longDay(st)} · {hhmm(st)}</dd></div>
+        <div><dt>Kde</dt><dd>{NEXT.venue}</dd></div>
+        <div><dt>Přenos</dt><dd><a href="https://clashmma.com/" rel="nofollow noopener" target="_blank">PPV clashmma.com</a> · {lo}–{hi} Kč</dd></div>
+        <div><dt>Zdarma</dt><dd><a href="https://www.youtube.com/@clashmmacom" rel="nofollow noopener" target="_blank">Úvodní zápasy na YouTube</a></dd></div>
+      </dl>
+    </section>
+
+    <section class="sec">
+      <div class="sec-head"><h2>Kolik stojí přenos</h2></div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <table class="odds-table">
+          <thead><tr><th>Balíček</th><th>Cena</th><th>Kvalita</th><th>Záznam</th></tr></thead>
+          <tbody>
+            {PPV.map((p) => <tr><th scope="row"><b>{p.name}</b></th><td><b>{p.price} Kč</b></td><td>{p.quality}</td><td>{p.replay}</td></tr>)}
+            <tr><th scope="row">YouTube Clash MMA</th><td><b>zdarma</b></td><td colspan="2">jen úvodní zápasy večera</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="muted" style="font-size:.84rem;margin-top:8px">Ceny platí od 23. 10. do začátku turnaje. Kdo koupil v předprodeji, platil {PPV_EARLY.basic} Kč za Basic a {PPV_EARLY.premium} Kč za Premium. Premium se vyplatí, když nestihnete začátek: záznam je dostupný celý týden.</p>
+    </section>
+
+    <section class="sec">
+      <div class="sec-head"><h2>Časy zápasů a kurzy</h2>{live.length ? <span class="cnt live">{live.length} živě</span> : null}</div>
+      <p class="muted" style="font-size:.86rem;margin:-4px 0 10px">Orientační časy nástupů podle programu sázkových kanceláří. Večer se posouvá podle toho, jak dlouho trvají předchozí zápasy.</p>
+      {live.length ? <Rows items={live} now={now} placement="clash-live" live /> : null}
+      <Rows items={next} now={now} placement="clash" empty={state === 'past' ? 'Turnaj Clash 17 skončil. Zápasy dalšího turnaje se objeví, jakmile k nim budou vypsané kurzy.' : 'Zápasy s kurzy se doplní, jakmile je sázkové kanceláře vypíšou.'} />
+      {done.length ? <><h3 style="margin:16px 0 8px">Odehrané</h3><Rows items={done} now={now} placement="clash-recent" recent /></> : null}
+      <div class="watchbar">
+        <p>Živé statistiky a sázky na Clash · {BONUS.book} {BONUS.amount} za registraci<small>Reklama · přenos Clashe běží jen přes PPV · 18+</small></p>
+        <a class="btn lg" href="/go/tipsport/?p=clash-guide" rel="sponsored nofollow noopener" target="_blank"><Icon name="gift" />{BONUS.cta}</a>
+      </div>
+    </section>
+
+    <section class="sec">
+      <div class="sec-head"><h2>Karta Clash 17</h2><span class="n">{CARD.length} zápasů</span></div>
+      <div class="prose" style="max-width:none">
+        <table>
+          <thead><tr><th>Zápas</th><th>Pravidla</th><th>Poznámka</th></tr></thead>
+          <tbody>{CARD.map((f) => <tr><td><strong>{f.a}</strong> vs. <strong>{f.b}</strong></td><td>{f.rules}</td><td>{f.note ?? ''}</td></tr>)}</tbody>
+        </table>
+      </div>
+      <p class="muted" style="font-size:.84rem">Změny v posledním týdnu: odstoupili Jaroslav Kotlár (zdravotní problémy), Natan Marcoń a Tereza Osladilová (infekce). Proti Bendovi nenastoupí Psycho Michal.</p>
+    </section>
+
+    <article class="sec prose">
+      <h2>Jak sledovat Clash 17 krok za krokem</h2>
+      <ol>
+        <li>Otevřete <a href="https://clashmma.com/" rel="nofollow noopener" target="_blank">clashmma.com</a> a klikněte na <strong>Buy PPV</strong>.</li>
+        <li>Přihlaste se nebo si založte účet Playlive (e-mail a heslo). Přes stejný účet pak přenos pustíte na jakémkoli zařízení.</li>
+        <li>Vyberte Basic, nebo Premium a zaplaťte. Cena je v korunách.</li>
+        <li>Před {hhmm(st)} se vraťte na clashmma.com a přihlaste se. Přenos se spustí sám.</li>
+      </ol>
+      <h3>Na mobilu a v televizi</h3>
+      <ul>
+        <li><strong>Mobil a tablet:</strong> aplikace Playlive, nebo přímo prohlížeč na clashmma.com.</li>
+        <li><strong>Chytrá televize:</strong> aplikace Playlive, přihlásíte se stejným účtem.</li>
+        <li><strong>Bez aplikace:</strong> spusťte přenos v mobilu nebo počítači a pošlete ho na televizi tlačítkem pro vysílání (cast) přímo v přehrávači.</li>
+      </ul>
+      <p>Přenos se zasekává? Zkuste v přehrávači nižší kvalitu nebo připojení kabelem. Kdo nestihne začátek, pustí si večer od začátku ze záznamu (Basic 24 hodin, Premium 7 dní).</p>
+
+      <h2>Co je Clash MMA</h2>
+      <p>Clash MMA (do konce roku 2024 Clash of the Stars) je česko-slovenská organizace zápasů v kleci založená v roce 2021. Proti sobě staví influencery, youtubery, známé tváře i lidi s pohnutou minulostí. Vedle klasického MMA se zápasí v boxu v kleci, K1, thai boxu nebo ve street fightu a nechybí bizarní formáty jako 1 vs. 5 nebo 2 vs. 8. Hlavní tváří a spoluzakladatelem je bývalý zápasník Oktagonu Tomáš Linh Le Sy, večery od podzimu 2025 moderuje youtuber Vladimír „VladaVideos“ Kadlec.</p>
+      <p>Ročně se konají tři až čtyři turnaje, pravidelně v zimě, v červnu a na podzim. Za čtyři roky prošly O2 universem, Ostravar Arénou i bratislavskou TIPOS Arénou. Clash 17 v Ústí nad Labem je první turnaj v severních Čechách.</p>
+
+      <h2>Šampioni Clash MMA</h2>
+      <table>
+        <thead><tr><th>Pás</th><th>Šampion</th></tr></thead>
+        <tbody>{CHAMPIONS.map((c) => <tr><td>{c.div}</td><td><strong>{c.who}</strong></td></tr>)}</tbody>
+      </table>
+      <p class="muted" style="font-size:.84rem">Stav po turnaji CLASH 16. O Mini belt se bojuje na Clash 17.</p>
+
+      <h2>Všechny turnaje Clash MMA</h2>
+      <table>
+        <thead><tr><th>Datum</th><th>Turnaj</th><th>Místo</th><th>Hlavní zápas</th></tr></thead>
+        <tbody>{EVENTS.map((e) => <tr><td>{d(e.date)}</td><td>{e.n}</td><td>{e.place}</td><td>{e.main}{e.winner ? <><br /><small class="muted">vyhrál {e.winner}</small></> : null}</td></tr>)}</tbody>
+      </table>
+      <p>Nejčastější vítěz hlavních zápasů je Karel „Karlos“ Benda (3×), po dvou výhrách v hlavním zápase mají Marek „Datel“ Valášek, Filip Grznár, Tomáš „Dynamo“ Křižan, Jaroslav Kotlár a Václav „Baba Jaga“ Mikulášek.</p>
+
+      <h2>Další bojové sporty</h2>
+      <p>Program dalších galavečerů s časy a kurzy: <a href="/bojove-sporty-online/clash/">Clash MMA</a>, <a href="/bojove-sporty-online/oktagon/">Oktagon</a> a <a href="/bojove-sporty-online/ufc/">UFC</a>. Všechny sporty dnes najdete v <a href="/program/">programu přenosů</a>.</p>
+    </article>
+
+    <section class="sec"><div class="sec-head"><h2>Časté otázky</h2></div><Faq items={faq} /></section>
+    <p class="muted" style="font-size:.76rem">Sázky jsou určené jen osobám starším 18 let a mohou způsobit závislost. {BONUS.warn}</p>
+  </div>
+</Base>

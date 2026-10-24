@@ -14,6 +14,7 @@ export interface Competition {
   color: string; // badge background
   intro: string;
   top?: boolean; // shown in "Populární soutěže"
+  guide?: { href: string; label: string }; // evergreen "how to watch" guide linked from the competition page
 }
 
 export const COMPETITIONS: Competition[] = [
@@ -70,7 +71,7 @@ export const COMPETITIONS: Competition[] = [
     intro: 'Mistrovství světa v ledním hokeji se hraje každý rok v květnu. Ročník 2027 hostí Německo. Jakmile budou zápasy v nabídce, najdeš tu celý program s časy, kurzy a odkazem na přenos.' },
   { slug: 'oktagon', name: 'Oktagon', sp: 208, match: /^Oktagon/, short: 'OKT', color: '#8a1414', top: true,
     intro: 'Oktagon MMA je největší organizace MMA ve střední Evropě. Galavečery se konají zhruba jednou měsíčně v Česku, na Slovensku a v Německu, hlavní zápasy začínají ve večerních hodinách.' },
-  { slug: 'clash', name: 'Clash MMA', sp: 208, match: /^Clash/, short: 'CL', color: '#3b1d6e',
+  { slug: 'clash', name: 'Clash MMA', sp: 208, match: /^Clash/, short: 'CL', color: '#3b1d6e', guide: { href: '/jak-sledovat/clash-mma/', label: 'Kde sledovat Clash, cena PPV, karta a historie turnajů' },
     intro: 'Clash MMA pořádá galavečery se známými jmény z českého a slovenského MMA i z influencer zápasů. Program a zápasy s kurzy najdeš tady.' },
   { slug: 'ufc', name: 'UFC', sp: 208, match: /^UFC/, short: 'UFC', color: '#b30b0b', top: true,
     intro: 'UFC je nejvyšší soutěž MMA na světě. Hlavní karty se v amerických časech konají u nás v noci a brzy ráno, evropské akce večer. Zápasy s videem u Tipsportu.' },
