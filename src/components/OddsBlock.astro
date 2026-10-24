@@ -2,6 +2,7 @@
 import type { Match } from '../lib/types';
 import { goPath } from '../lib/url';
 import { impliedProb } from '../lib/odds';
+import { kurzyMatchUrl } from '../lib/sister';
 interface Props { m: Match; title?: string }
 const { m, title = 'Kurzy' } = Astro.props;
 const o = m.o?.t;
@@ -33,5 +34,6 @@ const prob = o ? impliedProb(o) : null;
               </div>
             ) : null}
             <p class="muted" style="font-size:.76rem;margin-top:8px">Pravděpodobnost je spočítaná z kurzů Tipsportu bez marže. Vyšší kurz zeleně. Kurzy se mění. 18+, hazard může způsobit závislost.</p>
+            <p class="muted" style="font-size:.76rem;margin-top:4px">Jak se kurz měnil a co nabízí další kanceláře: <a href={kurzyMatchUrl(m.id)} rel="nofollow noopener">KurzovýRadar</a> (náš sesterský web).</p>
           </section>
         ) : null}
