@@ -47,6 +47,7 @@ export const BOOKS: BookInfo[] = [
     cons: ['Menší síť poboček než Tipsport'],
     watch: 'Stejně jako u Tipsportu se přenos pouští po přihlášení do účtu.',
     streams: true, branches: true, topics: ['tv', 'aplikace', 'kontrola-tiketu', 'bonus', 'registrace', 'prihlaseni', 'kurzy'],
+    more: 'Pokud tě u Chance víc zajímá casino, podmínky a free spiny Chance Vegas s datem ověření najdeš na <a href="https://freespiny.eu/casino/chance/">sesterském webu FreeSpiny.eu</a>.',
   },
   {
     slug: 'sazka', name: 'Allwyn (SazkaBet)', short: 'Allwyn', gen: 'Allwynu', full: 'Allwyn a.s. (dříve Sazka)', partner: true, go: 'sazka', site: 'https://www.allwyn.cz', bonus: '500 Kč', color: '#1d6b4f',

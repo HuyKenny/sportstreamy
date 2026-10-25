@@ -59,6 +59,8 @@ Pro sledování zápasů nemusíš v casinu hrát vůbec. Přenosy, program a ku
 
 Free spiny se mění po dnech: akce začínají, končí a casina je obměňují. Pevný seznam by za týden zastaral, proto má smysl sledovat přehled, který u každé akce uvádí **datum ověření a konec platnosti**. U Tipsport Vegas to dělá například [aktuální free spiny a bonusy v Tipsport Vegas na SpinyDNES](https://spinydnes.cz/casino/tipsport-vegas/). Najdeš tam podmínky uvítací nabídky a promo akce na jednom místě. Rozhodující jsou ale vždy pravidla přímo u provozovatele, protože ta se může změnit dřív než jakýkoli přehled.
 
+Podobné srovnání s tabulkou, kde jsou kanceláře vedle sebe i s požadovaným vkladem a protočením, vede sesterský web FreeSpiny.eu: [free spiny od sázkových kanceláří](https://freespiny.eu/pruvodce/free-spiny-od-sazkovych-kancelari/).
+
 Před kliknutím si udělej krátký kontrolní seznam:
 
 - Víš, jestli akce chce vklad?
