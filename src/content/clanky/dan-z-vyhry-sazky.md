@@ -3,7 +3,7 @@ title: "Daň z výhry ze sázek a loterií v roce 2026"
 description: "Kdy se výhra ze sázek a loterií daní: limit 50 000 Kč za druh hry, rozdíl výher a vkladů, srážková daň u loterií a jak výhru uvést v daňovém přiznání."
 date: 2026-10-20
 updated: 2026-10-20
-related: [kontrola-tiketu, kurzy-1x2-vysvetleni, systemova-sazka]
+related: [kontrola-tiketu, kurzy-1x2-vysvetleni, casino-od-sazkove-kancelare-tipsport-chance-fortuna]
 faq:
   - q: "Kolik můžu vyhrát bez daně?"
     a: "U kurzových sázek a dalších hazardních her je osvobozený roční rozdíl výher a vkladů do 50 000 Kč, počítaný pro každý druh hry zvlášť. U loterií a tombol se posuzuje každá jednotlivá výhra – do 50 000 Kč je bez daně."

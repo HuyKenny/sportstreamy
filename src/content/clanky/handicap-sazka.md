@@ -3,7 +3,7 @@ title: "Handicap v sázení: co znamená +1,5 a −1"
 description: "Handicapová sázka vysvětlená na příkladech: plus a minus handicap, celá a půlová čísla, evropský a asijský handicap a kdy se handicap vyplatí."
 date: 2026-10-20
 updated: 2026-10-20
-related: [kurzy-1x2-vysvetleni, systemova-sazka, kontrola-tiketu]
+related: [kurzy-1x2-vysvetleni, casino-od-sazkove-kancelare-tipsport-chance-fortuna, kontrola-tiketu]
 faq:
   - q: "Co znamená handicap −1,5?"
     a: "Tým s handicapem −1,5 musí vyhrát aspoň o dva góly. Výhra o jeden gól nestačí."
