@@ -30,7 +30,8 @@ const inComp = (m: { sp: number; lg: string }) => m.sp === sport.id && competiti
 const live = v.live.filter(inComp);
 const next = v.upcoming.filter(inComp);
 // Uncurated competitions exist only while Tipsport lists them; curated ones always render.
-if (!comp && !live.length && !next.length) return Astro.rewrite('/404/');
+// A competition that Tipsport dropped (ITF week, esports league) sends visitors to its sport page, not to a 404. 302: it can come back.
+if (!comp && !live.length && !next.length) return Astro.redirect(`/${sport.slug}-online/`, 302);
 const name = comp?.name ?? (live[0] ?? next[0]).lg;
 // Results pilot: the latest results belong on this page, not on a second competition page under /vysledky/.
 const rcfg = resultsConfig(getEnv());
