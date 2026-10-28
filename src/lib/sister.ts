@@ -19,3 +19,10 @@ export const ziveCompetitionUrl = (slug: string): string | null => (ZIVE[slug] ?
 
 /** Match page there, found by Tipsport's match id (301 to the canonical page, or to the odds overview if it is not listed). */
 export const kurzyMatchUrl = (tipsportId: number) => `${KURZOVYRADAR}/tipsport-zapas/${tipsportId}/`;
+
+/**
+ * alkoholicky.cz (same owner, 29. 10. 2026): one body link from the Czech extraliga page to the non-alcoholic beer category
+ * (watching hockey at home). alkoholicky.cz links back to this page from a different article, not from that category.
+ */
+export const ALKOHOLICKY = 'https://alkoholicky.cz';
+export const alkoholickyCompetitionUrl = (slug: string): string | null => (slug === 'tipsport-extraliga' ? `${ALKOHOLICKY}/nealkoholicka-piva/` : null);
