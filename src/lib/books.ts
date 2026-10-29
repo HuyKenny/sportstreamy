@@ -73,6 +73,7 @@ export const BOOKS: BookInfo[] = [
     cons: ['Její přenosy a bonusy na SportStreamy nezprostředkujeme – pro sledování zápasů zdarma s bonusem doporučujeme Tipsport'],
     watch: 'Fortuna nabízí živé sázení; pro přehled přenosů a sledování zápasů zdarma používej program na SportStreamy (Tipsport).',
     streams: false, branches: true, topics: ['aplikace', 'kontrola-tiketu', 'bonus', 'registrace', 'prihlaseni'],
+    more: 'Pokud tě u Fortuny víc zajímá casino, podmínky bonusů Fortuna Vegas se zdrojem a datem kontroly najdeš v <a href="https://casinoportal.cz/casino/fortuna/">recenzi Fortuna Vegas na Casinoportal.cz</a>.',
   },
   {
     slug: 'betano', name: 'Betano', short: 'Betano', gen: 'Betana', full: 'Betano (betano.cz)', partner: false, site: 'https://www.betano.cz', color: '#ff6a00',
