@@ -47,6 +47,10 @@ Stejný formát mají i [Evropská liga](/fotbal-online/evropska-liga/) (čtvrtk
 
 Čeští mistři a vicemistři se do hlavní fáze dostávají přes předkola, případně přímo podle koeficientu. Pozice české ligy v koeficientu UEFA rozhoduje, kolik českých týmů a v jakém předkole do evropských pohárů vstoupí. Zápasy českých týmů najdeš nejrychleji přes hledání v hlavičce webu.
 
+## Na zápas osobně
+
+Kdo chce Ligu mistrů zažít na stadionu, najde u sesterského webu KouzelnýDěda.cz [zájezdy na zápasy Ligy mistrů](https://kouzelnydeda.cz/zajezdy-na-ligu-mistru/) s vstupenkou. Obsah zájezdu a termíny se u každé nabídky liší.
+
 ## Sázky na Ligu mistrů
 
 Na zápasy Ligy mistrů vypisují kanceláře stovky sázek – výsledek [1X2](/clanky/kurzy-1x2-vysvetleni/), [handicap](/clanky/handicap-sazka/), počet gólů, střelce i postup do další fáze. Kurzy Tipsportu a Chance porovnáš vedle sebe na detailu zápasu.

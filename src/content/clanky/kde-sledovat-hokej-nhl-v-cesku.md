@@ -49,6 +49,10 @@ Pokud chceš hokej opravdu **vidět** a nechceš platit televizi, nejvíc videa 
 
 Mistrovství světa se hraje každý rok v květnu. Přehled zápasů a časů je na stránce [MS v hokeji](/hokej-online/ms-v-hokeji/).
 
+## NHL na živo
+
+Je-li ti sledování z gauče málo, podívej se na [zájezdy na zápasy NHL](https://kouzelnydeda.cz/zajezdy-na-nhl/) na webu KouzelnýDěda.cz. Termíny a obsah cesty ověř vždy u partnera.
+
 ## Jak najít zápas na SportStreamy
 
 1. Otevři [hokej online](/hokej-online/) – nahoře jsou zápasy, které právě běží.

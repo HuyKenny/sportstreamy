@@ -26,3 +26,11 @@ export const kurzyMatchUrl = (tipsportId: number) => `${KURZOVYRADAR}/tipsport-z
  */
 export const ALKOHOLICKY = 'https://alkoholicky.cz';
 export const alkoholickyCompetitionUrl = (slug: string): string | null => (slug === 'tipsport-extraliga' ? `${ALKOHOLICKY}/nealkoholicka-piva/` : null);
+
+/**
+ * kouzelnydeda.cz (same owner, 3. 11. 2026, Kenny): trips with tickets to the matches of the big leagues. One body sentence on
+ * the competition page and two guides; kouzelnydeda.cz links back only from its articles, to different pages (no page-to-page pair).
+ */
+export const KOUZELNYDEDA = 'https://kouzelnydeda.cz';
+const TRIPS: Record<string, string> = { 'premier-league': 'zajezdy-na-premier-league', 'liga-mistru': 'zajezdy-na-ligu-mistru', 'evropska-liga': 'zajezdy-na-evropskou-ligu', 'la-liga': 'zajezdy-na-la-ligu', bundesliga: 'zajezdy-na-bundesligu', 'serie-a': 'zajezdy-na-serii-a', 'ligue-1': 'zajezdy-na-ligue-1', nhl: 'zajezdy-na-nhl', 'ms-v-hokeji': 'zajezdy-na-ms-v-hokeji' };
+export const tripsCompetitionUrl = (slug: string): string | null => (TRIPS[slug] ? `${KOUZELNYDEDA}/${TRIPS[slug]}/` : null);
