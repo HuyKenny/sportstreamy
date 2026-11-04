@@ -346,6 +346,8 @@ footer a { text-decoration: none; display: block; padding: 3px 0; color: var(--i
 footer a:hover { color: var(--cta); }
 footer .legal { margin-top: 26px; padding-top: 18px; border-top: 1px solid var(--line); font-size: .78rem; color: var(--ink-3); max-width: 100ch; }
 footer .legal a { display: inline; text-decoration: underline; }
+footer .iprh { margin: 8px 0 0; font-size: .78rem; color: var(--ink-3); max-width: 100ch; }
+footer .iprh a { display: inline-block; padding: 12px 0; margin: -12px 0; text-decoration: underline; }
 footer .warn { display: flex; gap: 12px; align-items: center; margin-top: 16px; font-size: .78rem; color: var(--ink-2); }
 footer .warn b { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border: 2px solid var(--live); color: var(--live); border-radius: 50%; font-weight: 900; font-stretch: 75%; }
 
