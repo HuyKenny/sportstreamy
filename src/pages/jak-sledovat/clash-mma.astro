@@ -6,7 +6,7 @@ import Icon from '../../components/Icon.astro';
 import Rows from '../../components/Rows.astro';
 import { getEnv, view } from '../../lib/page';
 import { competitionSlug } from '../../lib/competitions';
-import { NEXT, PPV, PPV_EARLY, CARD, CHAMPIONS, EVENTS } from '../../lib/clash';
+import { NEXT, PPV, LAST_PPV, CARD, RESULTS, CHAMPIONS, EVENTS } from '../../lib/clash';
 import { hhmm, longDay } from '../../lib/text';
 import { BONUS } from '../../lib/bonus';
 import { breadcrumbLd, faqLd, SITE } from '../../lib/seo';
@@ -23,31 +23,37 @@ const st = Date.parse(NEXT.start);
 const end = Date.parse(NEXT.end);
 const state: 'pre' | 'live' | 'past' = now < st ? 'pre' : now < end ? 'live' : 'past';
 const today = longDay(st) === longDay(now);
-const when = `${today ? 'dnes' : longDay(st)} od ${hhmm(st)}`;
-const [lo, hi] = [PPV[0].price, PPV[PPV.length - 1].price];
-const main = live.concat(next, done).find((m) => /Kocián/.test(m.h + m.a));
+const when = NEXT.timeKnown ? `${today ? 'dnes' : longDay(st)} od ${hhmm(st)}` : longDay(st);
+const hasPpv = PPV.length > 0;
+const price = hasPpv ? `${PPV[0].price}–${PPV[PPV.length - 1].price} Kč` : null;
+const shown = hasPpv ? PPV : LAST_PPV.rows;
+const lastRange = `${LAST_PPV.rows[0].price}–${LAST_PPV.rows[LAST_PPV.rows.length - 1].price} Kč`;
+const main = live.concat(next, done).find((m) => /Le Sy|Bejr/.test(m.h + m.a));
 const d = (iso: string) => new Date(iso + 'T12:00:00Z').toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric', year: 'numeric' });
 const crumbs = [{ name: 'Domů', href: '/' }, { name: 'Kde sledovat', href: '/jak-sledovat/' }, { name: 'Clash MMA' }];
 const faq = [
-  { q: 'Kde sledovat Clash 17 živě?', a: `Celý turnaj vysílá jen organizace Clash MMA formou placeného přenosu (PPV) na webu clashmma.com. Basic stojí ${PPV[0].price} Kč, Premium ${PPV[1].price} Kč. Úvodní zápasy večera Clash pouští zdarma na svém YouTube kanálu.` },
-  { q: 'Kolik stojí PPV na Clash 17?', a: `Basic za ${PPV[0].price} Kč (${PPV[0].quality}, ${PPV[0].replay}) a Premium za ${PPV[1].price} Kč (${PPV[1].quality}, ${PPV[1].replay}). V předprodeji do 22. 10. byly o 20 Kč levnější (${PPV_EARLY.basic} a ${PPV_EARLY.premium} Kč).` },
+  { q: `Kde sledovat ${NEXT.short} živě?`, a: `Celý turnaj vysílá jen organizace Clash MMA formou placeného přenosu (PPV) na webu clashmma.com. ${hasPpv ? `Basic stojí ${PPV[0].price} Kč, Premium ${PPV[1].price} Kč.` : `Cenu pro ${NEXT.short} zatím Clash nezveřejnil, minulý turnaj stál ${lastRange}.`} Úvodní zápasy večera Clash obvykle pouští zdarma na svém YouTube kanálu.` },
+  { q: `Kolik stojí PPV na ${NEXT.short}?`, a: hasPpv ? `Basic za ${PPV[0].price} Kč (${PPV[0].quality}, ${PPV[0].replay}) a Premium za ${PPV[1].price} Kč (${PPV[1].quality}, ${PPV[1].replay}).` : `Cena zatím nebyla oznámena. U ${LAST_PPV.event} stál Basic ${LAST_PPV.rows[0].price} Kč (${LAST_PPV.rows[0].quality}, ${LAST_PPV.rows[0].replay}) a Premium ${LAST_PPV.rows[1].price} Kč (${LAST_PPV.rows[1].quality}, ${LAST_PPV.rows[1].replay}), v předprodeji o 20 Kč méně (${LAST_PPV.early.basic} a ${LAST_PPV.early.premium} Kč). Cenu doplníme, jakmile ji Clash zveřejní.` },
+  { q: `Kdy a kde je ${NEXT.short}?`, a: `${longDay(st)} ve Sportovní hale Fortuna v Praze. ${NEXT.timeKnown ? `Začátek je v ${hhmm(st)}.` : 'Čas zahájení zatím nebyl oznámen.'} Vstupenky jsou v prodeji od ${NEXT.ticketsFrom} Kč (údaj z 13. 11. 2026).` },
   { q: 'Dá se Clash sledovat v televizi?', a: 'Ano. Na chytré televizi si stáhněte aplikaci Playlive a přihlaste se stejným účtem, kterým jste PPV koupili. Druhá možnost je poslat obraz na televizi tlačítkem pro vysílání (cast) přímo v přehrávači.' },
   { q: 'Je Clash v televizi zdarma, třeba na Nově nebo na Oneplay?', a: 'Ne. Jediný oficiální způsob, jak vidět celý turnaj, je PPV na clashmma.com. Weby, které nabízejí celý Clash zdarma, vysílají nelegálně.' },
-  { q: 'V kolik začíná hlavní zápas Kocián vs. Fenin?', a: `Turnaj startuje v ${hhmm(st)}. Hlavní zápas přijde na řadu jako poslední${main ? `, podle aktuálního programu kolem ${hhmm(main.st)}` : ', obvykle po 23. hodině'}. Časy se během večera posouvají podle délky předchozích zápasů.` },
+  { q: `Kdo nastoupí v hlavním zápase ${NEXT.short}?`, a: `Tomáš „Linh“ Le Sy proti Aleši „Psychopatovi“ Bejrovi v MMA. ${main ? `Podle aktuálního programu sázkových kanceláří kolem ${hhmm(main.st)}.` : 'Přesný čas nástupu bude znám, až kanceláře vypíší program.'} Kompletní karta bude oznámena na tiskové konferenci v prosinci 2026.` },
+  { q: 'Kdo vyhrál Clash 17?', a: 'V hlavním zápase v Ústí nad Labem vyhrál Martin Fenin nad Martinem Kociánem. Pás Mini belt získal Dominik Radl. Všechny výsledky jsou v tabulce na této stránce.' },
   { q: 'Kde vsadit na Clash MMA?', a: 'Kurzy na Clash vypisují české sázkové kanceláře s licencí, například Tipsport a Chance. Najdete je v sekci bojových sportů, aktuální kurzy všech zápasů jsou i v přehledu na této stránce. Sázet mohou jen lidé starší 18 let.' },
   { q: 'Kdo je šampionem Clash MMA?', a: `Profi belt drží ${CHAMPIONS[0].who}, těžkou váhu ${CHAMPIONS[1].who}. Kompletní přehled pásů je v tabulce šampionů na této stránce.` },
 ];
 const eventLd = {
   '@context': 'https://schema.org', '@type': 'SportsEvent', name: NEXT.name, sport: 'MMA',
-  startDate: NEXT.start, endDate: NEXT.end, eventStatus: 'https://schema.org/EventScheduled', eventAttendanceMode: 'https://schema.org/MixedEventAttendanceMode',
+  startDate: NEXT.timeKnown ? NEXT.start : NEXT.start.slice(0, 10), ...(NEXT.timeKnown ? { endDate: NEXT.end } : {}),
+  eventStatus: 'https://schema.org/EventScheduled', eventAttendanceMode: 'https://schema.org/MixedEventAttendanceMode',
   location: [{ '@type': 'Place', name: NEXT.venue, address: { '@type': 'PostalAddress', addressLocality: NEXT.city, addressCountry: 'CZ' } }, { '@type': 'VirtualLocation', url: 'https://clashmma.com/' }],
   organizer: { '@type': 'Organization', name: 'Clash MMA', url: 'https://clashmma.com/' },
-  offers: PPV.map((p) => ({ '@type': 'Offer', name: `PPV ${p.name}`, price: p.price, priceCurrency: 'CZK', url: 'https://clashmma.com/', availability: 'https://schema.org/InStock' })),
+  ...(hasPpv ? { offers: PPV.map((p) => ({ '@type': 'Offer', name: `PPV ${p.name}`, price: p.price, priceCurrency: 'CZK', url: 'https://clashmma.com/', availability: 'https://schema.org/InStock' })) } : {}),
   description: `${NEXT.name}: ${NEXT.main}, ${NEXT.venue}.`,
 };
 const ld = [breadcrumbLd(crumbs), faqLd(faq), eventLd];
-const title = `Clash 17 živě: kde sledovat, cena PPV a karta | SportStreamy`;
-const desc = `Clash 17 ${today ? 'dnes' : longDay(st)} od ${hhmm(st)}: PPV za ${lo}–${hi} Kč, co je zdarma, časy všech zápasů, kurzy, karta Kocián vs. Fenin a historie Clash MMA.`;
+const title = `${NEXT.short} živě: kde sledovat, cena PPV a karta | SportStreamy`;
+const desc = `${NEXT.short} ${when}: ${price ? `PPV za ${price}` : 'cena PPV zatím není oznámená'}, karta Le Sy vs. Bejr a Blahovský vs. Grznár, výsledky Clash 17, kurzy a historie Clash MMA.`;
 ---
 <Base title={title} description={desc.slice(0, 158)} ld={ld} section="nahledy" ttl={state === 'live' ? 60 : 300} lcp="bojove-sporty">
   <div class="wrap">
@@ -57,38 +63,38 @@ const desc = `Clash 17 ${today ? 'dnes' : longDay(st)} od ${hhmm(st)}: PPV za ${
         {state === 'live' ? <span class="tag-live"><span class="dot"></span>Právě běží</span> : <span style="color:var(--cta)">Bojové sporty · průvodce</span>}
         <span>· {NEXT.name} · {when}</span>
       </div>
-      <h1>Clash MMA živě: kde sledovat Clash 17, cena PPV a karta</h1>
-      <p class="lead">{NEXT.name} je {when} v Ústí nad Labem. V hlavním zápase se potkají {NEXT.main}. Celý večer uvidíte jen přes placený přenos Clashe za {lo}–{hi} Kč, úvodní zápasy jsou zdarma na YouTube. Níže najdete časy jednotlivých zápasů, kurzy, kartu a všechno o organizaci.</p>
+      <h1>Clash MMA živě: kde sledovat {NEXT.short}, cena PPV a karta</h1>
+      <p class="lead">{NEXT.name}: {when}, {NEXT.venue}. V hlavním zápase se potkají {NEXT.main}. Celý večer uvidíte jen přes placený přenos Clashe, {hasPpv ? <>cena je {price}</> : <>cenu zatím organizace nezveřejnila (Clash 17 stál {lastRange})</>}. Níže najdete oznámenou kartu, výsledky posledního turnaje v Ústí nad Labem, kurzy a všechno o organizaci.</p>
     </section>
 
     <section class="sec">
       <dl class="facts">
-        <div><dt>Kdy</dt><dd>{longDay(st)} · {hhmm(st)}</dd></div>
+        <div><dt>Kdy</dt><dd>{longDay(st)}{NEXT.timeKnown ? ` · ${hhmm(st)}` : ' · čas zatím neoznámen'}</dd></div>
         <div><dt>Kde</dt><dd>{NEXT.venue}</dd></div>
-        <div><dt>Přenos</dt><dd><a href="https://clashmma.com/" rel="nofollow noopener" target="_blank">PPV clashmma.com</a> · {lo}–{hi} Kč</dd></div>
+        <div><dt>Přenos</dt><dd><a href="https://clashmma.com/" rel="nofollow noopener" target="_blank">PPV clashmma.com</a> · {price ?? 'cena zatím neoznámena'}</dd></div>
         <div><dt>Zdarma</dt><dd><a href="https://www.youtube.com/@clashmmacom" rel="nofollow noopener" target="_blank">Úvodní zápasy na YouTube</a></dd></div>
       </dl>
     </section>
 
     <section class="sec">
-      <div class="sec-head"><h2>Kolik stojí přenos</h2></div>
+      <div class="sec-head"><h2>Kolik stojí přenos</h2>{hasPpv ? null : <span class="n">ceny {LAST_PPV.event}</span>}</div>
       <div class="card" style="padding:0;overflow:hidden">
         <table class="odds-table">
           <thead><tr><th>Balíček</th><th>Cena</th><th>Kvalita</th><th>Záznam</th></tr></thead>
           <tbody>
-            {PPV.map((p) => <tr><th scope="row"><b>{p.name}</b></th><td><b>{p.price} Kč</b></td><td>{p.quality}</td><td>{p.replay}</td></tr>)}
+            {shown.map((p) => <tr><th scope="row"><b>{p.name}</b></th><td><b>{p.price} Kč</b></td><td>{p.quality}</td><td>{p.replay}</td></tr>)}
             <tr><th scope="row">YouTube Clash MMA</th><td><b>zdarma</b></td><td colspan="2">jen úvodní zápasy večera</td></tr>
           </tbody>
         </table>
       </div>
-      <p class="muted" style="font-size:.84rem;margin-top:8px">Ceny platí od 23. 10. do začátku turnaje. Kdo koupil v předprodeji, platil {PPV_EARLY.basic} Kč za Basic a {PPV_EARLY.premium} Kč za Premium. Premium se vyplatí, když nestihnete začátek: záznam je dostupný celý týden.</p>
+      {hasPpv ? <p class="muted" style="font-size:.84rem;margin-top:8px">Premium se vyplatí, když nestihnete začátek: záznam je dostupný celý týden.</p> : <p class="muted" style="font-size:.84rem;margin-top:8px">Cena přenosu {NEXT.short} zatím nebyla oznámena. Tabulka ukazuje ceny {LAST_PPV.event} jako orientaci (v předprodeji stál Basic {LAST_PPV.early.basic} Kč a Premium {LAST_PPV.early.premium} Kč). Jakmile Clash ceny zveřejní, doplníme je.</p>}
     </section>
 
     <section class="sec">
       <div class="sec-head"><h2>Časy zápasů a kurzy</h2>{live.length ? <span class="cnt live">{live.length} živě</span> : null}</div>
       <p class="muted" style="font-size:.86rem;margin:-4px 0 10px">Orientační časy nástupů podle programu sázkových kanceláří. Večer se posouvá podle toho, jak dlouho trvají předchozí zápasy.</p>
       {live.length ? <Rows items={live} now={now} placement="clash-live" live /> : null}
-      <Rows items={next} now={now} placement="clash" empty={state === 'past' ? 'Turnaj Clash 17 skončil. Zápasy dalšího turnaje se objeví, jakmile k nim budou vypsané kurzy.' : 'Zápasy s kurzy se doplní, jakmile je sázkové kanceláře vypíšou.'} />
+      <Rows items={next} now={now} placement="clash" empty={`Zápasy ${NEXT.short} s kurzy se doplní, jakmile je sázkové kanceláře vypíšou.`} />
       {done.length ? <><h3 style="margin:16px 0 8px">Odehrané</h3><Rows items={done} now={now} placement="clash-recent" recent /></> : null}
       <div class="watchbar">
         <p>Živé statistiky a sázky na Clash · {BONUS.book} {BONUS.amount} za registraci<small>Reklama · přenos Clashe běží jen přes PPV · 18+</small></p>
@@ -97,23 +103,33 @@ const desc = `Clash 17 ${today ? 'dnes' : longDay(st)} od ${hhmm(st)}: PPV za ${
     </section>
 
     <section class="sec">
-      <div class="sec-head"><h2>Karta Clash 17</h2><span class="n">{CARD.length} zápasů</span></div>
+      <div class="sec-head"><h2>Karta {NEXT.short}</h2><span class="n">oznámeno {CARD.length} zápasů</span></div>
       <div class="prose" style="max-width:none">
         <table>
           <thead><tr><th>Zápas</th><th>Pravidla</th><th>Poznámka</th></tr></thead>
           <tbody>{CARD.map((f) => <tr><td><strong>{f.a}</strong> vs. <strong>{f.b}</strong></td><td>{f.rules}</td><td>{f.note ?? ''}</td></tr>)}</tbody>
         </table>
       </div>
-      <p class="muted" style="font-size:.84rem">Změny v posledním týdnu: odstoupili Jaroslav Kotlár (zdravotní problémy), Natan Marcoń a Tereza Osladilová (infekce). Proti Bendovi nenastoupí Psycho Michal.</p>
+      <p class="muted" style="font-size:.84rem">Karta je neúplná. Clash zveřejní kompletní program na úvodní tiskové konferenci v prosinci 2026 a zápasy se mohou měnit. Stav k 13. 11. 2026.</p>
+    </section>
+
+    <section class="sec">
+      <div class="sec-head"><h2>Výsledky Clash 17</h2><span class="n">24. 10. 2026, Ústí nad Labem</span></div>
+      <div class="prose" style="max-width:none">
+        <table>
+          <thead><tr><th>Zápas</th><th>Pravidla</th><th>Vítěz</th></tr></thead>
+          <tbody>{RESULTS.map((f) => <tr><td><strong>{f.a}</strong> vs. <strong>{f.b}</strong>{f.note ? <><br /><small class="muted">{f.note}</small></> : null}</td><td>{f.rules}</td><td><strong>{f.winner}</strong></td></tr>)}</tbody>
+        </table>
+      </div>
     </section>
 
     <article class="sec prose">
-      <h2>Jak sledovat Clash 17 krok za krokem</h2>
+      <h2>Jak sledovat {NEXT.short} krok za krokem</h2>
       <ol>
         <li>Otevřete <a href="https://clashmma.com/" rel="nofollow noopener" target="_blank">clashmma.com</a> a klikněte na <strong>Buy PPV</strong>.</li>
         <li>Přihlaste se nebo si založte účet Playlive (e-mail a heslo). Přes stejný účet pak přenos pustíte na jakémkoli zařízení.</li>
         <li>Vyberte Basic, nebo Premium a zaplaťte. Cena je v korunách.</li>
-        <li>Před {hhmm(st)} se vraťte na clashmma.com a přihlaste se. Přenos se spustí sám.</li>
+        <li>V den turnaje se vraťte na clashmma.com a přihlaste se. Přenos se spustí sám.</li>
       </ol>
       <h3>Na mobilu a v televizi</h3>
       <ul>
@@ -132,7 +148,7 @@ const desc = `Clash 17 ${today ? 'dnes' : longDay(st)} od ${hhmm(st)}: PPV za ${
         <thead><tr><th>Pás</th><th>Šampion</th></tr></thead>
         <tbody>{CHAMPIONS.map((c) => <tr><td>{c.div}</td><td><strong>{c.who}</strong></td></tr>)}</tbody>
       </table>
-      <p class="muted" style="font-size:.84rem">Stav po turnaji CLASH 16. O Mini belt se bojuje na Clash 17.</p>
+      <p class="muted" style="font-size:.84rem">Stav po turnaji CLASH 17. O uvolněný titul střední váhy se bojuje na Clash 18.</p>
 
       <h2>Všechny turnaje Clash MMA</h2>
       <table>

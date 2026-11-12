@@ -79,7 +79,7 @@ export const COMPETITIONS: Competition[] = [
   { slug: 'clash', name: 'Clash MMA', sp: 208, match: /^Clash/, short: 'CL', color: '#3b1d6e', guide: { href: '/jak-sledovat/clash-mma/', label: 'Kde sledovat Clash, cena PPV, karta a historie turnajů' },
     intro: 'Clash MMA pořádá galavečery se známými jmény z českého a slovenského MMA i z influencer zápasů. Program a zápasy s kurzy najdeš tady.' },
   { slug: 'g-mma', name: 'G MMA', sp: 208, match: /^G[ -]?MMA/i, short: 'G', color: '#111111', guide: { href: '/jak-sledovat/g-mma/', label: 'Kde sledovat G MMA, jak koupit PPV a celá karta' },
-    intro: 'G MMA je nová česká organizace bizarních zápasů s Jakubem Jírou. První galavečer G MMA 1: Samhain je 31. října 2026 v pražské Nové Spirále. Zápasy s kurzy najdeš tady, jakmile je sázkové kanceláře vypíšou.' },
+    intro: 'G MMA je nová česká organizace bizarních zápasů s Jakubem Jírou. První galavečer G MMA 1: Samhain se konal 31. října 2026 v pražské Nové Spirále. Druhý turnaj je podle médií plánovaný na příští rok, termín zatím není. Zápasy s kurzy najdeš tady, jakmile je sázkové kanceláře vypíšou.' },
   { slug: 'ufc', name: 'UFC', sp: 208, match: /^UFC/, short: 'UFC', color: '#b30b0b', top: true,
     intro: 'UFC je nejvyšší soutěž MMA na světě. Hlavní karty se v amerických časech konají u nás v noci a brzy ráno, evropské akce večer. Zápasy s videem u Tipsportu.' },
   { slug: 'chance-extraliga-hazena', name: 'Chance extraliga (házená)', sp: 20, match: /^Česká Chance extraliga$/, short: 'HZ', color: '#7a2f1d',
