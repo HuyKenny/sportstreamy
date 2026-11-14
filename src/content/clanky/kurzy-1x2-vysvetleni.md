@@ -2,7 +2,7 @@
 title: "Kurzy 1X2: co znamenají a jak je číst"
 description: "Vysvětlení kurzů 1, X a 2, dvojtipů 10, 02 a 12, převod kurzu na pravděpodobnost, marže kanceláře a proč se kurzy liší. Na příkladech."
 date: 2026-10-19
-updated: 2026-10-20
+updated: 2026-11-14
 related: [handicap-sazka, systemova-sazka, dan-z-vyhry-sazky]
 faq:
   - q: "Co znamená 1, X a 2?"
@@ -60,6 +60,8 @@ Každý provozovatel si kurzy nastavuje sám – podle vlastních modelů, marž
 - **Před zápasem** – podle zpráv o sestavách, zraněních a podle toho, jak lidé sázejí.
 - **Během zápasu (live)** – každou chvíli podle skóre, času a vývoje hry.
 - **Uzavření sázek** – při nebezpečných situacích se live sázky na chvíli zavřou.
+
+Jak se kurzy na konkrétní zápasy pohnuly od vypsání až po výkop, je vidět na historii kurzů. Pro českou nejvyšší fotbalovou soutěž ji sleduje [přehled kurzů Chance Ligy na KurzovýRadar.cz](https://kurzovyradar.cz/souteze/chance-liga/), kde jsou u každého zápasu kurzy Tipsportu i Chance a jejich změny v čase.
 
 ## Další typy sázek
 

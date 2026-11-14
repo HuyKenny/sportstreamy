@@ -2,7 +2,7 @@
 title: "Sportovní kanály online: ČT sport, Nova Sport, O2 TV Sport a další"
 description: "Přehled sportovních TV kanálů v Česku: co je zdarma (ČT sport v iVysílání), co je placené (Nova Sport, O2 TV Sport, Eurosport, Sport1/Sport2), kde je sledovat online a kde najít zápasy zdarma."
 date: 2026-10-20
-updated: 2026-10-20
+updated: 2026-11-14
 related: [jak-sledovat-zive-prenosy-zdarma, tipsport-tv-jak-sledovat, kde-sledovat-hokej-nhl-v-cesku]
 faq:
   - q: "Dá se ČT sport sledovat živě online zdarma?"
@@ -34,6 +34,8 @@ Práva na jednotlivé soutěže se mění po sezónách. Co který kanál práv�
 ## Placené kanály online
 
 Placené sportovní kanály se dají sledovat i bez satelitu a kabelu – přes **internetové televize** (aplikace v mobilu, chytré TV nebo set-top boxu). Obvykle se platí základní balíček televize a k němu sportovní balíček. Před objednáním se vyplatí ověřit, jestli balíček obsahuje právě tu soutěž, kterou chceš sledovat.
+
+Streamovací služba skupiny Nova se jmenuje Oneplay a nahradila dřívější Voyo. Její plány se liší hlavně tím, jestli obsahují sport, kolik je v nich televizních kanálů a na kolika zařízeních jde sledovat současně. Ceny a rozdíly mezi plány shrnuje [recenze Oneplay na KrátkéRecenze.cz](https://kratkerecenze.cz/oneplay-cena-a-recenze/).
 
 ## Sport zdarma u sázkových kanceláří
 
