@@ -3,10 +3,13 @@ import Page from '../layouts/Page.astro';
 import { allPhotos } from '../lib/photos';
 import { SPORT_BY_SLUG } from '../lib/sports';
 export const prerender = true;
+import articlePhotos from '../data/article-photos.json';
 const photos = allPhotos();
+const artPhotos = Object.entries(articlePhotos as Record<string, { author: string; authorUrl: string; url: string }>);
 ---
 <Page title="Zdroje fotek" description="Autoři fotografií použitých na SportStreamy (Pexels)." h1="Zdroje fotek" lead="Fotografie pochází z Pexels a používáme je podle licence Pexels. Děkujeme autorům.">
   <ul>
     {photos.map((p) => <li>{SPORT_BY_SLUG.get(p.slug)?.name ?? 'Stadion'}: <a href={p.url} rel="noopener nofollow">foto</a> – <a href={p.authorUrl} rel="noopener nofollow">{p.author}</a></li>)}
+    {artPhotos.map(([slug, p]) => <li>Článek {slug.replace(/-/g, ' ')}: <a href={p.url} rel="noopener nofollow">foto</a> – <a href={p.authorUrl} rel="noopener nofollow">{p.author}</a></li>)}
   </ul>
 </Page>

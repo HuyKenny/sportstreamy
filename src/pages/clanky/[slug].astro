@@ -5,10 +5,14 @@ import Crumbs from '../../components/Crumbs.astro';
 import Bonus from '../../components/Bonus.astro';
 import { getCollection, getEntry, render } from 'astro:content';
 import { breadcrumbLd, faqLd } from '../../lib/seo';
+import photos from '../../data/article-photos.json';
 export const prerender = false;
 const entry = await getEntry('clanky', Astro.params.slug!);
 if (!entry) return Astro.rewrite('/404');
 const { Content } = await render(entry);
+// Optional feature photo (scripts/article-photo.mjs): og:image, Article image and a figure under the headline.
+const photo = (photos as Record<string, { author: string; authorUrl: string; url: string; alt: string }>)[entry.id];
+const ogImage = photo ? `/img/clanky/${entry.id}-og.jpg` : undefined;
 const { title, description, date, updated, faq, related } = entry.data;
 // Bonus card after the second section: readers of betting guides get the offer where they are, not only in the header.
 const html = entry.rendered?.html ?? '';
@@ -21,17 +25,26 @@ const rel = [...(related ?? []).map((s) => others.find((a) => a.id === s)).filte
 const crumbs = [{ name: 'Domů', href: '/' }, { name: 'Články', href: '/clanky/' }, { name: title }];
 const org = { '@type': 'Organization', name: 'SportStreamy', url: 'https://sportstreamy.cz/o-webu/' };
 const ld = [
-  { '@context': 'https://schema.org', '@type': 'Article', headline: title, description, datePublished: date.toISOString(), dateModified: (updated ?? date).toISOString(), inLanguage: 'cs', author: org, publisher: org, mainEntityOfPage: `https://sportstreamy.cz/clanky/${entry.id}/` },
+  { '@context': 'https://schema.org', '@type': 'Article', headline: title, description, datePublished: date.toISOString(), dateModified: (updated ?? date).toISOString(), inLanguage: 'cs', ...(ogImage ? { image: new URL(ogImage, 'https://sportstreamy.cz').toString() } : {}), author: org, publisher: org, mainEntityOfPage: `https://sportstreamy.cz/clanky/${entry.id}/` },
   breadcrumbLd(crumbs),
   ...(faq?.length ? [faqLd(faq)] : []),
 ];
 ---
-<Base title={`${title} | SportStreamy`} description={description} ld={ld} section="clanky" ttl={600}>
+<Base title={`${title} | SportStreamy`} description={description} ld={ld} section="clanky" ttl={600} image={ogImage}>
   <div class="wrap">
     <Crumbs items={crumbs} />
     <article class="sec prose">
       <h1 style="margin-bottom:.3em">{title}</h1>
       <p class="muted" style="font-size:.85rem;margin-top:0">Redakce SportStreamy · {updated ? `aktualizováno ${fmt.format(updated)}` : fmt.format(date)}</p>
+      {photo ? (
+        <figure style="margin:0 0 1.2em">
+          <picture>
+            <source type="image/avif" srcset={`/img/clanky/${entry.id}-800.avif 800w, /img/clanky/${entry.id}-1280.avif 1280w`} sizes="(min-width: 900px) 820px, 100vw" />
+            <img src={`/img/clanky/${entry.id}-800.jpg`} srcset={`/img/clanky/${entry.id}-800.jpg 800w, /img/clanky/${entry.id}-1280.jpg 1280w`} sizes="(min-width: 900px) 820px, 100vw" width="1280" height="720" alt={photo.alt} fetchpriority="high" style="width:100%;height:auto;border:var(--frame)" />
+          </picture>
+          <figcaption class="muted" style="font-size:.75rem;margin-top:.4em">Foto: <a href={photo.authorUrl} rel="noopener">{photo.author}</a> / <a href={photo.url} rel="noopener">Pexels</a></figcaption>
+        </figure>
+      ) : null}
       {cut > 0 ? (<>
         <Fragment set:html={html.slice(0, cut)} />
         <div class="art-bonus"><Bonus placement={`clanek-${entry.id}`} /></div>
