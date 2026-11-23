@@ -57,7 +57,12 @@ stop_dev() {
   DEV_PID=""
   sleep 1
 }
-trap stop_dev EXIT
+cleanup() {
+  stop_dev
+  rm -f "$SS/dist/server/.dev.vars" "$SS/.dev.vars"
+  if [ -f "$SS/.dev.vars.keep" ]; then mv "$SS/.dev.vars.keep" "$SS/.dev.vars"; fi
+}
+trap cleanup EXIT
 
 kv_put() { # <key> <file>
   (cd "$SS" && "$W" kv key put "$1" --path "$2" --binding DATA --local --persist-to "$PERSIST" -c dist/server/wrangler.ci.json >/dev/null)
@@ -66,7 +71,8 @@ kv_get() { # <key> <file>
   (cd "$SS" && "$W" kv key get "$1" --binding DATA --local --persist-to "$PERSIST" -c dist/server/wrangler.ci.json > "$2" 2>/dev/null) || true
 }
 
-# Secrets for the refresh (only the local dev server sees them).
+# Secrets for the refresh (only the local dev server sees them). A developer's own .dev.vars is put back at the end.
+[ -f "$SS/.dev.vars" ] && [ ! -f "$SS/.dev.vars.keep" ] && mv "$SS/.dev.vars" "$SS/.dev.vars.keep"
 umask 077
 {
   echo "TIPSPORT_CLIENT_ID=${TIPSPORT_CLIENT_ID}"
@@ -149,5 +155,4 @@ c.commit()
 c.execute('PRAGMA wal_checkpoint(TRUNCATE)')
 c.close()
 PY
-rm -f "$SS/dist/server/.dev.vars" "$SS/.dev.vars"
 log "done"
