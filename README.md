@@ -12,3 +12,10 @@ Přehled živých sportovních přenosů a programu (konkurent ziveprenosyzdarma
 - Před změnou `wrangler.jsonc`: `pnpm types`.
 
 Sporty/idSuperSport: `src/lib/sports.ts`. Zápas „live" = Tipsport flag **a** start <= now (Tipsport hlásí live i hodiny předem).
+
+## Statický web + live job (Cloudflare Workers Free, připraveno 23. 11. 2026)
+- **Architektura:** SSR Astro se už nenasazuje — `.github/workflows/live.yml` (veřejné repo, à 10 min) ho spustí lokálně (`wrangler dev`, lokální KV + SQLite kopie D1), osvěží data Tipsport/Chance (stejný `scheduled` handler) + api-football (`scripts/af-sync.ts`, `RESULTS_SQLITE`), stránky obou webů (sportstreamy.cz **i** ziveprenosy.sk z `HuyKenny/ziveprenosy-sk`) uloží `scripts/static/snapshot.py` a `scripts/static/deploy.mjs` nahraje jen změněné soubory + malý `src/edge.ts` (`/go/`, `/logo/`, `?den=`, staré URL, 404/410). Bez CF cronů, KV a D1.
+- **Stav mezi běhy:** šifrovaný release asset `state` (`scripts/static/state.sh`, klíč `STATE_KEY` v GitHub secrets + `credentials/.sportstreamy-credentials.env`), denní kopie `state-YYYY-MM-DD.enc` (7 dní).
+- **Přepnutí (cutover):** 1) Kenny: `! python3 scripts/sportstreamy/setup-actions.py` (GitHub secrets + scoped CF token) 2) zastavit staré zapisovatele: CF crony Workeru `sportstreamy`, cron `bin/sportstreamy-af.sh` 3) `pnpm build && scripts/static/seed.sh <prázdná složka>` (D1 → stav) 4) `gh workflow run live -f mode=full` 5) ověřit oba weby, smazat KV `sportstreamy-data`. Skripty Maliny (`nahledy.py`, `pobocky.py`, `bin/ziveprenosy-logos.sh`, `bin/sportstreamy-af.sh`) se přepnou samy, jakmile web servíruje `/_data/nahledy.json`.
+- **Po přepnutí nikdy `pnpm deploy`/`wrangler deploy`** — vrátí SSR Worker s crony (= rollback). Opravy kódu: push na `main` spustí live job (nový build = plný render).
+- **Lokální test:** `NO_DEPLOY=1 RUNNER_TEMP=<dir> SNAP_MODE=full scripts/static/run.sh <stav> ../ziveprenosy-sk` (s proměnnými z credentials; bez `APISPORTS_KEY` se api-football přeskočí).

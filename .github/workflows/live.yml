@@ -1,0 +1,135 @@
+name: live
+# Every 10 min: Tipsport/Chance feed + results → static pages of sportstreamy.cz AND ziveprenosy.sk → deploy of the changed
+# files + the small edge Worker (src/edge.ts). Replaces the Worker crons, KV and D1 (Cloudflare Workers Free, 23. 11. 2026).
+# The SSR Astro app is not deployed any more: it runs locally here (wrangler dev) and scripts/static/snapshot.py stores its pages.
+# PUBLIC repo: logs are public. Scripts print only counts and HTTP statuses; credentials come from secrets (masked by GitHub);
+# the state (results database, deployed hashes) is an encrypted release asset (scripts/static/state.sh).
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  push:
+    branches: [main]
+    paths-ignore: ["docs/**", "README.md", "tests/**"]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "auto = changed pages only (full every 3 h or after a code change); full = every page; hot = changed pages only"
+        type: choice
+        options: [auto, full, hot]
+        default: auto
+concurrency:
+  group: live
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  # Until Kenny has run scripts/sportstreamy/setup-actions.py (secrets) and the state is seeded (scripts/static/seed.sh),
+  # the scheduled runs stop here after a few seconds; the production site is untouched.
+  ready:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      ok: ${{ steps.c.outputs.ok }}
+    steps:
+      - id: c
+        run: |
+          ok=true
+          for v in "$CF" "$SK" "$TIP"; do [ -n "$v" ] || ok=false; done
+          [ "$ok" = true ] && { gh release view state -R ${{ github.repository }} --json assets --jq '.assets[].name' | grep -qx state.enc || ok=false; }
+          echo "ok=$ok" >> "$GITHUB_OUTPUT"
+          echo "ready: $ok"
+        env:
+          CF: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          SK: ${{ secrets.STATE_KEY }}
+          TIP: ${{ secrets.TIPSPORT_CLIENT_SECRET }}
+          GH_TOKEN: ${{ github.token }}
+  live:
+    needs: ready
+    if: needs.ready.outputs.ok == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write          # release asset with the encrypted state
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Checkout ziveprenosy-sk (public sister site, rendered from the same data)
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          repository: HuyKenny/ziveprenosy-sk
+          path: zp
+          persist-credentials: false
+      - name: "Cost guard - the repo must stay public (private repos burn the shared 2 000 free minutes)"
+        run: |
+          [ "$(gh api repos/${{ github.repository }} --jq .private)" = "false" ] || { echo "repo is private - stopping to protect free minutes"; exit 1; }
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda  # v4.1.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            zp/pnpm-lock.yaml
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Build ids
+        id: ids
+        run: |
+          echo "zp=$(git -C zp rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Build cache sportstreamy (the Astro build only changes with the code)
+        id: ssdist
+        uses: actions/cache@v4
+        with:
+          path: dist
+          key: ss-dist-${{ github.sha }}
+      - name: Build sportstreamy
+        if: steps.ssdist.outputs.cache-hit != 'true'
+        run: pnpm build
+      - name: Build cache ziveprenosy
+        id: zpdist
+        uses: actions/cache@v4
+        with:
+          path: zp/dist
+          key: zp-dist-${{ steps.ids.outputs.zp }}
+      - name: Build ziveprenosy
+        if: steps.zpdist.outputs.cache-hit != 'true'
+        working-directory: zp
+        run: pnpm install --frozen-lockfile && pnpm build
+      - name: Secret check of both repos
+        run: python3 scripts/static/verify_no_secrets.py --repo . zp
+        env:
+          TIPSPORT_CLIENT_ID: ${{ secrets.TIPSPORT_CLIENT_ID }}
+          TIPSPORT_CLIENT_SECRET: ${{ secrets.TIPSPORT_CLIENT_SECRET }}
+          CHANCE_API_USER: ${{ secrets.CHANCE_API_USER }}
+          CHANCE_API_PASS: ${{ secrets.CHANCE_API_PASS }}
+          APISPORTS_KEY: ${{ secrets.APISPORTS_KEY }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          STATE_KEY: ${{ secrets.STATE_KEY }}
+      - name: Restore state (encrypted)
+        id: pull
+        run: scripts/static/state.sh pull "$RUNNER_TEMP/state"
+        env:
+          STATE_KEY: ${{ secrets.STATE_KEY }}
+          GH_TOKEN: ${{ github.token }}
+      - name: Refresh + render + deploy
+        run: scripts/static/run.sh "$RUNNER_TEMP/state" zp
+        env:
+          SNAP_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'auto' }}
+          SS_BUILD: ${{ github.sha }}
+          ZP_BUILD: ${{ steps.ids.outputs.zp }}
+          TIPSPORT_CLIENT_ID: ${{ secrets.TIPSPORT_CLIENT_ID }}
+          TIPSPORT_CLIENT_SECRET: ${{ secrets.TIPSPORT_CLIENT_SECRET }}
+          CHANCE_API_USER: ${{ secrets.CHANCE_API_USER }}
+          CHANCE_API_PASS: ${{ secrets.CHANCE_API_PASS }}
+          APISPORTS_KEY: ${{ secrets.APISPORTS_KEY }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          STATE_KEY: ${{ secrets.STATE_KEY }}
+      - name: Save state (encrypted)
+        if: always() && steps.pull.outcome == 'success'
+        run: scripts/static/state.sh push "$RUNNER_TEMP/state"
+        env:
+          STATE_KEY: ${{ secrets.STATE_KEY }}
+          GH_TOKEN: ${{ github.token }}

@@ -71,6 +71,17 @@ def kv(key):
     return json.loads(r.stdout)['items']
 
 
+def live_items():
+    """Matches from -3 h to +72 h as the live job (GitHub Actions, since 23. 11. 2026) last deployed them, or None while the
+    site is still the SSR Worker (then KV is the source and this script deploys itself)."""
+    try:
+        req = urllib.request.Request('https://sportstreamy.cz/_data/nahledy.json', headers={'User-Agent': 'sportstreamy-nahledy/1.0'})
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return json.loads(r.read())['items']
+    except Exception:
+        return None
+
+
 def score(m):
     """Base interest of a match for Czech searchers (0 = not a preview on its own; trends can still lift it)."""
     h, a, lg, sp = m['h'], m.get('a') or '', m['lg'], m['sp']
@@ -438,7 +449,8 @@ def main():
     dry = '--dry-run' in sys.argv
     force = [int(sys.argv[i + 1]) for i, a in enumerate(sys.argv) if a == '--id']
     # A match in play is in both snapshots: one entry per id.
-    items = list({m['id']: m for m in kv('pre') + kv('live')}.values())
+    static = live_items()
+    items = static if static is not None else list({m['id']: m for m in kv('pre') + kv('live')}.values())
     now = time.time() * 1000
     have = existing_ids()
     sports = SPORT_SLUGS
@@ -494,6 +506,13 @@ def main():
     if not made or '--no-deploy' in sys.argv:
         return
     sh(['pnpm', 'exec', 'astro', 'check'])
+    if static is not None:
+        # Static site: the push starts the live job (.github/workflows/live.yml), which builds and deploys; the hourly
+        # IndexNow cron sends the new pages from the sitemap.
+        sh(['git', 'add', 'src/content/nahledy'])
+        sh(['git', '-c', 'user.name=Kenny', '-c', 'user.email=kenny@localhost', 'commit', '-qm', f"Match previews: {', '.join(made)}\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"])
+        subprocess.run(['git', 'push', '-q', 'origin', 'main'], cwd=APP, check=False)
+        return
     sh(['pnpm', 'build'])
     sh(['pnpm', 'exec', 'wrangler', 'deploy'])
     purge(['sportstreamy.cz/jak-sledovat/', 'sportstreamy.cz/zapas/', 'sportstreamy.cz/sitemap-pages.xml'], home=True)

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Branch offices of bookmakers → KV key `pobocky` (read by /pobocky/ pages, no redeploy needed).
+"""Branch offices of bookmakers → KV key `pobocky` (read by /pobocky/ pages). Since the static site (23. 11. 2026) the file
+data/pobocky.json is committed instead and the live job puts it into its local KV.
 
     python3 scripts/pobocky.py            # fetch, write data/pobocky.json, upload to the production KV
     python3 scripts/pobocky.py --local    # same, but into the local `wrangler dev` KV
@@ -21,6 +22,15 @@ OUT = APP / 'data' / 'pobocky.json'
 KV_ID = 'ad0a4a01c23a4ed7b01a4690449014f1'
 UA = 'Mozilla/5.0 (sportstreamy.cz pobocky; +https://sportstreamy.cz)'
 DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+
+
+def static_site():
+    """True once sportstreamy.cz is served as static files by the live job (it publishes /_data/nahledy.json)."""
+    try:
+        with urllib.request.urlopen(urllib.request.Request('https://sportstreamy.cz/_data/nahledy.json', headers={'User-Agent': UA}), timeout=30) as r:
+            return r.status == 200
+    except Exception:
+        return False
 
 
 def slug(s):
@@ -173,6 +183,14 @@ def main():
     doc = {'updated': datetime.now(timezone.utc).isoformat(timespec='seconds'), 'brands': brands}
     OUT.parent.mkdir(exist_ok=True)
     OUT.write_text(json.dumps(doc, ensure_ascii=False, separators=(',', ':')))
+    if '--local' not in sys.argv and static_site():
+        # Since 23. 11. 2026 the live job (GitHub Actions) loads data/pobocky.json into its local KV on every run: commit + push.
+        subprocess.run(['git', 'add', 'data/pobocky.json'], cwd=APP, check=True)
+        if subprocess.run(['git', 'diff', '--cached', '--quiet'], cwd=APP).returncode:
+            subprocess.run(['git', '-c', 'user.name=Kenny', '-c', 'user.email=kenny@localhost', 'commit', '-qm', 'Branch offices: monthly refresh'], cwd=APP, check=True)
+            subprocess.run(['git', 'push', '-q', 'origin', 'main'], cwd=APP, check=False)
+        print('pobocky: data/pobocky.json commitnuto (statický web)')
+        return
     # wrangler dev keys local KV by binding name, production by namespace id
     target = ['--binding', 'DATA', '--local'] if '--local' in sys.argv else ['--namespace-id', KV_ID, '--remote']
     where = target[-1:]
