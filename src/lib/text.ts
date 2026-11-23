@@ -2,15 +2,21 @@ const MAP: Record<string, string> = { ß: 'ss', ł: 'l', đ: 'd', ø: 'o', æ: '
 
 /** URL slug without diacritics. */
 export function slugify(s: string): string {
-  return s
+  return slugify.finish(slugify.fold(s));
+}
+/** Lowercase, strip diacritics, map the few letters NFD does not decompose. Safe on joined strings (keeps \u0001). */
+slugify.fold = (s: string): string =>
+  s
     .toLowerCase()
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
-    .replace(/[ßłđøæœ]/g, (c) => MAP[c])
+    .replace(/[ßłđøæœ]/g, (c) => MAP[c]);
+/** Second half of slugify on an already folded string. */
+slugify.finish = (s: string): string =>
+  s
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 70);
-}
 
 const TZ = 'Europe/Prague';
 const dayFmt = new Intl.DateTimeFormat('sv-SE', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' });

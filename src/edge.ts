@@ -11,7 +11,8 @@
  */
 import type { Env as AppEnv, Match } from './lib/types';
 import { deeplink, generic, type Book } from './lib/partner';
-import { legacyCompetition, legacyMatch, legacySport } from './lib/legacy';
+import { legacyCompetition, legacyMatchIndex, legacySport, slugAll } from './lib/legacy';
+import { matchPath } from './lib/url';
 import type { View } from './lib/matches';
 
 interface Env extends AppEnv {
@@ -74,6 +75,22 @@ async function legacyView(env: Env, url: URL): Promise<View> {
   return { live: [], upcoming, recent: [], at: 0 };
 }
 
+/**
+ * /zivy-prenos/{home}-vs-{away}/ (old WordPress URLs, crawled daily) → the match page if the pairing is on the program.
+ * Slugs of all current names are folded in one pass and kept per isolate for 5 minutes (the snapshot changes every 10).
+ */
+let legacySlugs: { at: number; rows: [number, string, string, number, string][]; slugs: string[] } | null = null;
+async function legacyMatchTo(env: Env, url: URL, slug: string): Promise<string | undefined> {
+  if (!legacySlugs || Date.now() - legacySlugs.at > 300_000) {
+    const rows = (await json<[number, string, string, number, string][]>(env, url, '/_m/legacy.json')) ?? [];
+    legacySlugs = { at: Date.now(), rows, slugs: slugAll(rows.flatMap((r) => [r[1], r[2]])) };
+  }
+  const i = legacyMatchIndex(legacySlugs.slugs, slug);
+  if (i < 0) return undefined;
+  const [id, h, a, sp, lg] = legacySlugs.rows[i];
+  return matchPath({ id, h, a, sp, lg, lid: 0, st: 0, stream: false, path: '', live: false } as Match);
+}
+
 /** /vysledky/<sport>/?den=YYYY-MM-DD → the copy the snapshot rendered for that day (soutez/stav are filtered in the browser). */
 async function results(env: Env, url: URL, request: Request): Promise<Response> {
   const den = url.searchParams.get('den') ?? '';
@@ -102,9 +119,12 @@ export default {
       return page(env, url, '/_gone/', 410);
     }
     if (seg[1] === 'sport' && seg[2]) return redirect(legacySport(seg[2]));
-    if ((seg[1] === 'soutez' || seg[1] === 'liga' || seg[1] === 'zivy-prenos') && seg[2]) {
-      const v = await legacyView(env, url);
-      const to = seg[1] === 'zivy-prenos' ? legacyMatch(v, seg[2]).to : legacyCompetition(v, seg[2]);
+    if (seg[1] === 'zivy-prenos' && seg[2]) {
+      const to = await legacyMatchTo(env, url, seg[2]);
+      return to ? redirect(to) : page(env, url, '/_gone/', 410);
+    }
+    if ((seg[1] === 'soutez' || seg[1] === 'liga') && seg[2]) {
+      const to = legacyCompetition(await legacyView(env, url), seg[2]);
       return to ? redirect(to) : page(env, url, '/_gone/', 410);
     }
     return page(env, url, '/_404/', 404);
