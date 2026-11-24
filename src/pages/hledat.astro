@@ -25,6 +25,7 @@ const comps = COMPETITIONS.filter((c) => hit(`${c.name} ${SPORT_BY_ID.get(c.sp)?
       <p class="lead">Napiš tým, hráče nebo soutěž – stačí část názvu, diakritika nevadí.</p>
       <div style="margin-top:14px;max-width:640px"><Search id="pq" value={q} autofocus={!q} /></div>
     </section>
+    <div data-results data-q={q}>
     {q ? (<>
       {comps.length ? <section class="sec"><div class="sec-head"><h2>Soutěže</h2></div><div class="chips">{comps.map((c) => <a class="chip" href={`/${SPORT_BY_ID.get(c.sp)!.slug}-online/${c.slug}/`}>{c.name}</a>)}</div></section> : null}
       {live.length ? <section class="sec"><div class="sec-head"><h2>Živě</h2><span class="n">{live.length}</span></div><Rows items={live} now={now} placement="search-live" live /></section> : null}
@@ -32,5 +33,56 @@ const comps = COMPETITIONS.filter((c) => hit(`${c.name} ${SPORT_BY_ID.get(c.sp)?
     </>) : (
       <section class="sec"><div class="sec-head"><h2>Populární</h2></div><div class="chips">{COMPETITIONS.filter((c) => c.top).map((c) => <a class="chip" href={`/${SPORT_BY_ID.get(c.sp)!.slug}-online/${c.slug}/`}>{c.name}</a>)}</div></section>
     )}
+    </div>
   </div>
 </Base>
+<script>
+  // The production site is static (Cloudflare Workers Free): /hledat/ is one pre-rendered file, so ?q= is answered here
+  // from /api/search.json (the same index the header suggest uses). Markup mirrors Rows.astro / MatchRow.astro.
+  type Row = [string, string, string, number, number, string, string?, number?, ([number, number | null, number] | 0)?, string?, string?];
+  type Comp = [string, string, string];
+  const box = document.querySelector<HTMLElement>('[data-results]');
+  const q = (new URLSearchParams(location.search).get('q') ?? '').trim().slice(0, 80);
+  if (box && q && box.dataset.q !== q) {
+    const fold = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const esc = (s: string) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+    const words = fold(q).split(/\s+/).filter(Boolean);
+    const hit = (s: string) => words.every((w) => fold(s).includes(w));
+    const TZ = 'Europe/Prague';
+    const dayF = new Intl.DateTimeFormat('sv-SE', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' });
+    const timeF = new Intl.DateTimeFormat('cs-CZ', { timeZone: TZ, hour: '2-digit', minute: '2-digit', hour12: false });
+    const longF = new Intl.DateTimeFormat('cs-CZ', { timeZone: TZ, weekday: 'long', day: 'numeric', month: 'long' });
+    const now = Date.now();
+    const dayKey = (ms: number) => dayF.format(ms);
+    const dayLabel = (ms: number) => (dayKey(ms) === dayKey(now) ? 'Dnes' : dayKey(ms) === dayKey(now + 86_400_000) ? 'Zítra' : longF.format(ms));
+    const icon = (name: string) => `<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-${document.getElementById('i-' + name) ? name : 'ball'}"></use></svg>`;
+    const row = (x: Row, live: boolean, placement: string) => {
+      const [title, lg, url, st, , sport, slug = '', video = 1, odds = 0, sc = '', ti = ''] = x;
+      const id = (/\/zapas\/(\d+)-/.exec(url) ?? [])[1] ?? '';
+      const o = odds && !live ? `<div class="odds" aria-label="Kurzy Tipsport"><span class="odd"><i>1</i>${odds[0].toFixed(2)}</span>${odds[1] !== null ? `<span class="odd"><i>X</i>${odds[1].toFixed(2)}</span>` : ''}<span class="odd"><i>2</i>${odds[2].toFixed(2)}</span></div>` : '';
+      return `<div class="row${live ? ' is-live' : ''}" data-id="${esc(id)}"><div class="when">${live ? '<span class="tag-live"><span class="dot"></span>Živě</span>' : timeF.format(st)}</div>`
+        + `<div style="min-width:0"><div class="meta">${icon(slug)}<span class="sp">${esc(sport)}</span>${live ? `<span class="ti" data-t>${esc(ti)}</span>` : ''}<span class="lg">${esc(lg)}</span>${video ? '' : '<span class="novid" title="Tipsport k zápasu nenabízí video, jen živé statistiky">stats</span>'}</div>`
+        + `<a class="tm" href="${esc(url)}">${esc(title)}</a></div>`
+        + `<div class="act">${live && sc ? `<div class="score" data-s>${esc(sc)}</div>` : ''}${o}<a class="btn sm ${video ? 'v' : 'nv'}" href="/go/tipsport/?${id ? `m=${esc(id)}&amp;` : ''}p=${placement}" rel="sponsored nofollow noopener" target="_blank" aria-label="${video ? 'Sledovat' : 'Živé statistiky'} ${esc(title)} u Tipsportu">${icon(video ? 'play' : 'spark')}<span class="lbl">${video ? 'Sledovat' : 'Statistiky'}</span></a></div></div>`;
+    };
+    document.title = `Hledání: ${q} | SportStreamy`;
+    document.querySelectorAll<HTMLInputElement>('form[data-search] input[name="q"]').forEach((i) => { i.value = q; });
+    box.innerHTML = '<p class="empty">Hledám…</p>';
+    fetch('/api/search.json')
+      .then((r) => r.json() as Promise<{ m: Row[]; c: Comp[] }>)
+      .then(({ m, c }) => {
+        const comps = c.filter((x) => hit(`${x[0]} ${x[1]}`));
+        const live = m.filter((x) => x[4] && hit(`${x[0]} ${x[1]} ${x[5]}`));
+        const next = m.filter((x) => !x[4] && hit(`${x[0]} ${x[1]} ${x[5]}`)).slice(0, 60);
+        let html = '';
+        if (comps.length) html += `<section class="sec"><div class="sec-head"><h2>Soutěže</h2></div><div class="chips">${comps.map((x) => `<a class="chip" href="${esc(x[2])}">${esc(x[0])}</a>`).join('')}</div></section>`;
+        if (live.length) html += `<section class="sec"><div class="sec-head"><h2>Živě</h2><span class="n">${live.length}</span></div><div class="rows">${live.map((x) => row(x, true, 'search-live')).join('')}</div></section>`;
+        let last = '';
+        const rows = next.map((x) => { const k = dayKey(x[3]); const head = k !== last ? `<div class="dayhead">${dayLabel(x[3])}</div>` : ''; last = k; return head + row(x, false, 'search'); }).join('');
+        html += `<section class="sec"><div class="sec-head"><h2>Zápasy</h2><span class="n">${next.length}</span></div><div class="rows">${rows || `<p class="empty">Pro „${esc(q)}“ jsme na 7 dní dopředu nic nenašli. Zkus jen část názvu.</p>`}</div></section>`;
+        box.innerHTML = html;
+        box.dataset.q = q;
+      })
+      .catch(() => { box.innerHTML = '<p class="empty">Hledání se nepovedlo načíst. Zkus to prosím znovu.</p>'; });
+  }
+</script>
