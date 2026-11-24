@@ -2,7 +2,7 @@
 title: "Kde sledovat NHL a hokej online v Česku"
 description: "Časy zápasů NHL v českém čase, kde najít přenosy a statistiky, kdy se hraje extraliga a které evropské ligy mají živé video zdarma."
 date: 2026-10-19
-updated: 2026-10-20
+updated: 2026-11-24
 related: [tipsport-tv-jak-sledovat, jak-sledovat-zive-prenosy-zdarma, kurzy-1x2-vysvetleni]
 faq:
   - q: "V kolik se hraje NHL v českém čase?"
@@ -32,6 +32,8 @@ Při přechodu na letní a zimní čas se časy na pár dní posunou o hodinu, p
 Práva na video z NHL v Česku drží televize, proto ho sázkové kanceláře nevysílají. U Tipsportu ale najdeš ke každému zápasu **živé statistiky, průběžné skóre a kurzy** – v programu [NHL](/hokej-online/nhl/) je poznáš podle štítku „stats“. Zápasy s Čechy najdeš nejrychleji přes hledání v hlavičce.
 
 Noční program si můžeš projít večer v [programu na zítřek](/program/zitra/) – zápasy po půlnoci patří k dalšímu dni.
+
+NHL v Česku i na Slovensku sleduje hodně fanoušků kvůli Slovákům – Slafkovskému v Montrealu, Nemcovi a Pospíšilovi v Calgary nebo Černákovi v Tampě. Kdo fandí i jim, najde slovenský přehled jejich týmů a nočních zápasů na sesterském webu [NHL na ŽivéPrenosy.sk](https://ziveprenosy.sk/hokej/nhl/).
 
 ## Tipsport extraliga a Maxa liga
 

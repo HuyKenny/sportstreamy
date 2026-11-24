@@ -52,7 +52,7 @@ SITES = {
         'worker': 'ziveprenosy-sk',
         'match': re.compile(r'^/prenos/(\d+)-'),
         'warm': ('/o-nas/', '/kontakt/', '/podmienky/', '/ochrana-osobnych-udajov/', '/zdroje-fotiek/', '/zodpovedne-hranie/',
-                 '/tipsport-bonus/', '/tipsport-prihlasenie/', '/tipsport-tv/'),
+                 '/tipsport-bonus/', '/tipsport-prihlasenie/', '/tipsport-tv/', '/clanky/'),
         'warm_re': re.compile(r'^/[a-z-]+/tim/'),
         'variants': [(re.compile(r'^/teraz-nazivo/$'), ('sport',), True),
                      (re.compile(r'^/vysledky/'), ('stav',), True),
