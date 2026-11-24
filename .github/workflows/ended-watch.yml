@@ -1,0 +1,41 @@
+name: ended-watch
+# Final results watcher: once a minute reads the Tipsport.sk live feed (own SK partner account) and keeps matches that
+# have just finished (`ended` + final score is in the feed for only ~1–4 minutes, the live job runs every 10). The live
+# job applies them to the results database of both sites. See scripts/static/ended-watch.mjs.
+# PUBLIC repo: minutes are free; logs print counts only; the data goes out encrypted (release asset ended.enc).
+on:
+  schedule:
+    - cron: "0,30 * * * *"
+  workflow_dispatch:
+concurrency:
+  group: ended-watch
+  cancel-in-progress: false
+permissions:
+  contents: write          # release asset ended.enc
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          persist-credentials: false
+      - name: "Cost guard - the repo must stay public"
+        run: |
+          [ "$(gh api repos/${{ github.repository }} --jq .private)" = "false" ] || { echo "repo is private - stopping"; exit 1; }
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Watch finished matches
+        run: |
+          [ -n "$TIPSPORT_SK_PASS" ] || { echo "TIPSPORT_SK_* secrets missing - nothing to do"; exit 0; }
+          node scripts/static/ended-watch.mjs
+        env:
+          WATCH_MINUTES: "33"
+          TIPSPORT_SK_USER: ${{ secrets.TIPSPORT_SK_USER }}
+          TIPSPORT_SK_PASS: ${{ secrets.TIPSPORT_SK_PASS }}
+          TIPSPORT_SK_PRODUCT_ID: ${{ secrets.TIPSPORT_SK_PRODUCT_ID }}
+          STATE_KEY: ${{ secrets.STATE_KEY }}
+          GH_TOKEN: ${{ github.token }}

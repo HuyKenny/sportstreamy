@@ -4,6 +4,7 @@ import { competitionOf } from './competitions';
 import { SPORT_BY_ID } from './sports';
 import { resultsConfig, resultsSyncDb } from './results/config';
 import { syncTipsportLive, syncTipsportSchedule, syncApiFootball } from './results/sync';
+import { applyEnded, type EndedRaw } from './results/store';
 
 /** Season-long markets ("Chance Liga 2026/2027 – celkově", "po 30. kole", top scorer…) are not matches. */
 const OUTRIGHT = /celkov|dlouhodob|vítěz skupiny|vítěz soutěže|po \d+\.\s?kol|nejlepší střel|sestup|postup/i;
@@ -24,6 +25,12 @@ export async function refreshLive(env: Env): Promise<number> {
   // Results pilot: the same response, no extra request. A failure there must never break the live snapshot.
   const db = resultsSyncDb(env);
   if (db) await syncTipsportLive(db, raw, resultsConfig(env)).catch((e) => console.warn('results live sync failed', String(e)));
+  // Final results the watcher caught between two runs (scripts/static/ended-watch.mjs → KV `ended`, put by run.sh).
+  if (db) {
+    const ended = await env.DATA.get<{ items: Record<string, EndedRaw> }>('ended', 'json').catch(() => null);
+    const list = Object.values(ended?.items ?? {});
+    if (list.length) await applyEnded(db, list).then((n) => console.log(`ended watcher: ${list.length} kept, ${n} applied`)).catch((e) => console.warn('ended apply failed', String(e)));
+  }
   return items.length;
 }
 

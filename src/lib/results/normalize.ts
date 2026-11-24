@@ -63,8 +63,9 @@ export function penaltiesOf(text: string): [number, number] | null {
   return m[1] ? [Number(m[1]), Number(m[2])] : [Number(m[3]), Number(m[4])];
 }
 
-const PEN = /penalt|rozstřel|\bpen\b|pen\./i;
-const ET = /prodl|\bpp\b|\baet\b/i;
+// Czech and Slovak wording (the Slovak feed feeds the final results watcher, scripts/static/ended-watch.mjs).
+const PEN = /penalt|rozstřel|rozstrel|nájazd|najazd|\bsn\b|\bpen\b|pen\./i;
+const ET = /prodl|predĺž|predlz|\bpp\b|\baet\b/i;
 
 /**
  * Tipsport live-feed state → our state. Only `ended: true` makes a final result; an unrecognised text is 'unknown'

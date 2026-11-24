@@ -1,0 +1,3 @@
+api-football (APISPORTS_KEY) is suspended since 24. 11. 2026 ("Your account is Suspended" on dashboard.api-football.com).
+While this file exists, scripts/static/run.sh does not call api-football at all. After the account is reactivated:
+delete this file (and consider running the sync from one fixed IP again – it used to run on the Raspberry Pi).

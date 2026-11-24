@@ -131,6 +131,7 @@ jobs:
           TIPSPORT_SK_USER: ${{ secrets.TIPSPORT_SK_USER }}
           TIPSPORT_SK_PASS: ${{ secrets.TIPSPORT_SK_PASS }}
           TIPSPORT_SK_PRODUCT_ID: ${{ secrets.TIPSPORT_SK_PRODUCT_ID }}
+          GH_TOKEN: ${{ github.token }}   # ended.enc of the final results watcher
       - name: Save state (encrypted)
         if: always() && steps.pull.outcome == 'success'
         run: scripts/static/state.sh push "$RUNNER_TEMP/state"

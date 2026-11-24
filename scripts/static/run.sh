@@ -88,7 +88,11 @@ kv_put pobocky "$SS/data/pobocky.json"
 
 # 1. api-football (results confirmation, details, H2H) on the local results copy; its own budget lives in that database.
 DB=$(d1_file)
-if [ -n "$DB" ] && [ -n "${APISPORTS_KEY:-}" ]; then
+# Account suspended since 24. 11. 2026 (dashboard: "Your account is Suspended"): no calls until Kenny reactivates it and
+# deletes scripts/static/af.disabled. Final results come from the Tipsport.sk watcher meanwhile (ended-watch.yml).
+if [ -f "$SS/scripts/static/af.disabled" ]; then
+  log "api-football disabled (scripts/static/af.disabled)"
+elif [ -n "$DB" ] && [ -n "${APISPORTS_KEY:-}" ]; then
   log "api-football sync"
   "$SS/node_modules/.bin/esbuild" "$SS/scripts/af-sync.ts" --bundle --platform=node --format=esm --target=node22 --outfile="$WORK/af-sync.mjs" --log-level=error
   APP="$SS/" RESULTS_SQLITE="$DB" timeout 300 node "$WORK/af-sync.mjs" | tail -n 8 || log "api-football sync failed (results stay as they are)"
@@ -121,6 +125,15 @@ deploy_site() { # <site> <app dir> <port> <build id> <data dir: live.json / pre.
   return 1
 }
 
+# Final results caught by the watcher (ended-watch.yml) → KV `ended`, applied by refreshLive() in the scheduled handler.
+if gh release download state -p 'ended.enc' -O "$WORK/ended.enc" --clobber 2>/dev/null \
+   && openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:STATE_KEY -in "$WORK/ended.enc" -out "$WORK/ended.json" 2>/dev/null; then
+  kv_put ended "$WORK/ended.json"
+  python3 -c "import json,sys,time;d=json.load(open(sys.argv[1]));print(f\"ended watcher: {len(d['items'])} finished matches, {round(time.time()-d['at']/1000)} s old\")" "$WORK/ended.json"
+  rm -f "$WORK/ended.enc" "$WORK/ended.json"
+else
+  log "ended watcher: no data yet"
+fi
 log "sportstreamy: dev server"
 start_dev "$SS" 8787
 log "refresh (Tipsport + Chance + results)"

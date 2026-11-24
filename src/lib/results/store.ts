@@ -1,6 +1,6 @@
 import type { Db, Stmt } from './db';
 import type { Obs } from './normalize';
-import { teamKind } from './normalize';
+import { teamKind, classify, score, periodsOf, penaltiesOf } from './normalize';
 import { FINAL, IN_PLAY } from './status';
 
 /** A stored match as pages read it. */
@@ -233,4 +233,34 @@ export async function meetings(db: Db, a: string | null, b: string | null, exclu
     .bind(excludeExt, a, b, b, a, limit)
     .all<ResultRow>();
   return r.results;
+}
+
+/** A finished match as the final results watcher keeps it (scripts/static/ended-watch.mjs): raw Tipsport fields + when seen. */
+export interface EndedRaw { id: number; idSuperSport: number; dateStart: number; ended: boolean; statusOffer?: string | null; home?: string | null; away?: string | null; at: number }
+
+/**
+ * Final results caught by the watcher between two live runs. Only existing, not yet final matches are touched, by
+ * match id (the same on the Czech and Slovak platform) — names and competitions come from the Czech feed as before.
+ * Turns 'unconfirmed' (left the feed unseen) into the real result.
+ */
+export async function applyEnded(db: Db, items: EndedRaw[], now = Date.now()): Promise<number> {
+  const stmts: Stmt[] = [];
+  for (const r of items) {
+    if (!r?.ended || !r.id) continue;
+    const sh = score(r.home);
+    const sa = score(r.away);
+    if (sh === null || sa === null) continue;
+    const status = classify(r, r.at);
+    if (!(FINAL as string[]).includes(status)) continue;
+    const text = String(r.statusOffer ?? '');
+    const pens = status === 'pen' ? penaltiesOf(text) : null;
+    const per = periodsOf(text);
+    stmts.push(db.prepare(`UPDATE matches SET status = ?, status_raw = ?, sh = ?, sa = ?, periods = COALESCE(?, periods),
+        pen_h = COALESCE(?, pen_h), pen_a = COALESCE(?, pen_a), src_at = ?, checked_at = ?, final_at = COALESCE(final_at, ?)
+      WHERE provider = 'tipsport' AND ext_id = ? AND sport = ? AND status NOT IN (${FIN}) AND start_utc < ?`)
+      .bind(status, text.trim() || null, sh, sa, per ? JSON.stringify(per) : null, pens?.[0] ?? null, pens?.[1] ?? null, r.at, now, r.at, String(r.id), Number(r.idSuperSport), r.at));
+  }
+  if (!stmts.length) return 0;
+  const res = (await db.batch(stmts)) as { meta?: { changes?: number } }[];
+  return res.reduce((n, x) => n + (x.meta?.changes ?? 0), 0);
 }
