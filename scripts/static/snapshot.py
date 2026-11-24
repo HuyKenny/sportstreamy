@@ -358,7 +358,10 @@ class Snap:
             info.setdefault(str(it['id']), ['', ''])[1] = it.get('path') or ''
         if self.a.db and Path(self.a.db).exists():
             con = sqlite3.connect(f'file:{self.a.db}?mode=ro', uri=True)
-            for ext, path in con.execute("SELECT ext_id, path FROM matches WHERE provider = 'tipsport' AND path != ''"):
+            # Paths in the results database come from the Czech feed (tipsport.cz). ziveprenosy.sk deeplinks to
+            # tipsport.sk, so it takes match paths only from its own Tipsport.sk feed (--data).
+            rows = con.execute("SELECT ext_id, path FROM matches WHERE provider = 'tipsport' AND path != ''") if self.a.site == 'sportstreamy' else []
+            for ext, path in rows:
                 info.setdefault(str(ext), ['', ''])
                 if not info[str(ext)][1]:
                     info[str(ext)][1] = path
