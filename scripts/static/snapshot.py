@@ -52,7 +52,7 @@ SITES = {
         'worker': 'ziveprenosy-sk',
         'match': re.compile(r'^/prenos/(\d+)-'),
         'warm': ('/o-nas/', '/kontakt/', '/podmienky/', '/ochrana-osobnych-udajov/', '/zdroje-fotiek/', '/zodpovedne-hranie/',
-                 '/tipsport-bonus/', '/tipsport-prihlasenie/', '/tipsport-tv/', '/clanky/'),
+                 '/tipsport-bonus/', '/tipsport-prihlasenie/', '/tipsport-tv/', '/clanky/', '/ako-pozerat/'),
         'warm_re': re.compile(r'^/[a-z-]+/tim/'),
         'variants': [(re.compile(r'^/teraz-nazivo/$'), ('sport',), True),
                      (re.compile(r'^/vysledky/'), ('stav',), True),
@@ -379,6 +379,8 @@ class Snap:
         if self.a.site == 'sportstreamy':
             legacy = [[m['id'], m['h'], m.get('a') or '', m['sp'], m.get('lg') or ''] for m in items]
             self.save('/_m/legacy.json', json.dumps(legacy, ensure_ascii=False, separators=(',', ':')).encode())
+        # Candidates for the match previews (sportstreamy: scripts/nahledy.py, ziveprenosy: scripts/nahlady.py on the Pi).
+        if items:
             soon = [m for m in items if self.now - 3 * 3600_000 <= m.get('st', 0) <= self.now + 72 * 3600_000]
             self.save('/_data/nahledy.json', json.dumps({'at': self.now, 'items': soon}, ensure_ascii=False, separators=(',', ':')).encode())
 
