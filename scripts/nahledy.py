@@ -292,7 +292,68 @@ def clean_url(u):
     return re.sub(r'[?&]utm_source=openai$', '', re.sub(r'utm_source=openai&', '', u))
 
 
+# OpenAI first; when the account has no credit (24. 11. 2026: "You have no credits remaining") the rest of the run goes
+# through `claude -p` (Sonnet with WebSearch/WebFetch, the Claude subscription – no per-call bill). NAHLEDY_ENGINE=claude|openai forces one.
+ENGINE = os.environ.get('NAHLEDY_ENGINE', 'auto')
+CLAUDE_BIN = os.environ.get('CLAUDE_BIN', '/home/kenny/.local/bin/claude')
+CLAUDE_CONFIG = os.environ.get('NAHLEDY_CLAUDE_CONFIG', '/home/kenny/.claude_account4')  # same account as the Discord bot
+CLAUDE_MODEL = os.environ.get('NAHLEDY_CLAUDE_MODEL', 'sonnet')  # Kenny: no Opus for batch jobs
+_claude = {'on': ENGINE == 'claude'}
+
+
 def ask(prompt, schema, model, effort='low', web=True):
+    """Structured answer + cost: OpenAI, or Claude when OpenAI is out of credit (see ENGINE)."""
+    if not _claude['on']:
+        try:
+            return ask_openai(prompt, schema, model, effort, web)
+        except RuntimeError as e:
+            if ENGINE != 'auto' or 'insufficient_quota' not in str(e):
+                raise
+            _claude['on'] = True
+            print('OpenAI bez kreditu → zbytek běhu přes claude -p', file=sys.stderr)
+    return ask_claude(prompt, schema, web)
+
+
+def ask_claude(prompt, schema, web=True):
+    """`claude -p` in a clean environment (no CLAUDECODE/CLAUDE_CODE_* of a parent session) and a neutral cwd, so the
+    run neither joins nor shows up among the workspace sessions. JSON is requested in the prompt and parsed loosely."""
+    import tempfile
+    full = (prompt + '\n\nOdpověz POUZE jedním JSON objektem přesně podle tohoto JSON Schema (žádný další text, žádné ```):\n'
+            + json.dumps(schema, ensure_ascii=False))
+    if web:
+        full += '\nK ověření použij nástroje WebSearch a WebFetch.'
+    env = {k: v for k, v in os.environ.items() if not (k.startswith('CLAUDE_CODE') or k in ('CLAUDECODE', 'CLAUDE_EFFORT', 'CLAUDE_CONFIG_DIR'))}
+    env['CLAUDE_CONFIG_DIR'] = CLAUDE_CONFIG
+    cmd = [CLAUDE_BIN, '-p', full, '--output-format', 'json', '--model', CLAUDE_MODEL]
+    if web:
+        cmd += ['--allowedTools', 'WebSearch', 'WebFetch']
+    with tempfile.TemporaryDirectory() as cwd:
+        r = subprocess.run(cmd, cwd=cwd, env=env, capture_output=True, text=True, timeout=1200)
+    try:
+        d = json.loads(r.stdout)
+    except ValueError:
+        raise RuntimeError(f'claude -p: {(r.stdout or r.stderr)[:200]}')
+    if d.get('is_error'):
+        raise RuntimeError(f"claude -p: {str(d.get('result'))[:200]}")
+    text = str(d.get('result') or '')
+    a, b = text.find('{'), text.rfind('}')
+    if a < 0 or b < a:
+        raise RuntimeError(f'claude -p bez JSON: {text[:160]}')
+    out = json.loads(text[a:b + 1])
+    if 'changes' in schema.get('required', []):
+        out.setdefault('changes', [])
+    for k in schema.get('required', []):
+        if k not in out:
+            raise RuntimeError(f'claude -p: chybí pole {k}')
+    for f in out.get('facts', []):
+        f['text'] = CITE.sub('', str(f.get('text', '')))
+        u = re.search(r'https?://[^\s)\]]+', str(f.get('source', '')))
+        f['source'] = clean_url(u.group(0)) if u else ''
+        f['quote'] = str(f.get('quote', ''))
+    return out, 0.0  # subscription: no per-call cost (the CLI reports a notional total_cost_usd)
+
+
+def ask_openai(prompt, schema, model, effort='low', web=True):
     """One Responses API call with strict JSON output (and the web_search tool) → (dict, cost in USD)."""
     body = {'model': model, 'reasoning': {'effort': effort}, 'input': prompt,
             'text': {'format': {'type': 'json_schema', 'name': 'out', 'strict': True, 'schema': schema}}}
@@ -305,10 +366,13 @@ def ask(prompt, schema, model, effort='low', web=True):
             r = json.load(urllib.request.urlopen(req, timeout=600))
             break
         except urllib.error.HTTPError as e:
+            body = e.read()[:300]
+            if b'insufficient_quota' in body:  # no credit: retrying will not help
+                raise RuntimeError(f'openai {e.code}: insufficient_quota')
             if e.code in (429, 500, 502, 503) and i < 2:
                 time.sleep(30 * (i + 1))
                 continue
-            raise RuntimeError(f'openai {e.code}: {e.read()[:200]}')
+            raise RuntimeError(f'openai {e.code}: {body[:200]}')
     if r.get('status') != 'completed':
         raise RuntimeError(f"openai status {r.get('status')}: {str(r.get('incomplete_details') or r.get('error'))[:200]}")
     text = ''.join(c['text'] for o in r['output'] if o['type'] == 'message' for c in o['content'] if c['type'] == 'output_text')
