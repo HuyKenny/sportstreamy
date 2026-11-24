@@ -57,7 +57,7 @@ SITES = {
         'variants': [(re.compile(r'^/teraz-nazivo/$'), ('sport',), True),
                      (re.compile(r'^/vysledky/'), ('stav',), True),
                      (re.compile(r'^/program/'), ('sport',), False)],
-        'extra': ['/', '/api/live.json', '/api/search.json', '/hladat/', '/program/', '/teraz-nazivo/', '/vysledky/'],
+        'extra': ['/', '/api/live.json', '/api/search.json', '/hladat/', '/program/', '/teraz-nazivo/', '/vysledky/', '/kurzy-dnes/'],
         'gone': None,
         'run_worker_first': ['/teraz-nazivo/*', '/program/*', '/vysledky/*'],
     },
