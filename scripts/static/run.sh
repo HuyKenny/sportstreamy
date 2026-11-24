@@ -6,6 +6,7 @@
 #
 # State dir (kept between runs as a release asset): wrangler/ = local KV + D1 (miniflare), snap/ = what is deployed.
 # Env: TIPSPORT_CLIENT_ID/SECRET, CHANCE_API_USER/PASS, APISPORTS_KEY, CLOUDFLARE_API_TOKEN (+ CLOUDFLARE_ACCOUNT_ID),
+#      TIPSPORT_SK_USER/PASS/PRODUCT_ID (ziveprenosy.sk's own Tipsport.sk feed; without them it renders from the Czech feed),
 #      SNAP_MODE (auto|full|hot), SS_BUILD / ZP_BUILD (code ids, a change forces a full render),
 #      NO_DEPLOY=1 (local test: render only, nothing uploaded, snapshot state untouched).
 set -euo pipefail
@@ -13,7 +14,7 @@ SS=$(pwd)
 STATE=$(realpath "$1")
 ZP=$(realpath "$2")
 WORK=${RUNNER_TEMP:-/tmp}/live
-mkdir -p "$STATE/wrangler" "$STATE/snap" "$WORK/data"
+mkdir -p "$STATE/wrangler" "$STATE/snap" "$WORK/data" "$WORK/data-zp"
 PERSIST="$STATE/wrangler"
 rm -rf "$PERSIST/v3/cache" # the SSR entry's Cache API copy would serve pages of the previous run
 MODE=${SNAP_MODE:-auto}
@@ -59,7 +60,7 @@ stop_dev() {
 }
 cleanup() {
   stop_dev
-  rm -f "$SS/dist/server/.dev.vars" "$SS/.dev.vars"
+  rm -f "$SS/dist/server/.dev.vars" "$SS/.dev.vars" "$ZP/dist/server/.dev.vars"
   if [ -f "$SS/.dev.vars.keep" ]; then mv "$SS/.dev.vars.keep" "$SS/.dev.vars"; fi
 }
 trap cleanup EXIT
@@ -94,14 +95,14 @@ if [ -n "$DB" ] && [ -n "${APISPORTS_KEY:-}" ]; then
 fi
 
 # 2. sportstreamy: refresh from Tipsport/Chance (the Worker's old cron handler, unchanged), render, deploy.
-deploy_site() { # <site> <app dir> <port> <build id>
-  local site=$1 app=$2 port=$3 build=$4 mode=$MODE
+deploy_site() { # <site> <app dir> <port> <build id> <data dir: live.json / pre.json with the Tipsport paths>
+  local site=$1 app=$2 port=$3 build=$4 data=$5 mode=$MODE
   local out="$WORK/render/$site"
   "$SS/node_modules/.bin/esbuild" "$app/src/edge.ts" --bundle --format=esm --platform=neutral --target=es2022 \
     --external:cloudflare:* --external:node:* --outfile="$WORK/edge-$site.js" --log-level=error
   for attempt in 1 2; do
     python3 "$SS/scripts/static/snapshot.py" --site "$site" --base "http://127.0.0.1:$port" --dist "$app/dist/client" \
-      --state "$STATE/snap" --out "$out" --data "$WORK/data" --db "$(d1_file)" --mode "$mode" --build "$build"
+      --state "$STATE/snap" --out "$out" --data "$data" --db "$(d1_file)" --mode "$mode" --build "$build"
     python3 "$SS/scripts/static/verify_no_secrets.py" --dir "$out/files"
     if [ "${NO_DEPLOY:-}" = 1 ]; then log "$site: NO_DEPLOY=1, rendered into $out"; return 0; fi
     set +e
@@ -136,13 +137,45 @@ for k in ('live', 'pre'):
         print(f'{k}: missing ({e})')
 PY
 log "sportstreamy: render + deploy"
-deploy_site sportstreamy "$SS" 8787 "${SS_BUILD:-dev}"
+deploy_site sportstreamy "$SS" 8787 "${SS_BUILD:-dev}" "$WORK/data"
 stop_dev
 
+# 3. ziveprenosy.sk: its own Tipsport.sk feed (since 24. 11. 2026) → KV sk:live / sk:pre via its scheduled handler.
+# Without the secrets or on an error the site renders from the Czech feed above (lib/matches.ts falls back) and its
+# watch buttons go to the plain TV link (empty data dir = no match paths for the /go/ deeplinks).
+if [ -n "${TIPSPORT_SK_USER:-}" ] && [ -n "${TIPSPORT_SK_PASS:-}" ]; then
+  umask 077
+  {
+    echo "TIPSPORT_SK_USER=${TIPSPORT_SK_USER}"
+    echo "TIPSPORT_SK_PASS=${TIPSPORT_SK_PASS}"
+    echo "TIPSPORT_SK_PRODUCT_ID=${TIPSPORT_SK_PRODUCT_ID:-3}"
+  } > "$ZP/dist/server/.dev.vars"
+  umask 022
+fi
 log "ziveprenosy: dev server"
 start_dev "$ZP" 8797
+if [ -f "$ZP/dist/server/.dev.vars" ]; then
+  log "ziveprenosy: refresh (Tipsport.sk)"
+  curl -sf --max-time 120 "http://127.0.0.1:8797/cdn-cgi/handler/scheduled" -o /dev/null || log "tipsport.sk refresh failed"
+  kv_get sk:live "$WORK/data-zp/live.json"
+  kv_get sk:pre "$WORK/data-zp/pre.json"
+  python3 - "$WORK/data-zp" <<'PY2'
+import json, sys, time
+for k in ('live', 'pre'):
+    p = f'{sys.argv[1]}/{k}.json'
+    try:
+        d = json.load(open(p))
+        age = round(time.time() - d['at'] / 1000)
+        print(f"sk {k}: {len(d['items'])} matches, {age} s old")
+        if age > 2 * 3600:
+            open(p, 'w').write('{"items":[]}')  # stale: the pages use the Czech feed, so no tipsport.sk paths either
+    except Exception as e:
+        open(p, 'w').write('{"items":[]}')
+        print(f'sk {k}: missing ({e})')
+PY2
+fi
 log "ziveprenosy: render + deploy"
-deploy_site ziveprenosy "$ZP" 8797 "${ZP_BUILD:-dev}"
+deploy_site ziveprenosy "$ZP" 8797 "${ZP_BUILD:-dev}" "$WORK/data-zp"
 stop_dev
 
 # Keep the state small: the run log of the sync jobs only needs the last week.

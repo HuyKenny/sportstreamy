@@ -1,5 +1,5 @@
 name: live
-# Every 10 min: Tipsport/Chance feed + results → static pages of sportstreamy.cz AND ziveprenosy.sk → deploy of the changed
+# Every 10 min: Tipsport/Chance feed + results → static pages of sportstreamy.cz AND ziveprenosy.sk (own Tipsport.sk feed) → deploy of the changed
 # files + the small edge Worker (src/edge.ts). Replaces the Worker crons, KV and D1 (Cloudflare Workers Free, 23. 11. 2026).
 # The SSR Astro app is not deployed any more: it runs locally here (wrangler dev) and scripts/static/snapshot.py stores its pages.
 # PUBLIC repo: logs are public. Scripts print only counts and HTTP statuses; credentials come from secrets (masked by GitHub);
@@ -108,6 +108,7 @@ jobs:
           APISPORTS_KEY: ${{ secrets.APISPORTS_KEY }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           STATE_KEY: ${{ secrets.STATE_KEY }}
+          TIPSPORT_SK_PASS: ${{ secrets.TIPSPORT_SK_PASS }}
       - name: Restore state (encrypted)
         id: pull
         run: scripts/static/state.sh pull "$RUNNER_TEMP/state"
@@ -127,6 +128,9 @@ jobs:
           APISPORTS_KEY: ${{ secrets.APISPORTS_KEY }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           STATE_KEY: ${{ secrets.STATE_KEY }}
+          TIPSPORT_SK_USER: ${{ secrets.TIPSPORT_SK_USER }}
+          TIPSPORT_SK_PASS: ${{ secrets.TIPSPORT_SK_PASS }}
+          TIPSPORT_SK_PRODUCT_ID: ${{ secrets.TIPSPORT_SK_PRODUCT_ID }}
       - name: Save state (encrypted)
         if: always() && steps.pull.outcome == 'success'
         run: scripts/static/state.sh push "$RUNNER_TEMP/state"

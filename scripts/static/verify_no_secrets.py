@@ -12,7 +12,7 @@ from pathlib import Path
 
 NAMES = ['TIPSPORT_CLIENT_ID', 'TIPSPORT_CLIENT_SECRET', 'CHANCE_API_USER', 'CHANCE_API_PASS', 'APISPORTS_KEY',
          'CLOUDFLARE_API_TOKEN', 'STATE_KEY', 'RESULTS_ADMIN_TOKEN', 'CF_GLOBAL_API_KEY', 'CF_API_KEY', 'WP_APP_PASSWORD', 'FTP_PASSWORD',
-         'CF_API_TOKEN_SPORTSTREAMY']
+         'CF_API_TOKEN_SPORTSTREAMY', 'TIPSPORT_SK_PASS']
 # Short values that are not secret on their own (user names) are skipped by the length limit.
 MIN_LEN = 10
 
@@ -20,7 +20,7 @@ MIN_LEN = 10
 def values():
     vals = {n: os.environ[n] for n in NAMES if len(os.environ.get(n, '')) >= MIN_LEN}
     if not os.environ.get('GITHUB_ACTIONS'):
-        for f in ('.sportstreamy-credentials.env', '.cloudflare-credentials.env'):
+        for f in ('.sportstreamy-credentials.env', '.cloudflare-credentials.env', '.ziveprenosy-sk-credentials.env'):
             p = Path('/home/kenny/ai/credentials') / f
             if p.exists():
                 for line in p.read_text().splitlines():
