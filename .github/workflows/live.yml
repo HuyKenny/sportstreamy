@@ -35,7 +35,7 @@ jobs:
         run: |
           ok=true
           for v in "$CF" "$SK" "$TIP"; do [ -n "$v" ] || ok=false; done
-          [ "$ok" = true ] && { gh release view state -R ${{ github.repository }} --json assets --jq '.assets[].name' | grep -qx state.enc || ok=false; }
+          [ "$ok" = true ] && { gh release view state -R ${{ github.repository }} --json assets --jq '.assets[].name' | grep -qE '^state(-[0-9-]+)?\.enc$' || ok=false; }
           echo "ok=$ok" >> "$GITHUB_OUTPUT"
           echo "ready: $ok"
         env:

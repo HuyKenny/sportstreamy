@@ -11,7 +11,17 @@ TMP=${RUNNER_TEMP:-/tmp}/state.enc
 case "${1:-}" in
   pull)
     mkdir -p "$DIR"
-    if gh release download state -p 'state.enc' -O "$TMP" --clobber 2>/dev/null; then
+    got=""
+    if gh release download state -p 'state.enc' -O "$TMP" --clobber 2>/dev/null; then got=state.enc
+    else
+      # `upload --clobber` deletes the old asset before uploading; a GitHub 5xx in between (24. 11. 01:22 UTC) left
+      # no state.enc and stopped every run. Fall back to the newest daily copy instead of stalling.
+      last=$(gh release view state --json assets --jq '.assets[].name' 2>/dev/null | grep -E '^state-[0-9-]+\.enc$' | sort | tail -1 || true)
+      if [ -n "$last" ] && gh release download state -p "$last" -O "$TMP" --clobber 2>/dev/null; then
+        got=$last; echo "::warning::state.enc missing - restored the daily copy $last"
+      fi
+    fi
+    if [ -n "$got" ]; then
       openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:STATE_KEY -in "$TMP" | tar xz -C "$DIR"
       rm -f "$TMP"
       echo "state restored ($(du -sh "$DIR" | cut -f1))"
@@ -29,7 +39,12 @@ case "${1:-}" in
       | openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -pass env:STATE_KEY -out "$TMP"
     gh release view state >/dev/null 2>&1 || gh release create state --title "live state (encrypted)" \
       --notes "Encrypted data of the live job between runs (results database, deployed file hashes). Not a software release." --latest=false
-    gh release upload state "$TMP" --clobber
+    ok=""
+    for i in 1 2 3 4; do
+      gh release upload state "$TMP" --clobber && { ok=1; break; }
+      echo "upload attempt $i failed, retrying"; sleep $((i * 15))
+    done
+    [ -n "$ok" ] || { echo "state upload failed"; exit 1; }
     day=$(date -u +%F)
     if ! gh release view state --json assets --jq '.assets[].name' | grep -qx "state-$day.enc"; then
       cp "$TMP" "${TMP%.enc}-$day.enc"
