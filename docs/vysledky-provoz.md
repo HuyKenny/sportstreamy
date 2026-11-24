@@ -1,5 +1,12 @@
 # Výsledky: provoz (fotbal, 12 sledovaných soutěží)
 
+> **24. 11. 2026 – api-football pozastaveno („Your account is Suspended“).** Dokud existuje `scripts/static/af.disabled`,
+> live job api-football nevolá (chybí střelci, statistiky, sestavy, H2H; nové erby týmů se nepárují). Konečné výsledky
+> místo něj potvrzuje **hlídač `ended-watch.yml`**: každou minutu čte live feed vlastního Tipsport.sk účtu (český účet
+> zůstává u dohodnutých volání), drží ukončené zápasy (`ended` + skóre, ve feedu jen ~1–4 min) v šifrovaném
+> `ended.enc` v release `state`; `run.sh` je dá do KV `ended` a `refreshLive()` je zapíše přes `applyEnded()`
+> (podle id zápasu, i z `unconfirmed`). Po obnovení účtu: smazat `af.disabled`, sync ideálně zase z jedné pevné IP.
+
 Stav k 21. 10. 2026:
 - **Živě od 21. 10. 2026 8:27.** Kenny schválil, Tipsport souhlasí za podmínky, že dodržíme jejich volání API.
 - **Od 21. 10. 10:02** všech 12 kurátorovaných fotbalových soutěží: Chance Liga, Chance Národní liga, Liga mistrů, Evropská liga, Konferenční liga, Premier League, Championship, La Liga, Bundesliga, Serie A, Ligue 1 a Niké liga.
